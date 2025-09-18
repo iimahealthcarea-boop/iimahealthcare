@@ -32,19 +32,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchUserRole = async (userId: string) => {
-    const { data: roleData } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId)
-      .single();
+    try {
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .maybeSingle();
 
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
 
-    return { role: roleData?.role, profile: profileData };
+      if (roleError) {
+        console.error('Error fetching user role:', roleError);
+      }
+      if (profileError) {
+        console.error('Error fetching user profile:', profileError);
+      }
+
+      return { role: roleData?.role, profile: profileData };
+    } catch (error) {
+      console.error('Error in fetchUserRole:', error);
+      return { role: null, profile: null };
+    }
   };
 
   const refreshUserData = async () => {
@@ -62,21 +74,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setSession(session);
         
         if (session?.user) {
-          const { role, profile } = await fetchUserRole(session.user.id);
-          setUser({
-            ...session.user,
-            role: role as UserRole,
-            profile,
-            approvalStatus: profile?.approval_status as ApprovalStatus
-          });
+          // Use setTimeout to avoid deadlock with onAuthStateChange
+          setTimeout(() => {
+            fetchUserRole(session.user.id).then(({ role, profile }) => {
+              setUser({
+                ...session.user,
+                role: role as UserRole,
+                profile,
+                approvalStatus: profile?.approval_status as ApprovalStatus
+              });
+              setLoading(false);
+            }).catch((error) => {
+              console.error('Error fetching user data:', error);
+              setUser({
+                ...session.user,
+                role: 'normal_user' as UserRole,
+                profile: null,
+                approvalStatus: 'pending' as ApprovalStatus
+              });
+              setLoading(false);
+            });
+          }, 0);
         } else {
           setUser(null);
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
@@ -90,6 +116,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             role: role as UserRole,
             profile,
             approvalStatus: profile?.approval_status as ApprovalStatus
+          });
+          setLoading(false);
+        }).catch((error) => {
+          console.error('Error fetching initial user data:', error);
+          setUser({
+            ...session.user,
+            role: 'normal_user' as UserRole,
+            profile: null,
+            approvalStatus: 'pending' as ApprovalStatus
           });
           setLoading(false);
         });
