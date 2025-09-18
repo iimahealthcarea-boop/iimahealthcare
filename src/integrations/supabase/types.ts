@@ -16,12 +16,21 @@ export type Database = {
     Tables: {
       profiles: {
         Row: {
+          address: string | null
+          approval_status:
+            | Database["public"]["Enums"]["profile_approval_status"]
+            | null
+          approved_at: string | null
+          approved_by: string | null
           avatar_url: string | null
           bio: string | null
           city: string | null
           country: string | null
           created_at: string
+          date_of_birth: string | null
           email: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
           experience_level:
             | Database["public"]["Enums"]["experience_level"]
             | null
@@ -40,6 +49,7 @@ export type Database = {
           phone: string | null
           position: string | null
           program: string | null
+          rejection_reason: string | null
           show_contact_info: boolean | null
           show_location: boolean | null
           skills: string[] | null
@@ -49,12 +59,21 @@ export type Database = {
           website_url: string | null
         }
         Insert: {
+          address?: string | null
+          approval_status?:
+            | Database["public"]["Enums"]["profile_approval_status"]
+            | null
+          approved_at?: string | null
+          approved_by?: string | null
           avatar_url?: string | null
           bio?: string | null
           city?: string | null
           country?: string | null
           created_at?: string
+          date_of_birth?: string | null
           email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
           experience_level?:
             | Database["public"]["Enums"]["experience_level"]
             | null
@@ -73,6 +92,7 @@ export type Database = {
           phone?: string | null
           position?: string | null
           program?: string | null
+          rejection_reason?: string | null
           show_contact_info?: boolean | null
           show_location?: boolean | null
           skills?: string[] | null
@@ -82,12 +102,21 @@ export type Database = {
           website_url?: string | null
         }
         Update: {
+          address?: string | null
+          approval_status?:
+            | Database["public"]["Enums"]["profile_approval_status"]
+            | null
+          approved_at?: string | null
+          approved_by?: string | null
           avatar_url?: string | null
           bio?: string | null
           city?: string | null
           country?: string | null
           created_at?: string
+          date_of_birth?: string | null
           email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
           experience_level?:
             | Database["public"]["Enums"]["experience_level"]
             | null
@@ -106,6 +135,7 @@ export type Database = {
           phone?: string | null
           position?: string | null
           program?: string | null
+          rejection_reason?: string | null
           show_contact_info?: boolean | null
           show_location?: boolean | null
           skills?: string[] | null
@@ -113,6 +143,30 @@ export type Database = {
           updated_at?: string
           user_id?: string
           website_url?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -204,7 +258,22 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      approve_user_profile: {
+        Args: { profile_user_id: string }
+        Returns: undefined
+      }
+      get_user_role: {
+        Args: { user_id: string }
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
+      is_admin: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
+      reject_user_profile: {
+        Args: { profile_user_id: string; reason?: string }
+        Returns: undefined
+      }
     }
     Enums: {
       experience_level:
@@ -225,7 +294,9 @@ export type Database = {
         | "Technology"
         | "Finance"
         | "Other"
+      profile_approval_status: "pending" | "approved" | "rejected"
       profile_status: "Active" | "Alumni" | "Student" | "Faculty" | "Inactive"
+      user_role: "admin" | "normal_user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -373,7 +444,9 @@ export const Constants = {
         "Finance",
         "Other",
       ],
+      profile_approval_status: ["pending", "approved", "rejected"],
       profile_status: ["Active", "Alumni", "Student", "Faculty", "Inactive"],
+      user_role: ["admin", "normal_user"],
     },
   },
 } as const
