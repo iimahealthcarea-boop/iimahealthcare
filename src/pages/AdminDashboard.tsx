@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Tables } from '@/integrations/supabase/types';
 import { Users, Clock, CheckCircle, XCircle, Eye, User } from 'lucide-react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
 import Header from '@/components/Header';
 
 type ProfileWithApproval = Tables<'profiles'>;
@@ -340,6 +340,19 @@ export default function AdminDashboard() {
       <Header showUserInfo={true} showSignOut={true} />
 
       <main className="p-6 max-w-6xl mx-auto">
+        {/* Header with Profile Link */}
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+            <p className="text-muted-foreground">Manage user profiles and applications</p>
+          </div>
+          <Link to="/profile">
+            <Button variant="outline">
+              <User className="w-4 h-4 mr-2" />
+              My Profile
+            </Button>
+          </Link>
+        </div>
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <Card>

@@ -16,8 +16,8 @@ export default function MemberDirectory() {
   const [filteredMembers, setFilteredMembers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [experienceFilter, setExperienceFilter] = useState('');
-  const [organizationTypeFilter, setOrganizationTypeFilter] = useState('');
+  const [experienceFilter, setExperienceFilter] = useState('all');
+  const [organizationTypeFilter, setOrganizationTypeFilter] = useState('all');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -63,11 +63,11 @@ export default function MemberDirectory() {
       );
     }
 
-    if (experienceFilter) {
+    if (experienceFilter && experienceFilter !== 'all') {
       filtered = filtered.filter(member => member.experience_level === experienceFilter);
     }
 
-    if (organizationTypeFilter) {
+    if (organizationTypeFilter && organizationTypeFilter !== 'all') {
       filtered = filtered.filter(member => member.organization_type === organizationTypeFilter);
     }
 
@@ -121,7 +121,7 @@ export default function MemberDirectory() {
                   <SelectValue placeholder="All experience levels" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All experience levels</SelectItem>
+                  <SelectItem value="all">All experience levels</SelectItem>
                   <SelectItem value="Student">Student</SelectItem>
                   <SelectItem value="Recent Graduate">Recent Graduate</SelectItem>
                   <SelectItem value="Entry Level">Entry Level</SelectItem>
@@ -139,7 +139,7 @@ export default function MemberDirectory() {
                   <SelectValue placeholder="All organization types" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All organization types</SelectItem>
+                  <SelectItem value="all">All organization types</SelectItem>
                   <SelectItem value="Corporate">Corporate</SelectItem>
                   <SelectItem value="Startup">Startup</SelectItem>
                   <SelectItem value="Non-Profit">Non-Profit</SelectItem>

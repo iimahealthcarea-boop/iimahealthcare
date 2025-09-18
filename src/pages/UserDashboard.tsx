@@ -25,6 +25,20 @@ export default function UserDashboard() {
       <Header showUserInfo={true} showSignOut={true} />
 
       <main className="p-6 max-w-6xl mx-auto">
+        {/* Header with Profile Link */}
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-3xl font-bold">Welcome, {profile?.first_name}!</h1>
+            <p className="text-muted-foreground">Manage your profile and connect with fellow alumni</p>
+          </div>
+          <Link to="/profile">
+            <Button variant="outline">
+              <User className="w-4 h-4 mr-2" />
+              My Profile
+            </Button>
+          </Link>
+        </div>
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">

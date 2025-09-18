@@ -18,8 +18,9 @@ interface AuthContextType {
   loading: boolean;
   isAdmin: boolean;
   isApproved: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, userData: any) => Promise<{ error: any }>;
+  signInWithOtp: (emailOrPhone: string, isPhone?: boolean) => Promise<{ error: any }>;
+  verifyOtp: (emailOrPhone: string, token: string, isPhone?: boolean) => Promise<{ error: any }>;
+  signUp: (emailOrPhone: string, userData?: any, isPhone?: boolean) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   refreshUserData: () => Promise<void>;
 }
@@ -136,25 +137,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+  const signInWithOtp = async (emailOrPhone: string, isPhone: boolean = false) => {
+    const options = isPhone 
+      ? { phone: emailOrPhone }
+      : { email: emailOrPhone };
+    
+    const { error } = await supabase.auth.signInWithOtp(options);
     return { error };
   };
 
-  const signUp = async (email: string, password: string, userData: any) => {
-    const redirectUrl = `${window.location.origin}/`;
+  const verifyOtp = async (emailOrPhone: string, token: string, isPhone: boolean = false) => {
+    const options = isPhone 
+      ? { phone: emailOrPhone, token, type: 'sms' as const }
+      : { email: emailOrPhone, token, type: 'email' as const };
     
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: userData
-      }
-    });
+    const { error } = await supabase.auth.verifyOtp(options);
+    return { error };
+  };
+
+  const signUp = async (emailOrPhone: string, userData: any = {}, isPhone: boolean = false) => {
+    const options = isPhone 
+      ? { phone: emailOrPhone, options: { data: userData } }
+      : { email: emailOrPhone, options: { emailRedirectTo: `${window.location.origin}/`, data: userData } };
+    
+    const { error } = await supabase.auth.signInWithOtp(options);
     return { error };
   };
 
@@ -172,7 +178,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       isAdmin,
       isApproved,
-      signIn,
+      signInWithOtp,
+      verifyOtp,
       signUp,
       signOut,
       refreshUserData
