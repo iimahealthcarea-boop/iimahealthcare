@@ -1,6 +1,13 @@
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { GraduationCap, User } from 'lucide-react';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { GraduationCap, User, LogOut, ChevronDown } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface HeaderProps {
   showUserInfo?: boolean;
@@ -34,13 +41,30 @@ export default function Header({ showUserInfo = false, showSignOut = false }: He
                 </span>
               </div>
               {showSignOut && (
-                <Button 
-                  variant="outline" 
-                  onClick={signOut}
-                  className="border-blue-300 text-blue-700 hover:bg-blue-50"
-                >
-                  Sign Out
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                    >
+                      <User className="h-4 w-4 mr-2" />
+                      Account
+                      <ChevronDown className="h-4 w-4 ml-2" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem asChild>
+                      <Link to="/profile" className="w-full flex items-center">
+                        <User className="h-4 w-4 mr-2" />
+                        Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={signOut} className="w-full flex items-center">
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
             </div>
           )}
