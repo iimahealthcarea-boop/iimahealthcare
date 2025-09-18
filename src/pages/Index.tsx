@@ -79,7 +79,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-healthcare-surface to-background">
-      <Header currentUser={currentUser} />
+      <Header />
       
       <main className="container mx-auto px-4 lg:px-8 py-8">
         {/* Hero Section */}
