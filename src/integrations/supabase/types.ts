@@ -14,16 +14,218 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          email: string | null
+          experience_level:
+            | Database["public"]["Enums"]["experience_level"]
+            | null
+          first_name: string | null
+          graduation_year: number | null
+          id: string
+          interests: string[] | null
+          is_public: boolean | null
+          last_name: string | null
+          linkedin_url: string | null
+          location: string | null
+          organization: string | null
+          organization_type:
+            | Database["public"]["Enums"]["organization_type"]
+            | null
+          phone: string | null
+          position: string | null
+          program: string | null
+          show_contact_info: boolean | null
+          show_location: boolean | null
+          skills: string[] | null
+          status: Database["public"]["Enums"]["profile_status"] | null
+          updated_at: string
+          user_id: string
+          website_url: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          experience_level?:
+            | Database["public"]["Enums"]["experience_level"]
+            | null
+          first_name?: string | null
+          graduation_year?: number | null
+          id?: string
+          interests?: string[] | null
+          is_public?: boolean | null
+          last_name?: string | null
+          linkedin_url?: string | null
+          location?: string | null
+          organization?: string | null
+          organization_type?:
+            | Database["public"]["Enums"]["organization_type"]
+            | null
+          phone?: string | null
+          position?: string | null
+          program?: string | null
+          show_contact_info?: boolean | null
+          show_location?: boolean | null
+          skills?: string[] | null
+          status?: Database["public"]["Enums"]["profile_status"] | null
+          updated_at?: string
+          user_id: string
+          website_url?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          experience_level?:
+            | Database["public"]["Enums"]["experience_level"]
+            | null
+          first_name?: string | null
+          graduation_year?: number | null
+          id?: string
+          interests?: string[] | null
+          is_public?: boolean | null
+          last_name?: string | null
+          linkedin_url?: string | null
+          location?: string | null
+          organization?: string | null
+          organization_type?:
+            | Database["public"]["Enums"]["organization_type"]
+            | null
+          phone?: string | null
+          position?: string | null
+          program?: string | null
+          show_contact_info?: boolean | null
+          show_location?: boolean | null
+          skills?: string[] | null
+          status?: Database["public"]["Enums"]["profile_status"] | null
+          updated_at?: string
+          user_id?: string
+          website_url?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
-      [_ in never]: never
+      member_directory: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          city: string | null
+          country: string | null
+          email: string | null
+          experience_level:
+            | Database["public"]["Enums"]["experience_level"]
+            | null
+          first_name: string | null
+          graduation_year: number | null
+          id: string | null
+          interests: string[] | null
+          last_name: string | null
+          linkedin_url: string | null
+          location: string | null
+          organization: string | null
+          organization_type:
+            | Database["public"]["Enums"]["organization_type"]
+            | null
+          phone: string | null
+          position: string | null
+          program: string | null
+          skills: string[] | null
+          status: Database["public"]["Enums"]["profile_status"] | null
+          website_url: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          city?: never
+          country?: never
+          email?: never
+          experience_level?:
+            | Database["public"]["Enums"]["experience_level"]
+            | null
+          first_name?: string | null
+          graduation_year?: number | null
+          id?: string | null
+          interests?: string[] | null
+          last_name?: string | null
+          linkedin_url?: never
+          location?: never
+          organization?: string | null
+          organization_type?:
+            | Database["public"]["Enums"]["organization_type"]
+            | null
+          phone?: never
+          position?: string | null
+          program?: string | null
+          skills?: string[] | null
+          status?: Database["public"]["Enums"]["profile_status"] | null
+          website_url?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          city?: never
+          country?: never
+          email?: never
+          experience_level?:
+            | Database["public"]["Enums"]["experience_level"]
+            | null
+          first_name?: string | null
+          graduation_year?: number | null
+          id?: string | null
+          interests?: string[] | null
+          last_name?: string | null
+          linkedin_url?: never
+          location?: never
+          organization?: string | null
+          organization_type?:
+            | Database["public"]["Enums"]["organization_type"]
+            | null
+          phone?: never
+          position?: string | null
+          program?: string | null
+          skills?: string[] | null
+          status?: Database["public"]["Enums"]["profile_status"] | null
+          website_url?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      experience_level:
+        | "Entry Level"
+        | "Mid Level"
+        | "Senior Level"
+        | "Executive"
+        | "Student"
+        | "Recent Graduate"
+      organization_type:
+        | "Corporate"
+        | "Startup"
+        | "Non-Profit"
+        | "Government"
+        | "Consulting"
+        | "Education"
+        | "Healthcare"
+        | "Technology"
+        | "Finance"
+        | "Other"
+      profile_status: "Active" | "Alumni" | "Student" | "Faculty" | "Inactive"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +352,28 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      experience_level: [
+        "Entry Level",
+        "Mid Level",
+        "Senior Level",
+        "Executive",
+        "Student",
+        "Recent Graduate",
+      ],
+      organization_type: [
+        "Corporate",
+        "Startup",
+        "Non-Profit",
+        "Government",
+        "Consulting",
+        "Education",
+        "Healthcare",
+        "Technology",
+        "Finance",
+        "Other",
+      ],
+      profile_status: ["Active", "Alumni", "Student", "Faculty", "Inactive"],
+    },
   },
 } as const
