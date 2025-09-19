@@ -10,7 +10,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Tables } from '@/integrations/supabase/types';
-import { Users, Clock, CheckCircle, XCircle, Eye, User } from 'lucide-react';
+import { Users, Clock, CheckCircle, XCircle, Eye, User, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { Navigate, Link } from 'react-router-dom';
 import Header from '@/components/Header';
 
@@ -193,6 +194,99 @@ export default function AdminDashboard() {
   };
 
   const stats = getStats();
+
+  const exportToExcel = () => {
+    try {
+      // Get all approved profiles for export
+      const approvedProfiles = profiles.filter(p => p.approval_status === 'approved');
+      
+      // Prepare data for Excel export
+      const excelData = approvedProfiles.map(profile => ({
+        'Name': `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
+        'Email': profile.email || '',
+        'Phone': profile.phone || '',
+        'Organization': profile.organization || '',
+        'Position': profile.position || '',
+        'Program': profile.program || '',
+        'Experience Level': profile.experience_level || '',
+        'Organization Type': profile.organization_type || '',
+        'City': profile.city || '',
+        'Country': profile.country || '',
+        'Address': profile.address || '',
+        'Date of Birth': profile.date_of_birth || '',
+        'Graduation Year': profile.graduation_year || '',
+        'LinkedIn': profile.linkedin_url || '',
+        'Website': profile.website_url || '',
+        'Bio': profile.bio || '',
+        'Skills': profile.skills ? profile.skills.join(', ') : '',
+        'Interests': profile.interests ? profile.interests.join(', ') : '',
+        'Emergency Contact Name': profile.emergency_contact_name || '',
+        'Emergency Contact Phone': profile.emergency_contact_phone || '',
+        'Approved Date': profile.approved_at ? new Date(profile.approved_at).toLocaleDateString() : '',
+        'Registration Date': new Date(profile.created_at).toLocaleDateString(),
+        'Status': profile.status || '',
+        'Public Profile': profile.is_public ? 'Yes' : 'No',
+        'Show Contact Info': profile.show_contact_info ? 'Yes' : 'No',
+        'Show Location': profile.show_location ? 'Yes' : 'No'
+      }));
+
+      // Create workbook and worksheet
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+
+      // Set column widths for better readability
+      const columnWidths = [
+        { wch: 20 }, // Name
+        { wch: 25 }, // Email
+        { wch: 15 }, // Phone
+        { wch: 20 }, // Organization
+        { wch: 20 }, // Position
+        { wch: 15 }, // Program
+        { wch: 15 }, // Experience Level
+        { wch: 15 }, // Organization Type
+        { wch: 15 }, // City
+        { wch: 15 }, // Country
+        { wch: 30 }, // Address
+        { wch: 12 }, // Date of Birth
+        { wch: 12 }, // Graduation Year
+        { wch: 30 }, // LinkedIn
+        { wch: 30 }, // Website
+        { wch: 50 }, // Bio
+        { wch: 30 }, // Skills
+        { wch: 30 }, // Interests
+        { wch: 20 }, // Emergency Contact Name
+        { wch: 18 }, // Emergency Contact Phone
+        { wch: 12 }, // Approved Date
+        { wch: 15 }, // Registration Date
+        { wch: 10 }, // Status
+        { wch: 12 }, // Public Profile
+        { wch: 15 }, // Show Contact Info
+        { wch: 15 }  // Show Location
+      ];
+      worksheet['!cols'] = columnWidths;
+
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Members');
+
+      // Generate filename with current date
+      const today = new Date();
+      const filename = `members_export_${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}.xlsx`;
+
+      // Save the file
+      XLSX.writeFile(workbook, filename);
+
+      toast({
+        title: "Export Successful",
+        description: `${approvedProfiles.length} member records exported to ${filename}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Export Failed",
+        description: "Failed to export member data to Excel",
+        variant: "destructive",
+      });
+    }
+  };
 
   const renderProfileCard = (profile: ProfileWithApproval) => (
     <Card key={profile.id} className="hover:shadow-md transition-shadow">
@@ -396,18 +490,24 @@ export default function AdminDashboard() {
       <Header showUserInfo={true} showSignOut={true} />
 
       <main className="p-6 max-w-6xl mx-auto">
-        {/* Header with Profile Link */}
+        {/* Header with Profile Link and Export */}
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold">Admin Dashboard</h1>
             <p className="text-muted-foreground">Manage user profiles and applications</p>
           </div>
-          <Link to="/profile">
-            <Button variant="outline">
-              <User className="w-4 h-4 mr-2" />
-              My Profile
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={exportToExcel}>
+              <Download className="w-4 h-4 mr-2" />
+              Export Excel
             </Button>
-          </Link>
+            <Link to="/profile">
+              <Button variant="outline">
+                <User className="w-4 h-4 mr-2" />
+                My Profile
+              </Button>
+            </Link>
+          </div>
         </div>
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
