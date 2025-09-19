@@ -57,15 +57,41 @@ export default function AdminDashboard() {
   const handleApprove = async (profileUserId: string) => {
     setActionLoading(true);
     try {
+      // Get user profile details before approval
+      const profile = profiles.find(p => p.user_id === profileUserId);
+      if (!profile) {
+        throw new Error('Profile not found');
+      }
+
+      // Approve the profile
       const { error } = await supabase.rpc('approve_user_profile', {
         profile_user_id: profileUserId
       });
 
       if (error) throw error;
 
+      // Send approval email
+      try {
+        const { error: emailError } = await supabase.functions.invoke('send-approval-email', {
+          body: {
+            email: profile.email,
+            name: `${profile.first_name} ${profile.last_name}`,
+            status: 'approved'
+          }
+        });
+
+        if (emailError) {
+          console.error('Email sending failed:', emailError);
+          // Don't fail the approval if email fails, just log it
+        }
+      } catch (emailError) {
+        console.error('Email sending failed:', emailError);
+        // Don't fail the approval if email fails
+      }
+
       toast({
         title: "Profile Approved",
-        description: "The user profile has been approved successfully.",
+        description: "The user profile has been approved and notification email sent.",
       });
 
       await fetchProfiles();
@@ -93,6 +119,13 @@ export default function AdminDashboard() {
 
     setActionLoading(true);
     try {
+      // Get user profile details before rejection
+      const profile = profiles.find(p => p.user_id === profileUserId);
+      if (!profile) {
+        throw new Error('Profile not found');
+      }
+
+      // Reject the profile
       const { error } = await supabase.rpc('reject_user_profile', {
         profile_user_id: profileUserId,
         reason: rejectionReason
@@ -100,9 +133,29 @@ export default function AdminDashboard() {
 
       if (error) throw error;
 
+      // Send rejection email
+      try {
+        const { error: emailError } = await supabase.functions.invoke('send-approval-email', {
+          body: {
+            email: profile.email,
+            name: `${profile.first_name} ${profile.last_name}`,
+            status: 'rejected',
+            reason: rejectionReason
+          }
+        });
+
+        if (emailError) {
+          console.error('Email sending failed:', emailError);
+          // Don't fail the rejection if email fails, just log it
+        }
+      } catch (emailError) {
+        console.error('Email sending failed:', emailError);
+        // Don't fail the rejection if email fails
+      }
+
       toast({
         title: "Profile Rejected",
-        description: "The user profile has been rejected.",
+        description: "The user profile has been rejected and notification email sent.",
       });
 
       await fetchProfiles();
