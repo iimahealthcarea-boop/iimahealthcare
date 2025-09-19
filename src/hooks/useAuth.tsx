@@ -170,6 +170,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    // Force navigation to auth page after sign out
+    window.location.href = '/auth';
   };
 
   const isAdmin = user?.role === 'admin';

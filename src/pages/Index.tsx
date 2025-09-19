@@ -10,6 +10,7 @@ export default function Index() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Only redirect authenticated users with complete profiles
     if (!loading && user && user.profile) {
       if (isAdmin) {
         // Admin user - redirect to admin dashboard
@@ -31,6 +32,7 @@ export default function Index() {
         navigate('/waiting-approval');
       }
     }
+    // If loading is complete and no user, stay on landing page (will show sign in options)
   }, [user, loading, isAdmin, isApproved, navigate]);
 
   if (loading) {
