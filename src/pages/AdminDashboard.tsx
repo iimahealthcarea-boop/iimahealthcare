@@ -55,6 +55,15 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleRefresh = async () => {
+    setLoading(true);
+    await fetchProfiles();
+    toast({
+      title: "Refreshed",
+      description: "Profile list has been updated",
+    });
+  };
+
   const handleApprove = async (profileUserId: string) => {
     setActionLoading(true);
     try {
@@ -564,7 +573,7 @@ export default function AdminDashboard() {
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={fetchProfiles}
+              onClick={handleRefresh}
               disabled={loading}
               className="ml-2"
             >
