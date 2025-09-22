@@ -75,15 +75,23 @@ export default function MemberDirectory() {
         throw new Error('No access token');
       }
 
-      const response = await supabase.functions.invoke('directory-get', {
+      const response = await fetch(`https://ndytoqziowlraazwokgt.supabase.co/functions/v1/directory-get`, {
+        method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
       });
 
-      if (response.error) throw response.error;
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-      const directoryData = response.data?.data || [];
+      const result = await response.json();
+
+      if (result.error) throw new Error(result.error);
+
+      const directoryData = result.data || [];
       setDirectoryMembers(directoryData);
       
       // Update userDirectoryIds for quick lookup
@@ -160,6 +168,7 @@ export default function MemberDirectory() {
       }
 
       const response = await supabase.functions.invoke('directory-remove', {
+        body: { member_id: memberId },
         headers: {
           Authorization: `Bearer ${token}`,
         },
