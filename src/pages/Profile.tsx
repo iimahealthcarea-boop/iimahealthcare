@@ -197,13 +197,11 @@ const Profile = () => {
       console.log("public url ", data);
 
       // Update profile with new avatar URL
-      const { response, error: updateError } = await supabase
+      const { error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: data.publicUrl })
         .eq('user_id', user.id);
 
-      console.log("response", response);
-      console.log("error", error);
       if (updateError) throw updateError;
 
       // Update local state
