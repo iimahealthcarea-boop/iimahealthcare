@@ -201,7 +201,15 @@ export type Database = {
           member_id?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_directory_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
