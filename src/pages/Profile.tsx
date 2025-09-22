@@ -196,6 +196,7 @@ const Profile = () => {
 
       console.log("public url ", data);
       console.log("user" , user);
+      console.log("new comment")
       
       // Update profile with new avatar URL
       const { response, error: updateError } = await supabase
