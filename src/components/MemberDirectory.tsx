@@ -351,6 +351,13 @@ export default function MemberDirectory() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent>
                             <DropdownMenuItem
+                              onClick={() => addToDirectory(member.user_id)}
+                              className="text-destructive"
+                            >
+                              <X className="h-4 w-4 mr-2" />
+                              Add to Directory
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
                               onClick={() => removeFromDirectory(member.user_id)}
                               className="text-destructive"
                             >
