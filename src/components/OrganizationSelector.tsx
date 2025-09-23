@@ -55,23 +55,22 @@ export const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({
   const searchOrganizations = async (term: string) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('organizations-search', {
-        body: null,
+      const url = `https://ndytoqziowlraazwokgt.supabase.co/functions/v1/organizations-search${term ? `?q=${encodeURIComponent(term)}` : ''}`;
+      
+      const response = await fetch(url, {
+        method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5keXRvcXppb3dscmFhendva2d0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxOTU5MjcsImV4cCI6MjA3Mzc3MTkyN30.7YakxnScWmMDHPrPx2MCCaIZX4CFq9L3i9w6VMA9La0`,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5keXRvcXppb3dscmFhendva2d0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxOTU5MjcsImV4cCI6MjA3Mzc3MTkyN30.7YakxnScWmMDHPrPx2MCCaIZX4CFq9L3i9w6VMA9La0',
         },
       });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      
+      const data = await response.json();
 
       if (data.success) {
-        let filteredOrgs = data.data;
-        if (term) {
-          filteredOrgs = data.data.filter((org: Organization) =>
-            org.name.toLowerCase().includes(term.toLowerCase())
-          );
-        }
-        setOrganizations(filteredOrgs);
+        setOrganizations(data.data);
       }
     } catch (error) {
       console.error('Error searching organizations:', error);
