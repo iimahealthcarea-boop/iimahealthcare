@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useCountries } from '@/hooks/useCountries';
 import { Loader2 } from 'lucide-react';
 import Header from '@/components/Header';
+import { OrganizationSelector } from '@/components/OrganizationSelector';
 
 export default function Registration() {
   const { user, refreshUserData } = useAuth();
@@ -315,10 +316,10 @@ export default function Registration() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="organization">Organization</Label>
-                    <Input
-                      id="organization"
+                    <OrganizationSelector
                       value={formData.organization}
-                      onChange={(e) => setFormData({...formData, organization: e.target.value})}
+                      onChange={(value) => setFormData({...formData, organization: value})}
+                      placeholder="Search or add organization..."
                     />
                   </div>
                   <div>
