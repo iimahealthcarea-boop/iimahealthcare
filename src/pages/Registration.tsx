@@ -13,6 +13,7 @@ import { useCountries } from '@/hooks/useCountries';
 import { Loader2 } from 'lucide-react';
 import Header from '@/components/Header';
 import { OrganizationSelector } from '@/components/OrganizationSelector';
+import { addProfileChange } from '@/utils/profileChangeTracker';
 
 export default function Registration() {
   const { user, refreshUserData } = useAuth();
@@ -134,8 +135,8 @@ export default function Registration() {
           organization: formData.organization,
           position: formData.position,
           program: formData.program,
-          experience_level: formData.experience_level as any,
-          organization_type: formData.organization_type as any,
+          experience_level: formData.experience_level as "Entry Level" | "Mid Level" | "Senior Level" | "Executive" | "Student" | "Recent Graduate",
+          organization_type: formData.organization_type as "Corporate" | "Startup" | "Non-Profit" | "Government" | "Consulting" | "Education" | "Healthcare" | "Technology" | "Finance" | "Other",
           graduation_year: formData.graduation_year ? parseInt(formData.graduation_year) : null,
           bio: formData.bio,
           skills: skillsArray,
@@ -148,6 +149,29 @@ export default function Registration() {
 
       if (error) throw error;
 
+      // Track profile creation
+      const userName = `${formData.first_name} ${formData.last_name}`.trim() || user?.email || 'User';
+      const creationFields = {
+        approval_status: { oldValue: null, newValue: 'pending' },
+        first_name: { oldValue: null, newValue: formData.first_name },
+        last_name: { oldValue: null, newValue: formData.last_name },
+        organization: { oldValue: null, newValue: formData.organization },
+        position: { oldValue: null, newValue: formData.position }
+      };
+
+      try {
+        await addProfileChange(
+          user?.id || '',
+          user?.id || '',
+          userName,
+          creationFields,
+          'create'
+        );
+      } catch (changeError) {
+        console.error('Failed to track profile creation:', changeError);
+        // Don't fail the registration if change tracking fails
+      }
+
       await refreshUserData();
       
       toast({
@@ -156,10 +180,10 @@ export default function Registration() {
       });
       
       navigate('/waiting-approval');
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Failed to submit registration",
         variant: "destructive",
       });
     } finally {

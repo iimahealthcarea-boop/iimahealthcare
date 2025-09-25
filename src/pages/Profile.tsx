@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,20 +17,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCountries } from "@/hooks/useCountries";
 import { Loader2, Save, X, ArrowLeft, Upload, Clock } from "lucide-react";
 import { OrganizationSelector } from "@/components/OrganizationSelector";
-import { ProfileChangeTimeline } from "@/components/ProfileChangeTimeline";
-import type { Json } from "@/integrations/supabase/types";
+import { addProfileChange, getChangedFields } from "@/utils/profileChangeTracker";
+import CountrySelector from "@/components/CountrySelector";
 
-type OrganizationType = 
-  | "Corporate" 
-  | "Startup" 
-  | "Non-Profit" 
-  | "Government" 
-  | "Consulting" 
-  | "Education" 
-  | "Healthcare" 
-  | "Technology" 
-  | "Finance" 
-  | "Other";
+type OrganizationType = 'Corporate' | 'Startup' | 'Non-Profit' | 'Government' | 'Consulting' | 'Education' | 'Healthcare' | 'Technology' | 'Finance' | 'Other';
 type ExperienceLevel = 'Entry Level' | 'Mid Level' | 'Senior Level' | 'Executive' | 'Student' | 'Recent Graduate';
 type ProfileStatus = 'Active' | 'Alumni' | 'Student' | 'Faculty' | 'Inactive';
 
@@ -52,9 +42,9 @@ interface Profile {
   program: string | null;
   graduation_year: number | null;
   organization: string | null;
-  organization_type: string | null;
+  organization_type: OrganizationType | null;
   position: string | null;
-  experience_level: string | null;
+  experience_level: ExperienceLevel | null;
   location: string | null;
   city: string | null;
   country: string | null;
@@ -63,12 +53,11 @@ interface Profile {
   bio: string | null;
   interests: string[] | null;
   skills: string[] | null;
-  status: string | null;
+  status: ProfileStatus | null;
   show_contact_info: boolean;
   show_location: boolean;
   is_public: boolean;
   avatar_url: string | null;
-  change_history?: Json;
 }
 
 const Profile = () => {
@@ -80,26 +69,11 @@ const Profile = () => {
   const [uploading, setUploading] = useState(false);
   const [interestsInput, setInterestsInput] = useState("");
   const [skillsInput, setSkillsInput] = useState("");
-  const [showTimeline, setShowTimeline] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { countries, loading: countriesLoading } = useCountries();
 
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate("/auth");
-        return;
-      }
-      setUser(user);
-      await fetchProfile(user.id);
-    };
-
-    getUser();
-  }, [navigate]);
-
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -124,7 +98,21 @@ const Profile = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate("/auth");
+        return;
+      }
+      setUser(user);
+      await fetchProfile(user.id);
+    };
+
+    getUser();
+  }, [navigate, fetchProfile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,35 +130,29 @@ const Profile = () => {
         .map(item => item.trim())
         .filter(item => item.length > 0);
 
-      const updateData = {
-        first_name: profile.first_name,
-        last_name: profile.last_name,
-        email: profile.email,
-        phone: profile.phone,
-        country_code: profile.country_code,
-        program: profile.program,
-        graduation_year: profile.graduation_year,
-        organization: profile.organization,
-        organization_type: profile.organization_type as any,
-        position: profile.position,
-        experience_level: profile.experience_level as any,
-        location: profile.location,
-        city: profile.city,
-        country: profile.country,
-        linkedin_url: profile.linkedin_url,
-        website_url: profile.website_url,
-        bio: profile.bio,
-        status: profile.status as any,
-        show_contact_info: profile.show_contact_info,
-        show_location: profile.show_location,
-        is_public: profile.is_public,
+      const updatedData = {
+        ...profile,
         interests,
         skills,
       };
 
+      // Track changes before updating
+      const changedFields = getChangedFields(profile, updatedData);
+      
+      if (Object.keys(changedFields).length > 0) {
+        const userName = `${profile.first_name} ${profile.last_name}`.trim() || user.email || 'User';
+        await addProfileChange(
+          user.id,
+          user.id,
+          userName,
+          changedFields,
+          'update'
+        );
+      }
+
       const { error } = await supabase
         .from("profiles")
-        .update(updateData)
+        .update(updatedData)
         .eq("user_id", user.id);
 
       if (error) {
@@ -185,6 +167,8 @@ const Profile = () => {
           title: "Success",
           description: "Profile updated successfully",
         });
+        // Update local state
+        setProfile(updatedData);
       }
     } catch (error) {
       console.error("Error:", error);
@@ -312,16 +296,6 @@ const Profile = () => {
             <ArrowLeft className="h-4 w-4" />
             Back to Dashboard
           </Button>
-          {isAdmin && profile?.change_history && Array.isArray(profile.change_history) && profile.change_history.length > 0 && (
-            <Button 
-              variant="outline" 
-              onClick={() => setShowTimeline(true)}
-              className="flex items-center gap-2"
-            >
-              <Clock className="h-4 w-4" />
-              View Changes
-            </Button>
-          )}
         </div>
         <h1 className="text-3xl font-bold">My Profile</h1>
         <p className="text-muted-foreground">
@@ -405,21 +379,18 @@ const Profile = () => {
               <div className="space-y-2">
                 <Label>Phone Number</Label>
                 <div className="flex gap-2">
-                  <Select
-                    value={profile.country_code || ""}
-                    onValueChange={(value) => setProfile({ ...profile, country_code: value })}
-                  >
-                    <SelectTrigger className="w-32">
-                      <SelectValue placeholder="Code" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {countries.map((country) => (
-                        <SelectItem key={country.code} value={country.dialCode}>
-                          {country.flag} {country.dialCode}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <CountrySelector
+                   value={profile.country_code || ""}
+                   onValueChange={(value) =>
+                     setProfile({
+                       ...profile,
+                       country_code: value,
+                     })
+                   }
+                   countries={countries}
+                   placeholder="Code"
+                   className="w-40"
+                 />
                   <Input
                     placeholder="Phone number"
                     value={profile.phone || ""}
@@ -483,21 +454,23 @@ const Profile = () => {
                 <Label htmlFor="organization_type">Organization Type</Label>
                 <Select
                   value={profile.organization_type || ""}
-                  onValueChange={(value) => setProfile({ ...profile, organization_type: value })}
+                  onValueChange={(value: OrganizationType) => setProfile({ ...profile, organization_type: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select organization type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Corporate">Corporate</SelectItem>
-                    <SelectItem value="Startup">Startup</SelectItem>
-                    <SelectItem value="Non-Profit">Non-Profit</SelectItem>
-                    <SelectItem value="Government">Government</SelectItem>
+                    <SelectItem value="Hospital/Clinic">Hospital/Clinic</SelectItem>
+                    <SelectItem value="HealthTech">HealthTech</SelectItem>
+                    <SelectItem value="Pharmaceutical">Pharmaceutical</SelectItem>
+                    <SelectItem value="Biotech">Biotech</SelectItem>
+                    <SelectItem value="Medical Devices">Medical Devices</SelectItem>
                     <SelectItem value="Consulting">Consulting</SelectItem>
-                    <SelectItem value="Education">Education</SelectItem>
-                    <SelectItem value="Healthcare">Healthcare</SelectItem>
-                    <SelectItem value="Technology">Technology</SelectItem>
-                    <SelectItem value="Finance">Finance</SelectItem>
+                    <SelectItem value="Public Health/Policy">Public Health/Policy</SelectItem>
+                    <SelectItem value="Health Insurance">Health Insurance</SelectItem>
+                    <SelectItem value="Academic/Research">Academic/Research</SelectItem>
+                    <SelectItem value="Startup">Startup</SelectItem>
+                    <SelectItem value="VC">VC</SelectItem>
                     <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
@@ -517,7 +490,7 @@ const Profile = () => {
                 <Label htmlFor="experience_level">Experience Level</Label>
                 <Select
                   value={profile.experience_level || ""}
-                  onValueChange={(value) => setProfile({ ...profile, experience_level: value })}
+                  onValueChange={(value: ExperienceLevel) => setProfile({ ...profile, experience_level: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select experience level" />
@@ -723,7 +696,7 @@ const Profile = () => {
               <Label htmlFor="status">Status</Label>
                 <Select
                   value={profile.status || ""}
-                  onValueChange={(value) => setProfile({ ...profile, status: value })}
+                  onValueChange={(value: ProfileStatus) => setProfile({ ...profile, status: value })}
                 >
                 <SelectTrigger>
                   <SelectValue placeholder="Select your status" />

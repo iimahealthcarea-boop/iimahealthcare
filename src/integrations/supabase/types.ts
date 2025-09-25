@@ -268,6 +268,54 @@ export type Database = {
         }
         Relationships: []
       }
+      profile_changes: {
+        Row: {
+          id: string
+          profile_user_id: string
+          changed_by: string
+          changed_by_name: string
+          changed_at: string
+          change_type: string
+          changed_fields: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          profile_user_id: string
+          changed_by: string
+          changed_by_name: string
+          changed_at?: string
+          change_type: string
+          changed_fields?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          profile_user_id?: string
+          changed_by?: string
+          changed_by_name?: string
+          changed_at?: string
+          change_type?: string
+          changed_fields?: Json
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_changes_profile_user_id_fkey"
+            columns: ["profile_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_changes_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -292,6 +340,31 @@ export type Database = {
       reject_user_profile: {
         Args: { profile_user_id: string; reason?: string }
         Returns: undefined
+      }
+      add_profile_change: {
+        Args: { 
+          profile_user_id: string
+          changed_by: string
+          changed_by_name: string
+          changed_fields: Json
+          change_type?: string
+        }
+        Returns: string
+      }
+      get_profile_changes: {
+        Args: { profile_user_id: string }
+        Returns: {
+          id: string
+          changed_by: string
+          changed_by_name: string
+          changed_at: string
+          change_type: string
+          changed_fields: Json
+        }[]
+      }
+      get_user_name: {
+        Args: { user_id: string }
+        Returns: string
       }
     }
     Enums: {
