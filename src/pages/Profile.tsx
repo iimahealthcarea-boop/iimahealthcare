@@ -15,12 +15,31 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useCountries } from "@/hooks/useCountries";
-import { Loader2, Save, X, ArrowLeft, Upload } from "lucide-react";
+import { Loader2, Save, X, ArrowLeft, Upload, Clock } from "lucide-react";
 import { OrganizationSelector } from "@/components/OrganizationSelector";
+import { ProfileChangeTimeline } from "@/components/ProfileChangeTimeline";
+import type { Json } from "@/integrations/supabase/types";
 
-type OrganizationType = 'Hospital/Clinic' | 'HealthTech' | 'Pharmaceutical' | 'Biotech' | 'Medical Devices' | 'Consulting' | 'Public Health/Policy' | 'Health Insurance' | 'Academic/Research' | 'Startup' | 'VC' | 'Other';
+type OrganizationType = 
+  | "Corporate" 
+  | "Startup" 
+  | "Non-Profit" 
+  | "Government" 
+  | "Consulting" 
+  | "Education" 
+  | "Healthcare" 
+  | "Technology" 
+  | "Finance" 
+  | "Other";
 type ExperienceLevel = 'Entry Level' | 'Mid Level' | 'Senior Level' | 'Executive' | 'Student' | 'Recent Graduate';
 type ProfileStatus = 'Active' | 'Alumni' | 'Student' | 'Faculty' | 'Inactive';
+
+interface ChangeRecord {
+  updatedBy: string;
+  updatedAt: string;
+  changedFields: string[];
+  isAdmin: boolean;
+}
 
 interface Profile {
   id: string;
@@ -33,9 +52,9 @@ interface Profile {
   program: string | null;
   graduation_year: number | null;
   organization: string | null;
-  organization_type: OrganizationType | null;
+  organization_type: string | null;
   position: string | null;
-  experience_level: ExperienceLevel | null;
+  experience_level: string | null;
   location: string | null;
   city: string | null;
   country: string | null;
@@ -44,11 +63,12 @@ interface Profile {
   bio: string | null;
   interests: string[] | null;
   skills: string[] | null;
-  status: ProfileStatus | null;
+  status: string | null;
   show_contact_info: boolean;
   show_location: boolean;
   is_public: boolean;
   avatar_url: string | null;
+  change_history?: Json;
 }
 
 const Profile = () => {
@@ -60,6 +80,7 @@ const Profile = () => {
   const [uploading, setUploading] = useState(false);
   const [interestsInput, setInterestsInput] = useState("");
   const [skillsInput, setSkillsInput] = useState("");
+  const [showTimeline, setShowTimeline] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { countries, loading: countriesLoading } = useCountries();
@@ -94,7 +115,7 @@ const Profile = () => {
           variant: "destructive",
         });
       } else {
-        setProfile(data);
+        setProfile(data as Profile);
         setInterestsInput(data.interests?.join(", ") || "");
         setSkillsInput(data.skills?.join(", ") || "");
       }
@@ -121,13 +142,35 @@ const Profile = () => {
         .map(item => item.trim())
         .filter(item => item.length > 0);
 
+      const updateData = {
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        email: profile.email,
+        phone: profile.phone,
+        country_code: profile.country_code,
+        program: profile.program,
+        graduation_year: profile.graduation_year,
+        organization: profile.organization,
+        organization_type: profile.organization_type as any,
+        position: profile.position,
+        experience_level: profile.experience_level as any,
+        location: profile.location,
+        city: profile.city,
+        country: profile.country,
+        linkedin_url: profile.linkedin_url,
+        website_url: profile.website_url,
+        bio: profile.bio,
+        status: profile.status as any,
+        show_contact_info: profile.show_contact_info,
+        show_location: profile.show_location,
+        is_public: profile.is_public,
+        interests,
+        skills,
+      };
+
       const { error } = await supabase
         .from("profiles")
-        .update({
-          ...profile,
-          interests,
-          skills,
-        })
+        .update(updateData)
         .eq("user_id", user.id);
 
       if (error) {
@@ -269,6 +312,16 @@ const Profile = () => {
             <ArrowLeft className="h-4 w-4" />
             Back to Dashboard
           </Button>
+          {isAdmin && profile?.change_history && Array.isArray(profile.change_history) && profile.change_history.length > 0 && (
+            <Button 
+              variant="outline" 
+              onClick={() => setShowTimeline(true)}
+              className="flex items-center gap-2"
+            >
+              <Clock className="h-4 w-4" />
+              View Changes
+            </Button>
+          )}
         </div>
         <h1 className="text-3xl font-bold">My Profile</h1>
         <p className="text-muted-foreground">
@@ -430,23 +483,21 @@ const Profile = () => {
                 <Label htmlFor="organization_type">Organization Type</Label>
                 <Select
                   value={profile.organization_type || ""}
-                  onValueChange={(value: OrganizationType) => setProfile({ ...profile, organization_type: value })}
+                  onValueChange={(value) => setProfile({ ...profile, organization_type: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select organization type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Hospital/Clinic">Hospital/Clinic</SelectItem>
-                    <SelectItem value="HealthTech">HealthTech</SelectItem>
-                    <SelectItem value="Pharmaceutical">Pharmaceutical</SelectItem>
-                    <SelectItem value="Biotech">Biotech</SelectItem>
-                    <SelectItem value="Medical Devices">Medical Devices</SelectItem>
-                    <SelectItem value="Consulting">Consulting</SelectItem>
-                    <SelectItem value="Public Health/Policy">Public Health/Policy</SelectItem>
-                    <SelectItem value="Health Insurance">Health Insurance</SelectItem>
-                    <SelectItem value="Academic/Research">Academic/Research</SelectItem>
+                    <SelectItem value="Corporate">Corporate</SelectItem>
                     <SelectItem value="Startup">Startup</SelectItem>
-                    <SelectItem value="VC">VC</SelectItem>
+                    <SelectItem value="Non-Profit">Non-Profit</SelectItem>
+                    <SelectItem value="Government">Government</SelectItem>
+                    <SelectItem value="Consulting">Consulting</SelectItem>
+                    <SelectItem value="Education">Education</SelectItem>
+                    <SelectItem value="Healthcare">Healthcare</SelectItem>
+                    <SelectItem value="Technology">Technology</SelectItem>
+                    <SelectItem value="Finance">Finance</SelectItem>
                     <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
@@ -466,7 +517,7 @@ const Profile = () => {
                 <Label htmlFor="experience_level">Experience Level</Label>
                 <Select
                   value={profile.experience_level || ""}
-                  onValueChange={(value: ExperienceLevel) => setProfile({ ...profile, experience_level: value })}
+                  onValueChange={(value) => setProfile({ ...profile, experience_level: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select experience level" />
@@ -670,10 +721,10 @@ const Profile = () => {
 
             <div>
               <Label htmlFor="status">Status</Label>
-              <Select
-                value={profile.status || ""}
-                onValueChange={(value: ProfileStatus) => setProfile({ ...profile, status: value })}
-              >
+                <Select
+                  value={profile.status || ""}
+                  onValueChange={(value) => setProfile({ ...profile, status: value })}
+                >
                 <SelectTrigger>
                   <SelectValue placeholder="Select your status" />
                 </SelectTrigger>

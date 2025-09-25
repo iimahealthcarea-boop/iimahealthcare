@@ -2,7 +2,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MapPin, Building, GraduationCap, Mail, Linkedin, Phone } from "lucide-react";
+import { MapPin, Building, GraduationCap, Mail, Linkedin, Phone, Clock } from "lucide-react";
+import { ProfileChangeTimeline } from "@/components/ProfileChangeTimeline";
+import { useState } from "react";
+
+interface ChangeRecord {
+  updatedBy: string;
+  updatedAt: string;
+  changedFields: string[];
+  isAdmin: boolean;
+}
 
 interface MemberData {
   id: string;
@@ -23,6 +32,7 @@ interface MemberData {
   interests: string[];
   profileImageUrl?: string;
   avatar_url?: string;
+  change_history?: ChangeRecord[];
 }
 
 interface MemberCardProps {
@@ -30,9 +40,11 @@ interface MemberCardProps {
   showContactInfo?: boolean;
   onViewProfile?: (memberId: string) => void;
   hideProfileButton?: boolean;
+  isAdmin?: boolean;
 }
 
-export function MemberCard({ member, showContactInfo = false, onViewProfile, hideProfileButton = false }: MemberCardProps) {
+export function MemberCard({ member, showContactInfo = false, onViewProfile, hideProfileButton = false, isAdmin = false }: MemberCardProps) {
+  const [showTimeline, setShowTimeline] = useState(false);
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName[0]}${lastName[0]}`.toUpperCase();
   };
@@ -146,17 +158,37 @@ export function MemberCard({ member, showContactInfo = false, onViewProfile, hid
           <span className="text-xs text-muted-foreground">
             {member.yearsExperience}+ years experience
           </span>
-          {!hideProfileButton && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => onViewProfile?.(member.id)}
-            >
-              View Profile
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {isAdmin && member.change_history && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowTimeline(true)}
+              >
+                <Clock className="h-4 w-4 mr-1" />
+                Timeline
+              </Button>
+            )}
+            {!hideProfileButton && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => onViewProfile?.(member.id)}
+              >
+                View Profile
+              </Button>
+            )}
+          </div>
         </div>
       </CardContent>
+      
+      {/* Profile Change Timeline */}
+      <ProfileChangeTimeline
+        changeHistory={member.change_history || []}
+        isOpen={showTimeline}
+        onClose={() => setShowTimeline(false)}
+        profileName={`${member.firstName} ${member.lastName}`}
+      />
     </Card>
   );
 }
