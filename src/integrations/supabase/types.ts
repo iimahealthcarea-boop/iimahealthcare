@@ -87,6 +87,7 @@ export type Database = {
           approved_by: string | null
           avatar_url: string | null
           bio: string | null
+          change_history: Json | null
           city: string | null
           country: string | null
           country_code: string | null
@@ -131,6 +132,7 @@ export type Database = {
           approved_by?: string | null
           avatar_url?: string | null
           bio?: string | null
+          change_history?: Json | null
           city?: string | null
           country?: string | null
           country_code?: string | null
@@ -175,6 +177,7 @@ export type Database = {
           approved_by?: string | null
           avatar_url?: string | null
           bio?: string | null
+          change_history?: Json | null
           city?: string | null
           country?: string | null
           country_code?: string | null
@@ -383,6 +386,15 @@ export type Database = {
         | "Technology"
         | "Finance"
         | "Other"
+        | "Hospital/Clinic"
+        | "HealthTech"
+        | "Pharmaceutical"
+        | "Biotech"
+        | "Medical Devices"
+        | "Public Health/Policy"
+        | "Health Insurance"
+        | "Academic/Research"
+        | "VC"
       profile_approval_status: "pending" | "approved" | "rejected"
       profile_status: "Active" | "Alumni" | "Student" | "Faculty" | "Inactive"
       user_role: "admin" | "normal_user"
@@ -532,6 +544,15 @@ export const Constants = {
         "Technology",
         "Finance",
         "Other",
+        "Hospital/Clinic",
+        "HealthTech",
+        "Pharmaceutical",
+        "Biotech",
+        "Medical Devices",
+        "Public Health/Policy",
+        "Health Insurance",
+        "Academic/Research",
+        "VC",
       ],
       profile_approval_status: ["pending", "approved", "rejected"],
       profile_status: ["Active", "Alumni", "Student", "Faculty", "Inactive"],

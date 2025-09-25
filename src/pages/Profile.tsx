@@ -15,14 +15,21 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useCountries } from "@/hooks/useCountries";
-import { Loader2, Save, X, ArrowLeft, Upload } from "lucide-react";
+import { Loader2, Save, X, ArrowLeft, Upload, Clock } from "lucide-react";
 import { OrganizationSelector } from "@/components/OrganizationSelector";
-import CountrySelector from "@/components/CountrySelector";
 import { addProfileChange, getChangedFields } from "@/utils/profileChangeTracker";
+import CountrySelector from "@/components/CountrySelector";
 
 type OrganizationType = 'Corporate' | 'Startup' | 'Non-Profit' | 'Government' | 'Consulting' | 'Education' | 'Healthcare' | 'Technology' | 'Finance' | 'Other';
 type ExperienceLevel = 'Entry Level' | 'Mid Level' | 'Senior Level' | 'Executive' | 'Student' | 'Recent Graduate';
 type ProfileStatus = 'Active' | 'Alumni' | 'Student' | 'Faculty' | 'Inactive';
+
+interface ChangeRecord {
+  updatedBy: string;
+  updatedAt: string;
+  changedFields: string[];
+  isAdmin: boolean;
+}
 
 interface Profile {
   id: string;
@@ -82,7 +89,7 @@ const Profile = () => {
           variant: "destructive",
         });
       } else {
-        setProfile(data);
+        setProfile(data as Profile);
         setInterestsInput(data.interests?.join(", ") || "");
         setSkillsInput(data.skills?.join(", ") || "");
       }
@@ -687,10 +694,10 @@ const Profile = () => {
 
             <div>
               <Label htmlFor="status">Status</Label>
-              <Select
-                value={profile.status || ""}
-                onValueChange={(value: ProfileStatus) => setProfile({ ...profile, status: value })}
-              >
+                <Select
+                  value={profile.status || ""}
+                  onValueChange={(value: ProfileStatus) => setProfile({ ...profile, status: value })}
+                >
                 <SelectTrigger>
                   <SelectValue placeholder="Select your status" />
                 </SelectTrigger>
