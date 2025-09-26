@@ -48,6 +48,14 @@ import {
   X,
   UserPlus,
   History,
+  Search,
+  Mail,
+  Phone,
+  MapPin,
+  Building,
+  Calendar,
+  Linkedin,
+  Globe,
 } from "lucide-react";
 import { 
   addProfileChange, 
@@ -115,6 +123,12 @@ export default function AdminDashboard() {
   const [showPassword, setShowPassword] = useState(false);
   const [isTimelineOpen, setIsTimelineOpen] = useState(false);
   const [timelineProfile, setTimelineProfile] = useState<ProfileWithApproval | null>(null);
+  
+  // Search and filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [experienceFilter, setExperienceFilter] = useState('all');
+  const [organizationTypeFilter, setOrganizationTypeFilter] = useState('all');
+  const [filteredProfiles, setFilteredProfiles] = useState<ProfileWithApproval[]>([]);
 
   const fetchProfiles = useCallback(async () => {
     try {
@@ -137,11 +151,80 @@ export default function AdminDashboard() {
     }
   }, [toast]);
 
+  const filterProfiles = useCallback(() => {
+    let filtered = profiles;
+
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(profile => {
+        // Basic information
+        const nameMatch = `${profile.first_name || ''} ${profile.last_name || ''}`.toLowerCase().includes(searchLower);
+        const organizationMatch = profile.organization?.toLowerCase().includes(searchLower) || false;
+        const positionMatch = profile.position?.toLowerCase().includes(searchLower) || false;
+        const programMatch = profile.program?.toLowerCase().includes(searchLower) || false;
+        
+        // Location information
+        const cityMatch = profile.city?.toLowerCase().includes(searchLower) || false;
+        const countryMatch = profile.country?.toLowerCase().includes(searchLower) || false;
+        const addressMatch = profile.address?.toLowerCase().includes(searchLower) || false;
+        
+        // Professional details
+        const experienceMatch = profile.experience_level?.toLowerCase().includes(searchLower) || false;
+        const orgTypeMatch = profile.organization_type?.toLowerCase().includes(searchLower) || false;
+        const graduationYearMatch = profile.graduation_year?.toString().includes(searchLower) || false;
+        
+        // Bio and description
+        const bioMatch = profile.bio?.toLowerCase().includes(searchLower) || false;
+        
+        // Skills array search
+        const skillsMatch = profile.skills?.some(skill => 
+          skill.toLowerCase().includes(searchLower)
+        ) || false;
+        
+        // Interests array search
+        const interestsMatch = profile.interests?.some(interest => 
+          interest.toLowerCase().includes(searchLower)
+        ) || false;
+        
+        // Social links
+        const linkedinMatch = profile.linkedin_url?.toLowerCase().includes(searchLower) || false;
+        const websiteMatch = profile.website_url?.toLowerCase().includes(searchLower) || false;
+        
+        // Contact information
+        const emailMatch = profile.email?.toLowerCase().includes(searchLower) || false;
+        const phoneMatch = profile.phone?.toLowerCase().includes(searchLower) || false;
+        
+        // Approval status
+        const statusMatch = profile.approval_status?.toLowerCase().includes(searchLower) || false;
+        
+        return nameMatch || organizationMatch || positionMatch || programMatch || 
+               cityMatch || countryMatch || addressMatch || experienceMatch || 
+               orgTypeMatch || graduationYearMatch || bioMatch || skillsMatch || 
+               interestsMatch || linkedinMatch || websiteMatch || emailMatch || 
+               phoneMatch || statusMatch;
+      });
+    }
+
+    if (experienceFilter && experienceFilter !== 'all') {
+      filtered = filtered.filter(profile => profile.experience_level === experienceFilter);
+    }
+
+    if (organizationTypeFilter && organizationTypeFilter !== 'all' && organizationTypeFilter !== 'All organization types') {
+      filtered = filtered.filter(profile => profile.organization_type === organizationTypeFilter);
+    }
+
+    setFilteredProfiles(filtered);
+  }, [profiles, searchTerm, experienceFilter, organizationTypeFilter]);
+
   useEffect(() => {
     if (isAdmin) {
       fetchProfiles();
     }
   }, [isAdmin, fetchProfiles]);
+
+  useEffect(() => {
+    filterProfiles();
+  }, [filterProfiles]);
 
   // Redirect if not admin
   if (!isAdmin && !loading) {
@@ -557,7 +640,21 @@ export default function AdminDashboard() {
     return { pending, approved, rejected, total: profiles.length };
   };
 
+  const getFilteredStats = () => {
+    const pending = filteredProfiles.filter(
+      (p) => p.approval_status === "pending"
+    ).length;
+    const approved = filteredProfiles.filter(
+      (p) => p.approval_status === "approved"
+    ).length;
+    const rejected = filteredProfiles.filter(
+      (p) => p.approval_status === "rejected"
+    ).length;
+    return { pending, approved, rejected, total: filteredProfiles.length };
+  };
+
   const stats = getStats();
+  const filteredStats = getFilteredStats();
 
   const exportToExcel = () => {
     try {
@@ -1127,20 +1224,94 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
+        {/* Search and Filters */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Search className="h-5 w-5" />
+              Search & Filter Profiles
+            </CardTitle>
+            <CardDescription>
+              Find profiles by name, organization, skills, bio, interests, or any other profile information
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="search-profiles">Search</Label>
+                <Input
+                  id="search-profiles"
+                  placeholder="Search by name, organization, skills, bio, interests..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="experience-profiles">Experience Level</Label>
+                <Select value={experienceFilter} onValueChange={setExperienceFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All experience levels" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All experience levels</SelectItem>
+                    <SelectItem value="Student">Student</SelectItem>
+                    <SelectItem value="Recent Graduate">Recent Graduate</SelectItem>
+                    <SelectItem value="Entry Level">Entry Level</SelectItem>
+                    <SelectItem value="Mid Level">Mid Level</SelectItem>
+                    <SelectItem value="Senior Level">Senior Level</SelectItem>
+                    <SelectItem value="Executive">Executive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="orgType-profiles">Organization Type</Label>
+                <Select value={organizationTypeFilter} onValueChange={setOrganizationTypeFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All organization types" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All organization types</SelectItem>
+                    <SelectItem value="Hospital/Clinic">Hospital/Clinic</SelectItem>
+                    <SelectItem value="HealthTech">HealthTech</SelectItem>
+                    <SelectItem value="Pharmaceutical">Pharmaceutical</SelectItem>
+                    <SelectItem value="Biotech">Biotech</SelectItem>
+                    <SelectItem value="Medical Devices">Medical Devices</SelectItem>
+                    <SelectItem value="Consulting">Consulting</SelectItem>
+                    <SelectItem value="Public Health/Policy">Public Health/Policy</SelectItem>
+                    <SelectItem value="Health Insurance">Health Insurance</SelectItem>
+                    <SelectItem value="Academic/Research">Academic/Research</SelectItem>
+                    <SelectItem value="Startup">Startup</SelectItem>
+                    <SelectItem value="VC">VC</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Results Count */}
+        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-4 mb-4">
+          <Users className="h-4 w-4" />
+          <span>Showing {filteredProfiles.length} of {profiles.length} profiles</span>
+        </div>
+
         {/* Profiles List */}
         <Tabs defaultValue="pending" className="space-y-4">
           <div className="flex items-center justify-between">
             <TabsList>
               <TabsTrigger value="pending">
-                Pending ({stats.pending})
+                Pending ({filteredStats.pending})
               </TabsTrigger>
               <TabsTrigger value="approved">
-                Approved ({stats.approved})
+                Approved ({filteredStats.approved})
               </TabsTrigger>
               <TabsTrigger value="rejected">
-                Rejected ({stats.rejected})
+                Rejected ({filteredStats.rejected})
               </TabsTrigger>
-              <TabsTrigger value="all">All ({stats.total})</TabsTrigger>
+              <TabsTrigger value="all">All ({filteredStats.total})</TabsTrigger>
             </TabsList>
             <Button
               variant="outline"
@@ -1155,33 +1326,93 @@ export default function AdminDashboard() {
           </div>
 
           <TabsContent value="pending" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {profiles
-                .filter((p) => p.approval_status === "pending")
-                .map(renderProfileCard)}
-            </div>
+            {filteredProfiles.filter((p) => p.approval_status === "pending").length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredProfiles
+                  .filter((p) => p.approval_status === "pending")
+                  .map(renderProfileCard)}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No pending profiles found</h3>
+                  <p className="text-muted-foreground">
+                    {profiles.filter((p) => p.approval_status === "pending").length === 0 
+                      ? "There are no pending profiles to review."
+                      : "Try adjusting your search criteria or filters to see more results."
+                    }
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="approved" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {profiles
-                .filter((p) => p.approval_status === "approved")
-                .map(renderProfileCard)}
-            </div>
+            {filteredProfiles.filter((p) => p.approval_status === "approved").length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredProfiles
+                  .filter((p) => p.approval_status === "approved")
+                  .map(renderProfileCard)}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <CheckCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No approved profiles found</h3>
+                  <p className="text-muted-foreground">
+                    {profiles.filter((p) => p.approval_status === "approved").length === 0 
+                      ? "There are no approved profiles yet."
+                      : "Try adjusting your search criteria or filters to see more results."
+                    }
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="rejected" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {profiles
-                .filter((p) => p.approval_status === "rejected")
-                .map(renderProfileCard)}
-            </div>
+            {filteredProfiles.filter((p) => p.approval_status === "rejected").length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredProfiles
+                  .filter((p) => p.approval_status === "rejected")
+                  .map(renderProfileCard)}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <XCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No rejected profiles found</h3>
+                  <p className="text-muted-foreground">
+                    {profiles.filter((p) => p.approval_status === "rejected").length === 0 
+                      ? "There are no rejected profiles."
+                      : "Try adjusting your search criteria or filters to see more results."
+                    }
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="all" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {profiles.map(renderProfileCard)}
-            </div>
+            {filteredProfiles.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredProfiles.map(renderProfileCard)}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No profiles found</h3>
+                  <p className="text-muted-foreground">
+                    {profiles.length === 0 
+                      ? "There are no profiles in the system yet."
+                      : "Try adjusting your search criteria or filters to see more results."
+                    }
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       </main>

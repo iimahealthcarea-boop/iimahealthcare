@@ -3,26 +3,79 @@ import { useNavigate } from "react-router-dom";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useCountries } from "@/hooks/useCountries";
 import { Loader2, Save, X, ArrowLeft, Upload, Clock } from "lucide-react";
 import { OrganizationSelector } from "@/components/OrganizationSelector";
-import { addProfileChange, getChangedFields } from "@/utils/profileChangeTracker";
+import {
+  addProfileChange,
+  getChangedFields,
+} from "@/utils/profileChangeTracker";
 import CountrySelector from "@/components/CountrySelector";
 
-type OrganizationType = 'Corporate' | 'Startup' | 'Non-Profit' | 'Government' | 'Consulting' | 'Education' | 'Healthcare' | 'Technology' | 'Finance' | 'Other';
-type ExperienceLevel = 'Entry Level' | 'Mid Level' | 'Senior Level' | 'Executive' | 'Student' | 'Recent Graduate';
-type ProfileStatus = 'Active' | 'Alumni' | 'Student' | 'Faculty' | 'Inactive';
+type OrganizationType =
+  | "Corporate"
+  | "Startup"
+  | "Non-Profit"
+  | "Government"
+  | "Consulting"
+  | "Education"
+  | "Healthcare"
+  | "Technology"
+  | "Finance"
+  | "Other";
+type ExperienceLevel =
+  | "Entry Level"
+  | "Mid Level"
+  | "Senior Level"
+  | "Executive"
+  | "Student"
+  | "Recent Graduate";
+type ProfileStatus = "Active" | "Alumni" | "Student" | "Faculty" | "Inactive";
+type PreferredCommunication = "Phone" | "Email" | "WhatsApp" | "LinkedIn";
+type ProgramType =
+  | "MBA-PGDBM"
+  | "MBA-FABM"
+  | "MBA-PGPX"
+  | "PhD"
+  | "MBA-FPGP"
+  | "ePGD-ABA"
+  | "FDP"
+  | "AFP"
+  | "SMP"
+  | "Other";
+
+interface Organization {
+  id: string;
+  currentOrg: string;
+  orgType: string;
+  experience: string;
+  description: string;
+  role: string;
+}
 
 interface ChangeRecord {
   updatedBy: string;
@@ -39,7 +92,7 @@ interface Profile {
   email: string | null;
   phone: string | null;
   country_code: string | null;
-  program: string | null;
+  program: ProgramType | null;
   graduation_year: number | null;
   organization: string | null;
   organization_type: OrganizationType | null;
@@ -58,6 +111,8 @@ interface Profile {
   show_location: boolean;
   is_public: boolean;
   avatar_url: string | null;
+  preferred_mode_of_communication?: PreferredCommunication[] | null;
+  organizations?: Organization[] | null;
 }
 
 const Profile = () => {
@@ -69,40 +124,58 @@ const Profile = () => {
   const [uploading, setUploading] = useState(false);
   const [interestsInput, setInterestsInput] = useState("");
   const [skillsInput, setSkillsInput] = useState("");
+  const [preferredCommunication, setPreferredCommunication] = useState<
+    PreferredCommunication[]
+  >([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { countries, loading: countriesLoading } = useCountries();
 
-  const fetchProfile = useCallback(async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", userId)
-        .single();
+  const fetchProfile = useCallback(
+    async (userId: string) => {
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("user_id", userId)
+          .single();
 
-      if (error) {
-        console.error("Error fetching profile:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load profile",
-          variant: "destructive",
-        });
-      } else {
-        setProfile(data as Profile);
-        setInterestsInput(data.interests?.join(", ") || "");
-        setSkillsInput(data.skills?.join(", ") || "");
+        if (error) {
+          console.error("Error fetching profile:", error);
+          toast({
+            title: "Error",
+            description: "Failed to load profile",
+            variant: "destructive",
+          });
+        } else {
+          setProfile(data as Profile);
+          setInterestsInput(data.interests?.join(", ") || "");
+          setSkillsInput(data.skills?.join(", ") || "");
+          setPreferredCommunication(
+            ((data as Record<string, unknown>)
+              .preferred_mode_of_communication as PreferredCommunication[]) ||
+              []
+          );
+          setOrganizations(
+            ((data as Record<string, unknown>)
+              .organizations as Organization[]) || []
+          );
+        }
+      } catch (error) {
+        console.error("Error:", error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Error:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [toast]);
+    },
+    [toast]
+  );
 
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         navigate("/auth");
         return;
@@ -122,31 +195,39 @@ const Profile = () => {
     try {
       const interests = interestsInput
         .split(",")
-        .map(item => item.trim())
-        .filter(item => item.length > 0);
-      
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0);
+
       const skills = skillsInput
         .split(",")
-        .map(item => item.trim())
-        .filter(item => item.length > 0);
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0);
 
       const updatedData = {
         ...profile,
         interests,
         skills,
+        preferred_mode_of_communication: preferredCommunication,
+        organizations: organizations,
       };
 
       // Track changes before updating
-      const changedFields = getChangedFields(profile, updatedData);
-      
+      const changedFields = getChangedFields(
+        profile as unknown as Record<string, unknown>,
+        updatedData as unknown as Record<string, unknown>
+      );
+
       if (Object.keys(changedFields).length > 0) {
-        const userName = `${profile.first_name} ${profile.last_name}`.trim() || user.email || 'User';
+        const userName =
+          `${profile.first_name} ${profile.last_name}`.trim() ||
+          user.email ||
+          "User";
         await addProfileChange(
           user.id,
           user.id,
           userName,
           changedFields,
-          'update'
+          "update"
         );
       }
 
@@ -180,77 +261,119 @@ const Profile = () => {
   const removeInterest = (interest: string) => {
     const newInterests = interestsInput
       .split(",")
-      .map(item => item.trim())
-      .filter(item => item !== interest);
+      .map((item) => item.trim())
+      .filter((item) => item !== interest);
     setInterestsInput(newInterests.join(", "));
   };
 
   const removeSkill = (skill: string) => {
     const newSkills = skillsInput
       .split(",")
-      .map(item => item.trim())
-      .filter(item => item !== skill);
+      .map((item) => item.trim())
+      .filter((item) => item !== skill);
     setSkillsInput(newSkills.join(", "));
   };
 
-  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePreferredCommunicationChange = (
+    value: PreferredCommunication,
+    checked: boolean
+  ) => {
+    if (checked) {
+      setPreferredCommunication((prev) => [...prev, value]);
+    } else {
+      setPreferredCommunication((prev) =>
+        prev.filter((item) => item !== value)
+      );
+    }
+  };
+
+  const addOrganization = () => {
+    const newOrg: Organization = {
+      id: Date.now().toString(),
+      currentOrg: "",
+      orgType: "",
+      experience: "",
+      description: "",
+      role: "",
+    };
+    setOrganizations((prev) => [...prev, newOrg]);
+  };
+
+  const updateOrganization = (
+    id: string,
+    field: keyof Organization,
+    value: string
+  ) => {
+    setOrganizations((prev) =>
+      prev.map((org) => (org.id === id ? { ...org, [field]: value } : org))
+    );
+  };
+
+  const removeOrganization = (id: string) => {
+    setOrganizations((prev) => prev.filter((org) => org.id !== id));
+  };
+
+  const handleAvatarUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file || !user) return;
 
     setUploading(true);
     try {
       // Create file path with user ID
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split(".").pop();
       const fileName = `${user.id}/avatar.${fileExt}`;
 
       // Delete existing avatar if it exists
       if (profile?.avatar_url) {
-        const existingPath = profile.avatar_url.split('/').pop();
+        const existingPath = profile.avatar_url.split("/").pop();
         if (existingPath) {
           await supabase.storage
-            .from('profile-pictures')
+            .from("profile-pictures")
             .remove([`${user.id}/${existingPath}`]);
         }
       }
 
       // Upload new file
       const { error: uploadError } = await supabase.storage
-        .from('profile-pictures')
+        .from("profile-pictures")
         .upload(fileName, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
       // Get public URL
       const { data } = supabase.storage
-        .from('profile-pictures')
+        .from("profile-pictures")
         .getPublicUrl(fileName);
 
       console.log("public url ", data);
-      console.log("user" , user);
-      console.log("new comment")
-      
+      console.log("user", user);
+      console.log("new comment");
+
       // Update profile with new avatar URL
       const { error: updateError } = await supabase
-        .from('profiles')
+        .from("profiles")
         .update({ avatar_url: data.publicUrl })
-        .eq('user_id', user.id);
+        .eq("user_id", user.id);
 
       if (updateError) throw updateError;
 
       // Update local state
-      setProfile(prev => prev ? { ...prev, avatar_url: data.publicUrl } : null);
-      
+      setProfile((prev) =>
+        prev ? { ...prev, avatar_url: data.publicUrl } : null
+      );
+
       // Refresh user data in auth context to update header avatar
       await refreshUserData();
-      
+
       toast({ title: "Profile picture updated successfully!" });
-      
     } catch (error) {
-      console.error('Error uploading avatar:', error);
-      toast({ 
-        title: "Error uploading profile picture", 
+      console.error("Error uploading avatar:", error);
+      toast({
+        title: "Error uploading profile picture",
         description: "Please try again.",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setUploading(false);
@@ -258,7 +381,9 @@ const Profile = () => {
   };
 
   const getInitials = (firstName?: string | null, lastName?: string | null) => {
-    return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
+    return `${firstName?.charAt(0) || ""}${
+      lastName?.charAt(0) || ""
+    }`.toUpperCase();
   };
 
   if (loading) {
@@ -288,9 +413,9 @@ const Profile = () => {
     <div className="container mx-auto py-6 max-w-4xl">
       <div className="mb-6">
         <div className="flex items-center gap-4 mb-4">
-          <Button 
-            variant="outline" 
-            onClick={() => navigate(isAdmin ? '/admin' : '/dashboard')}
+          <Button
+            variant="outline"
+            onClick={() => navigate(isAdmin ? "/admin" : "/dashboard")}
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -308,14 +433,19 @@ const Profile = () => {
         <Card>
           <CardHeader>
             <CardTitle>Basic Information</CardTitle>
-            <CardDescription>Update your personal details and profile picture</CardDescription>
+            <CardDescription>
+              Update your personal details and profile picture
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Profile Picture Section */}
             <div className="flex flex-col items-center space-y-4">
               <div className="relative">
                 <Avatar className="w-24 h-24">
-                  <AvatarImage src={profile.avatar_url || ''} alt="Profile picture" />
+                  <AvatarImage
+                    src={profile.avatar_url || ""}
+                    alt="Profile picture"
+                  />
                   <AvatarFallback className="text-lg">
                     {getInitials(profile.first_name, profile.last_name)}
                   </AvatarFallback>
@@ -328,10 +458,15 @@ const Profile = () => {
               </div>
               <div>
                 <Label htmlFor="avatar-upload" className="cursor-pointer">
-                  <Button variant="outline" size="sm" disabled={uploading} asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={uploading}
+                    asChild
+                  >
                     <span>
                       <Upload className="h-4 w-4 mr-2" />
-                      {uploading ? 'Uploading...' : 'Upload Photo'}
+                      {uploading ? "Uploading..." : "Upload Photo"}
                     </span>
                   </Button>
                 </Label>
@@ -353,7 +488,9 @@ const Profile = () => {
                 <Input
                   id="first_name"
                   value={profile.first_name || ""}
-                  onChange={(e) => setProfile({ ...profile, first_name: e.target.value })}
+                  onChange={(e) =>
+                    setProfile({ ...profile, first_name: e.target.value })
+                  }
                 />
               </div>
               <div>
@@ -361,11 +498,13 @@ const Profile = () => {
                 <Input
                   id="last_name"
                   value={profile.last_name || ""}
-                  onChange={(e) => setProfile({ ...profile, last_name: e.target.value })}
+                  onChange={(e) =>
+                    setProfile({ ...profile, last_name: e.target.value })
+                  }
                 />
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="email">Email</Label>
@@ -373,28 +512,32 @@ const Profile = () => {
                   id="email"
                   type="email"
                   value={profile.email || ""}
-                  onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                  onChange={(e) =>
+                    setProfile({ ...profile, email: e.target.value })
+                  }
                 />
               </div>
               <div className="space-y-2">
                 <Label>Phone Number</Label>
                 <div className="flex gap-2">
-                <CountrySelector
-                   value={profile.country_code || ""}
-                   onValueChange={(value) =>
-                     setProfile({
-                       ...profile,
-                       country_code: value,
-                     })
-                   }
-                   countries={countries}
-                   placeholder="Code"
-                   className="w-40"
-                 />
+                  <CountrySelector
+                    value={profile.country_code || ""}
+                    onValueChange={(value) =>
+                      setProfile({
+                        ...profile,
+                        country_code: value,
+                      })
+                    }
+                    countries={countries}
+                    placeholder="Code"
+                    className="w-40"
+                  />
                   <Input
                     placeholder="Phone number"
                     value={profile.phone || ""}
-                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                    onChange={(e) =>
+                      setProfile({ ...profile, phone: e.target.value })
+                    }
                     className="flex-1"
                   />
                 </div>
@@ -406,7 +549,9 @@ const Profile = () => {
               <Textarea
                 id="bio"
                 value={profile.bio || ""}
-                onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+                onChange={(e) =>
+                  setProfile({ ...profile, bio: e.target.value })
+                }
                 placeholder="Tell us about yourself..."
                 rows={3}
               />
@@ -423,12 +568,28 @@ const Profile = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="program">Program</Label>
-                <Input
-                  id="program"
+                <Select
                   value={profile.program || ""}
-                  onChange={(e) => setProfile({ ...profile, program: e.target.value })}
-                  placeholder="e.g., MBA, PGDM"
-                />
+                  onValueChange={(value: ProgramType) =>
+                    setProfile({ ...profile, program: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your program" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MBA-PGDBM">MBA-PGDBM</SelectItem>
+                    <SelectItem value="MBA-FABM">MBA-FABM</SelectItem>
+                    <SelectItem value="MBA-PGPX">MBA-PGPX</SelectItem>
+                    <SelectItem value="PhD">PhD</SelectItem>
+                    <SelectItem value="MBA-FPGP">MBA-FPGP</SelectItem>
+                    <SelectItem value="ePGD-ABA">ePGD-ABA</SelectItem>
+                    <SelectItem value="FDP">FDP</SelectItem>
+                    <SelectItem value="AFP">AFP</SelectItem>
+                    <SelectItem value="SMP">SMP</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label htmlFor="graduation_year">Graduation Year</Label>
@@ -436,12 +597,17 @@ const Profile = () => {
                   id="graduation_year"
                   type="number"
                   value={profile.graduation_year || ""}
-                  onChange={(e) => setProfile({ ...profile, graduation_year: parseInt(e.target.value) || null })}
+                  onChange={(e) =>
+                    setProfile({
+                      ...profile,
+                      graduation_year: parseInt(e.target.value) || null,
+                    })
+                  }
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="organization">Organization</Label>
                 <OrganizationSelector
@@ -475,9 +641,9 @@ const Profile = () => {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
+            </div> */}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="position">Position</Label>
                 <Input
@@ -505,7 +671,7 @@ const Profile = () => {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
 
@@ -521,11 +687,14 @@ const Profile = () => {
                 <Select
                   value={profile.country || ""}
                   onValueChange={(value) => {
-                    const selectedCountry = countries.find(c => c.name === value);
-                    setProfile({ 
-                      ...profile, 
+                    const selectedCountry = countries.find(
+                      (c) => c.name === value
+                    );
+                    setProfile({
+                      ...profile,
                       country: value,
-                      country_code: selectedCountry?.dialCode || profile.country_code
+                      country_code:
+                        selectedCountry?.dialCode || profile.country_code,
                     });
                   }}
                 >
@@ -546,7 +715,9 @@ const Profile = () => {
                 <Input
                   id="city"
                   value={profile.city || ""}
-                  onChange={(e) => setProfile({ ...profile, city: e.target.value })}
+                  onChange={(e) =>
+                    setProfile({ ...profile, city: e.target.value })
+                  }
                 />
               </div>
               <div>
@@ -554,11 +725,212 @@ const Profile = () => {
                 <Input
                   id="location"
                   value={profile.location || ""}
-                  onChange={(e) => setProfile({ ...profile, location: e.target.value })}
+                  onChange={(e) =>
+                    setProfile({ ...profile, location: e.target.value })
+                  }
                   placeholder="e.g., Mumbai, India"
                 />
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        
+
+        {/* Organizations */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Organizations</CardTitle>
+            <CardDescription>
+              Add your work experience and organizational affiliations
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {organizations.map((org, index) => (
+              <div key={org.id} className="border rounded-lg p-4 space-y-4">
+                <div className="flex justify-between items-center">
+                  <h4 className="font-medium">Organization {index + 1}</h4>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => removeOrganization(org.id)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor={`org-${org.id}-currentOrg`}>
+                      Organization Name
+                    </Label>
+                    {/* <Input
+                      id={`org-${org.id}-currentOrg`}
+                      value={org.currentOrg}
+                      onChange={(e) => updateOrganization(org.id, 'currentOrg', e.target.value)}
+                      placeholder="Enter organization name"
+                    /> */}
+                    <OrganizationSelector
+                      value={org.currentOrg}
+                      onChange={(value) =>
+                        updateOrganization(org.id, "currentOrg", value)
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor={`org-${org.id}-orgType`}>
+                      Organization Type
+                    </Label>
+                    <Select
+                      value={org.orgType}
+                      onValueChange={(value) =>
+                        updateOrganization(org.id, "orgType", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select organization type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Hospital/Clinic">
+                          Hospital/Clinic
+                        </SelectItem>
+                        <SelectItem value="HealthTech">HealthTech</SelectItem>
+                        <SelectItem value="Pharmaceutical">
+                          Pharmaceutical
+                        </SelectItem>
+                        <SelectItem value="Biotech">Biotech</SelectItem>
+                        <SelectItem value="Medical Devices">
+                          Medical Devices
+                        </SelectItem>
+                        <SelectItem value="Consulting">Consulting</SelectItem>
+                        <SelectItem value="Public Health/Policy">
+                          Public Health/Policy
+                        </SelectItem>
+                        <SelectItem value="Health Insurance">
+                          Health Insurance
+                        </SelectItem>
+                        <SelectItem value="Academic/Research">
+                          Academic/Research
+                        </SelectItem>
+                        <SelectItem value="Startup">Startup</SelectItem>
+                        <SelectItem value="VC">VC</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor={`org-${org.id}-experience`}>
+                      Experience (Years)
+                    </Label>
+                    <Input
+                      id={`org-${org.id}-experience`}
+                      value={org.experience}
+                      onChange={(e) =>
+                        updateOrganization(org.id, "experience", e.target.value)
+                      }
+                      placeholder="e.g., 2-3 years"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor={`org-${org.id}-role`}>Role/Position</Label>
+                    <Input
+                      id={`org-${org.id}-role`}
+                      value={org.role}
+                      onChange={(e) =>
+                        updateOrganization(org.id, "role", e.target.value)
+                      }
+                      placeholder="e.g., Senior Manager"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor={`org-${org.id}-description`}>
+                    Description
+                  </Label>
+                  <Textarea
+                    id={`org-${org.id}-description`}
+                    value={org.description}
+                    onChange={(e) =>
+                      updateOrganization(org.id, "description", e.target.value)
+                    }
+                    placeholder="Describe your role and responsibilities..."
+                    rows={3}
+                  />
+                </div>
+              </div>
+            ))}
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={addOrganization}
+              className="w-full"
+            >
+              + Add Organization
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Preferred Mode of Communication */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Preferred Mode of Communication</CardTitle>
+            <CardDescription>
+              Select your preferred ways to be contacted
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {(
+                [
+                  "Phone",
+                  "Email",
+                  "WhatsApp",
+                  "LinkedIn",
+                ] as PreferredCommunication[]
+              ).map((option) => (
+                <div key={option} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={option.toLowerCase()}
+                    checked={preferredCommunication.includes(option)}
+                    onCheckedChange={(checked) =>
+                      handlePreferredCommunicationChange(
+                        option,
+                        checked as boolean
+                      )
+                    }
+                  />
+                  <Label
+                    htmlFor={option.toLowerCase()}
+                    className="text-sm font-medium"
+                  >
+                    {option}
+                  </Label>
+                </div>
+              ))}
+            </div>
+            {preferredCommunication.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {preferredCommunication.map((option) => (
+                  <Badge
+                    key={option}
+                    variant="secondary"
+                    className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground"
+                  >
+                    {option}
+                    <X
+                      className="ml-1 h-3 w-3"
+                      onClick={() =>
+                        handlePreferredCommunicationChange(option, false)
+                      }
+                    />
+                  </Badge>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -574,7 +946,9 @@ const Profile = () => {
                 <Input
                   id="linkedin_url"
                   value={profile.linkedin_url || ""}
-                  onChange={(e) => setProfile({ ...profile, linkedin_url: e.target.value })}
+                  onChange={(e) =>
+                    setProfile({ ...profile, linkedin_url: e.target.value })
+                  }
                   placeholder="https://linkedin.com/in/yourprofile"
                 />
               </div>
@@ -583,14 +957,15 @@ const Profile = () => {
                 <Input
                   id="website_url"
                   value={profile.website_url || ""}
-                  onChange={(e) => setProfile({ ...profile, website_url: e.target.value })}
+                  onChange={(e) =>
+                    setProfile({ ...profile, website_url: e.target.value })
+                  }
                   placeholder="https://yourwebsite.com"
                 />
               </div>
             </div>
           </CardContent>
         </Card>
-
         {/* Interests & Skills */}
         <Card>
           <CardHeader>
@@ -609,15 +984,23 @@ const Profile = () => {
                 placeholder="e.g., Technology, Finance, Entrepreneurship"
               />
               <div className="flex flex-wrap gap-2 mt-2">
-                {interestsInput.split(",").map(interest => interest.trim()).filter(Boolean).map((interest, index) => (
-                  <Badge key={index} variant="secondary" className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground">
-                    {interest}
-                    <X 
-                      className="ml-1 h-3 w-3" 
-                      onClick={() => removeInterest(interest)}
-                    />
-                  </Badge>
-                ))}
+                {interestsInput
+                  .split(",")
+                  .map((interest) => interest.trim())
+                  .filter(Boolean)
+                  .map((interest, index) => (
+                    <Badge
+                      key={index}
+                      variant="secondary"
+                      className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground"
+                    >
+                      {interest}
+                      <X
+                        className="ml-1 h-3 w-3"
+                        onClick={() => removeInterest(interest)}
+                      />
+                    </Badge>
+                  ))}
               </div>
             </div>
 
@@ -630,15 +1013,23 @@ const Profile = () => {
                 placeholder="e.g., Leadership, Analytics, Marketing"
               />
               <div className="flex flex-wrap gap-2 mt-2">
-                {skillsInput.split(",").map(skill => skill.trim()).filter(Boolean).map((skill, index) => (
-                  <Badge key={index} variant="outline" className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground">
-                    {skill}
-                    <X 
-                      className="ml-1 h-3 w-3" 
-                      onClick={() => removeSkill(skill)}
-                    />
-                  </Badge>
-                ))}
+                {skillsInput
+                  .split(",")
+                  .map((skill) => skill.trim())
+                  .filter(Boolean)
+                  .map((skill, index) => (
+                    <Badge
+                      key={index}
+                      variant="outline"
+                      className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground"
+                    >
+                      {skill}
+                      <X
+                        className="ml-1 h-3 w-3"
+                        onClick={() => removeSkill(skill)}
+                      />
+                    </Badge>
+                  ))}
               </div>
             </div>
           </CardContent>
@@ -660,13 +1051,17 @@ const Profile = () => {
               <Switch
                 id="is_public"
                 checked={profile.is_public}
-                onCheckedChange={(checked) => setProfile({ ...profile, is_public: checked })}
+                onCheckedChange={(checked) =>
+                  setProfile({ ...profile, is_public: checked })
+                }
               />
             </div>
 
             <div className="flex items-center justify-between">
               <div>
-                <Label htmlFor="show_contact_info">Show Contact Information</Label>
+                <Label htmlFor="show_contact_info">
+                  Show Contact Information
+                </Label>
                 <p className="text-sm text-muted-foreground">
                   Display email, phone, and LinkedIn to other users
                 </p>
@@ -674,7 +1069,9 @@ const Profile = () => {
               <Switch
                 id="show_contact_info"
                 checked={profile.show_contact_info}
-                onCheckedChange={(checked) => setProfile({ ...profile, show_contact_info: checked })}
+                onCheckedChange={(checked) =>
+                  setProfile({ ...profile, show_contact_info: checked })
+                }
               />
             </div>
 
@@ -688,16 +1085,20 @@ const Profile = () => {
               <Switch
                 id="show_location"
                 checked={profile.show_location}
-                onCheckedChange={(checked) => setProfile({ ...profile, show_location: checked })}
+                onCheckedChange={(checked) =>
+                  setProfile({ ...profile, show_location: checked })
+                }
               />
             </div>
 
             <div>
               <Label htmlFor="status">Status</Label>
-                <Select
-                  value={profile.status || ""}
-                  onValueChange={(value: ProfileStatus) => setProfile({ ...profile, status: value })}
-                >
+              <Select
+                value={profile.status || ""}
+                onValueChange={(value: ProfileStatus) =>
+                  setProfile({ ...profile, status: value })
+                }
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select your status" />
                 </SelectTrigger>
