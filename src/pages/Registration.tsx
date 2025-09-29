@@ -10,10 +10,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useCountries } from '@/hooks/useCountries';
-import { Loader2 } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 import Header from '@/components/Header';
 import { OrganizationSelector } from '@/components/OrganizationSelector';
 import { addProfileChange } from '@/utils/profileChangeTracker';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 
 export default function Registration() {
   const { user, refreshUserData } = useAuth();
@@ -21,6 +24,17 @@ export default function Registration() {
   const { toast } = useToast();
   const { countries, loading: countriesLoading } = useCountries();
   const [loading, setLoading] = useState(false);
+
+  type Organization = {
+    id: string;
+    currentOrg: string;
+    orgType: string;
+    experience: string;
+    description: string;
+    role: string;
+  };
+
+  type PreferredCommunication = 'Phone' | 'Email' | 'WhatsApp' | 'LinkedIn';
 
   const [formData, setFormData] = useState({
     first_name: '',
@@ -31,9 +45,11 @@ export default function Registration() {
     date_of_birth: '',
     city: '',
     country: '',
+    // Legacy single-organization fields (kept for compatibility)
     organization: '',
     position: '',
-    program: '',
+    // New fields mirroring Profile
+    program: '' as '' | 'MBA-PGDBM' | 'MBA-FABM' | 'MBA-PGPX' | 'PhD' | 'MBA-FPGP' | 'ePGD-ABA' | 'FDP' | 'AFP' | 'SMP' | 'Other',
     experience_level: '',
     organization_type: '',
     graduation_year: '',
@@ -41,7 +57,13 @@ export default function Registration() {
     skills: '',
     interests: '',
     linkedin_url: '',
-    website_url: ''
+    website_url: '',
+    preferred_mode_of_communication: [] as PreferredCommunication[],
+    organizations: [] as Organization[],
+    is_public: true,
+    show_contact_info: true,
+    show_location: true,
+    status: '' as '' | 'Active' | 'Alumni' | 'Student' | 'Faculty' | 'Inactive',
   });
 
   const [errors, setErrors] = useState<{[key: string]: string}>({});
@@ -74,6 +96,18 @@ export default function Registration() {
     if (formData.phone && !phonePattern.test(formData.phone.trim())) {
       newErrors.phone = 'Please enter a valid phone number (e.g., +91XXXXXXXXXX)';
     }
+
+    // Program must be from list if provided
+    if (formData.program && !['MBA-PGDBM','MBA-FABM','MBA-PGPX','PhD','MBA-FPGP','ePGD-ABA','FDP','AFP','SMP','Other'].includes(formData.program)) {
+      newErrors.program = 'Please select a valid program';
+    }
+
+    // Validate organizations entries minimally
+    formData.organizations.forEach((org, idx) => {
+      if (!org.currentOrg.trim()) {
+        newErrors[`organizations_${idx}_currentOrg`] = 'Organization name is required';
+      }
+    });
 
     // URL validations
     if (formData.linkedin_url && formData.linkedin_url.trim()) {
@@ -134,7 +168,7 @@ export default function Registration() {
           country: formData.country,
           organization: formData.organization,
           position: formData.position,
-          program: formData.program,
+          program: formData.program || null,
           experience_level: formData.experience_level as "Entry Level" | "Mid Level" | "Senior Level" | "Executive" | "Student" | "Recent Graduate",
           organization_type: formData.organization_type as "Corporate" | "Startup" | "Non-Profit" | "Government" | "Consulting" | "Education" | "Healthcare" | "Technology" | "Finance" | "Other",
           graduation_year: formData.graduation_year ? parseInt(formData.graduation_year) : null,
@@ -143,6 +177,12 @@ export default function Registration() {
           interests: interestsArray,
           linkedin_url: formData.linkedin_url,
           website_url: formData.website_url,
+          preferred_mode_of_communication: formData.preferred_mode_of_communication,
+          organizations: formData.organizations,
+          is_public: formData.is_public,
+          show_contact_info: formData.show_contact_info,
+          show_location: formData.show_location,
+          status: formData.status || null,
           approval_status: 'pending'
         })
         .eq('user_id', user?.id);
@@ -156,7 +196,11 @@ export default function Registration() {
         first_name: { oldValue: null, newValue: formData.first_name },
         last_name: { oldValue: null, newValue: formData.last_name },
         organization: { oldValue: null, newValue: formData.organization },
-        position: { oldValue: null, newValue: formData.position }
+        position: { oldValue: null, newValue: formData.position },
+        program: { oldValue: null, newValue: formData.program },
+        preferred_mode_of_communication: { oldValue: null, newValue: formData.preferred_mode_of_communication },
+        organizations: { oldValue: null, newValue: formData.organizations },
+        privacy: { oldValue: null, newValue: { is_public: formData.is_public, show_contact_info: formData.show_contact_info, show_location: formData.show_location, status: formData.status } }
       };
 
       try {
@@ -337,23 +381,147 @@ export default function Registration() {
               {/* Professional Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Professional Information</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="organization">Organization</Label>
-                    <OrganizationSelector
-                      value={formData.organization}
-                      onChange={(value) => setFormData({...formData, organization: value})}
-                      placeholder="Search or add organization..."
-                    />
+                {/* Multiple Organizations */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">Organizations</h4>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        const newOrg = {
+                          id: Date.now().toString(),
+                          currentOrg: '',
+                          orgType: '',
+                          experience: '',
+                          description: '',
+                          role: '',
+                        } as Organization;
+                        setFormData({
+                          ...formData,
+                          organizations: [...formData.organizations, newOrg],
+                        });
+                      }}
+                    >
+                      + Add Organization
+                    </Button>
                   </div>
-                  <div>
-                    <Label htmlFor="position">Position</Label>
-                    <Input
-                      id="position"
-                      value={formData.position}
-                      onChange={(e) => setFormData({...formData, position: e.target.value})}
-                    />
-                  </div>
+                  {formData.organizations.map((org, index) => (
+                    <div key={org.id} className="border rounded-lg p-4 space-y-4">
+                      <div className="flex justify-between items-center">
+                        <h5 className="font-medium">Organization {index + 1}</h5>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              organizations: formData.organizations.filter(o => o.id !== org.id),
+                            })
+                          }
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label>Organization Name</Label>
+                          <OrganizationSelector
+                            value={org.currentOrg}
+                            onChange={(value) =>
+                              setFormData({
+                                ...formData,
+                                organizations: formData.organizations.map(o =>
+                                  o.id === org.id ? { ...o, currentOrg: value } : o
+                                ),
+                              })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <Label>Organization Type</Label>
+                          <Select
+                            value={org.orgType}
+                            onValueChange={(value) =>
+                              setFormData({
+                                ...formData,
+                                organizations: formData.organizations.map(o =>
+                                  o.id === org.id ? { ...o, orgType: value } : o
+                                ),
+                              })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select organization type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Hospital/Clinic">Hospital/Clinic</SelectItem>
+                              <SelectItem value="HealthTech">HealthTech</SelectItem>
+                              <SelectItem value="Pharmaceutical">Pharmaceutical</SelectItem>
+                              <SelectItem value="Biotech">Biotech</SelectItem>
+                              <SelectItem value="Medical Devices">Medical Devices</SelectItem>
+                              <SelectItem value="Consulting">Consulting</SelectItem>
+                              <SelectItem value="Public Health/Policy">Public Health/Policy</SelectItem>
+                              <SelectItem value="Health Insurance">Health Insurance</SelectItem>
+                              <SelectItem value="Academic/Research">Academic/Research</SelectItem>
+                              <SelectItem value="Startup">Startup</SelectItem>
+                              <SelectItem value="VC">VC</SelectItem>
+                              <SelectItem value="Other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>Experience (Years)</Label>
+                          <Input
+                            value={org.experience}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                organizations: formData.organizations.map(o =>
+                                  o.id === org.id ? { ...o, experience: e.target.value } : o
+                                ),
+                              })
+                            }
+                            placeholder="e.g., 2-3 years"
+                          />
+                        </div>
+                        <div>
+                          <Label>Role/Position</Label>
+                          <Input
+                            value={org.role}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                organizations: formData.organizations.map(o =>
+                                  o.id === org.id ? { ...o, role: e.target.value } : o
+                                ),
+                              })
+                            }
+                            placeholder="e.g., Senior Manager"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label>Description</Label>
+                        <Textarea
+                          value={org.description}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              organizations: formData.organizations.map(o =>
+                                o.id === org.id ? { ...o, description: e.target.value } : o
+                              ),
+                            })
+                          }
+                          placeholder="Describe your role and responsibilities..."
+                          rows={3}
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -399,12 +567,27 @@ export default function Registration() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="program">Program/Course</Label>
-                    <Input
-                      id="program"
+                    <Label htmlFor="program">Program</Label>
+                    <Select
                       value={formData.program}
-                      onChange={(e) => setFormData({...formData, program: e.target.value})}
-                    />
+                      onValueChange={(value) => setFormData({ ...formData, program: value as typeof formData.program })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your program" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MBA-PGDBM">MBA-PGDBM</SelectItem>
+                        <SelectItem value="MBA-FABM">MBA-FABM</SelectItem>
+                        <SelectItem value="MBA-PGPX">MBA-PGPX</SelectItem>
+                        <SelectItem value="PhD">PhD</SelectItem>
+                        <SelectItem value="MBA-FPGP">MBA-FPGP</SelectItem>
+                        <SelectItem value="ePGD-ABA">ePGD-ABA</SelectItem>
+                        <SelectItem value="FDP">FDP</SelectItem>
+                        <SelectItem value="AFP">AFP</SelectItem>
+                        <SelectItem value="SMP">SMP</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <Label htmlFor="graduation_year">Graduation Year</Label>
@@ -422,6 +605,46 @@ export default function Registration() {
                     )}
                   </div>
                 </div>
+              </div>
+
+              {/* Preferred Communication */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Preferred Mode of Communication</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {(['Phone','Email','WhatsApp','LinkedIn'] as PreferredCommunication[]).map((option) => (
+                    <div key={option} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`pref-${option.toLowerCase()}`}
+                        checked={formData.preferred_mode_of_communication.includes(option)}
+                        onCheckedChange={(checked) => {
+                          setFormData({
+                            ...formData,
+                            preferred_mode_of_communication: checked
+                              ? [...formData.preferred_mode_of_communication, option]
+                              : formData.preferred_mode_of_communication.filter((x) => x !== option),
+                          });
+                        }}
+                      />
+                      <Label htmlFor={`pref-${option.toLowerCase()}`} className="text-sm font-medium">
+                        {option}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+                {formData.preferred_mode_of_communication.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {formData.preferred_mode_of_communication.map((option) => (
+                      <Badge key={option} variant="secondary" className="cursor-pointer" onClick={() =>
+                        setFormData({
+                          ...formData,
+                          preferred_mode_of_communication: formData.preferred_mode_of_communication.filter((x) => x !== option),
+                        })
+                      }>
+                        {option}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Additional Information */}
@@ -487,6 +710,65 @@ export default function Registration() {
                       <p className="text-sm text-red-500 mt-1">{errors.website_url}</p>
                     )}
                   </div>
+                </div>
+              </div>
+
+              {/* Privacy Settings */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Privacy Settings</h3>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="is_public">Public Profile</Label>
+                    <p className="text-sm text-muted-foreground">Allow others to see your profile in the directory</p>
+                  </div>
+                  <Switch
+                    id="is_public"
+                    checked={formData.is_public}
+                    onCheckedChange={(checked) => setFormData({ ...formData, is_public: checked })}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="show_contact_info">Show Contact Information</Label>
+                    <p className="text-sm text-muted-foreground">Display email, phone, and LinkedIn to other users</p>
+                  </div>
+                  <Switch
+                    id="show_contact_info"
+                    checked={formData.show_contact_info}
+                    onCheckedChange={(checked) => setFormData({ ...formData, show_contact_info: checked })}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="show_location">Show Location</Label>
+                    <p className="text-sm text-muted-foreground">Display your location information to other users</p>
+                  </div>
+                  <Switch
+                    id="show_location"
+                    checked={formData.show_location}
+                    onCheckedChange={(checked) => setFormData({ ...formData, show_location: checked })}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="status">Status</Label>
+                  <Select
+                    value={formData.status}
+                    onValueChange={(value) => setFormData({ ...formData, status: value as typeof formData.status })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select your status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Active">Active</SelectItem>
+                      <SelectItem value="Alumni">Alumni</SelectItem>
+                      <SelectItem value="Student">Student</SelectItem>
+                      <SelectItem value="Faculty">Faculty</SelectItem>
+                      <SelectItem value="Inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
