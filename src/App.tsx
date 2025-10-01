@@ -21,7 +21,12 @@ const queryClient = new QueryClient();
 const ApprovedGuard = ({ children }: { children: JSX.Element }) => {
   const { user, loading, isApproved } = useAuth();
   if (loading) return children;
-  if (user && !isApproved) {
+
+  if (!user.profile?.first_name || !user.profile?.phone) {
+    // Profile incomplete - redirect to registration
+    return <Navigate to="/registration" replace />;
+  }
+  if (user && !isApproved && user.profile?.first_name && user.profile?.phone) {
     return <Navigate to="/waiting-approval" replace />;
   }
   return children;
@@ -35,8 +40,8 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <div className="pb-16">
-            <Routes>
-              <Route path="/" element={<ApprovedGuard><Index /></ApprovedGuard>} />
+              <Routes>
+                <Route path="/" element={<ApprovedGuard><Index /></ApprovedGuard>} />
               <Route path="/profile" element={<ApprovedGuard><Profile /></ApprovedGuard>} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/registration" element={<Registration />} />
