@@ -22,11 +22,11 @@ const ApprovedGuard = ({ children }: { children: JSX.Element }) => {
   const { user, loading, isApproved } = useAuth();
   if (loading) return children;
 
-  if (!user.profile?.first_name || !user.profile?.phone) {
+  if (!user?.profile?.first_name || !user?.profile?.phone) {
     // Profile incomplete - redirect to registration
     return <Navigate to="/registration" replace />;
   }
-  if (user && !isApproved && user.profile?.first_name && user.profile?.phone) {
+  if (user && !isApproved && user?.profile?.first_name && user?.profile?.phone) {
     return <Navigate to="/waiting-approval" replace />;
   }
   return children;
