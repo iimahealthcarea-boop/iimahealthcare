@@ -7,11 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { Search, Users, Mail, Phone, MapPin, Building, Calendar, Linkedin, Globe, MoreVertical, X, Eye, Lock } from 'lucide-react';
+import { useStarredProfiles } from '@/hooks/useStarredProfiles';
+import { StarButton } from '@/components/StarButton';
+import { Search, Users, Mail, Phone, MapPin, Building, Calendar, Linkedin, Globe, ChevronDown, ChevronUp, Eye, UserMinus, BookmarkMinus, Star } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 
 type Profile = Tables<'profiles'>;
@@ -32,8 +33,23 @@ export default function DirectoryTab({ onMemberDetails }: DirectoryTabProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [experienceFilter, setExperienceFilter] = useState('all');
   const [organizationTypeFilter, setOrganizationTypeFilter] = useState('all');
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const [showStarredOnly, setShowStarredOnly] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
+  const { isStarred, toggleStar, fetchStarredProfiles } = useStarredProfiles();
+
+  const toggleCardExpansion = (memberId: string) => {
+    setExpandedCards(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(memberId)) {
+        newSet.delete(memberId);
+      } else {
+        newSet.add(memberId);
+      }
+      return newSet;
+    });
+  };
 
   const fetchDirectoryMembers = useCallback(async () => {
     if (!user) return;
@@ -110,7 +126,6 @@ export default function DirectoryTab({ onMemberDetails }: DirectoryTabProps) {
         description: "Member removed from your directory",
       });
       
-      // Refresh directory
       fetchDirectoryMembers();
       
     } catch (error) {
@@ -127,43 +142,29 @@ export default function DirectoryTab({ onMemberDetails }: DirectoryTabProps) {
     const baseMembers = directoryMembers.map(item => item.profiles).filter(Boolean);
     let filtered = baseMembers;
 
+    // Filter by starred status first
+    if (showStarredOnly) {
+      filtered = filtered.filter(member => isStarred(member.user_id));
+    }
+
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(member => {
-        // Basic information
         const nameMatch = `${member.first_name || ''} ${member.last_name || ''}`.toLowerCase().includes(searchLower);
         const organizationMatch = member.organization?.toLowerCase().includes(searchLower) || false;
         const positionMatch = member.position?.toLowerCase().includes(searchLower) || false;
         const programMatch = member.program?.toLowerCase().includes(searchLower) || false;
-        
-        // Location information
         const cityMatch = member.city?.toLowerCase().includes(searchLower) || false;
         const countryMatch = member.country?.toLowerCase().includes(searchLower) || false;
         const addressMatch = member.address?.toLowerCase().includes(searchLower) || false;
-        
-        // Professional details
         const experienceMatch = member.experience_level?.toLowerCase().includes(searchLower) || false;
         const orgTypeMatch = member.organization_type?.toLowerCase().includes(searchLower) || false;
         const graduationYearMatch = member.graduation_year?.toString().includes(searchLower) || false;
-        
-        // Bio and description
         const bioMatch = member.bio?.toLowerCase().includes(searchLower) || false;
-        
-        // Skills array search
-        const skillsMatch = member.skills?.some(skill => 
-          skill.toLowerCase().includes(searchLower)
-        ) || false;
-        
-        // Interests array search
-        const interestsMatch = member.interests?.some(interest => 
-          interest.toLowerCase().includes(searchLower)
-        ) || false;
-        
-        // Social links
+        const skillsMatch = member.skills?.some(skill => skill.toLowerCase().includes(searchLower)) || false;
+        const interestsMatch = member.interests?.some(interest => interest.toLowerCase().includes(searchLower)) || false;
         const linkedinMatch = member.linkedin_url?.toLowerCase().includes(searchLower) || false;
         const websiteMatch = member.website_url?.toLowerCase().includes(searchLower) || false;
-        
-        // Contact information (if visible)
         const emailMatch = member.show_contact_info && member.email?.toLowerCase().includes(searchLower) || false;
         const phoneMatch = member.show_contact_info && member.phone?.toLowerCase().includes(searchLower) || false;
         
@@ -183,13 +184,14 @@ export default function DirectoryTab({ onMemberDetails }: DirectoryTabProps) {
     }
 
     setFilteredMembers(filtered);
-  }, [directoryMembers, searchTerm, experienceFilter, organizationTypeFilter]);
+  }, [directoryMembers, searchTerm, experienceFilter, organizationTypeFilter, showStarredOnly, isStarred]);
 
   useEffect(() => {
     if (user) {
       fetchDirectoryMembers();
+      fetchStarredProfiles();
     }
-  }, [fetchDirectoryMembers, user]);
+  }, [fetchDirectoryMembers, fetchStarredProfiles, user]);
 
   useEffect(() => {
     filterMembers();
@@ -212,7 +214,7 @@ export default function DirectoryTab({ onMemberDetails }: DirectoryTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* Search and Filters for Directory */}
+      {/* Search and Filters */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -224,16 +226,18 @@ export default function DirectoryTab({ onMemberDetails }: DirectoryTabProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <Label htmlFor="search-directory">Search</Label>
               <Input
                 id="search-directory"
-                placeholder="Search by name, organization, skills, bio, interests..."
+                placeholder="Search by name, organization, skills..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
+            
+          
             
             <div>
               <Label htmlFor="experience-directory">Experience Level</Label>
@@ -271,206 +275,306 @@ export default function DirectoryTab({ onMemberDetails }: DirectoryTabProps) {
                   <SelectItem value="Health Insurance">Health Insurance</SelectItem>
                   <SelectItem value="Academic/Research">Academic/Research</SelectItem>
                   <SelectItem value="Startup">Startup</SelectItem>
-                  <SelectItem value="VC">VC</SelectItem>
+                  <SelectItem value="VC">VC</SelectItem>  
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="flex items-end">
+              <Button
+                variant={showStarredOnly ? "default" : "outline"}
+                onClick={() => setShowStarredOnly(!showStarredOnly)}
+                className="w-full h-10"
+              >
+                <Star className={`h-4 w-4 mr-2 ${showStarredOnly ? 'fill-current' : ''}`} />
+                {showStarredOnly ? 'Show All' : 'Starred Only'}
+              </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Results Count for Directory */}
+      {/* Results Count */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Users className="h-4 w-4" />
-        <span>Showing {filteredMembers.length} of {directoryMembers.length} directory members</span>
+        <span>
+          Showing {filteredMembers.length} of {directoryMembers.length} directory members
+          {showStarredOnly && ' (starred only)'}
+        </span>
       </div>
 
       {/* Directory Members Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredMembers.map((member) => (
-          <Card key={member.id} className="hover:shadow-lg transition-all duration-200 border-0 shadow-md h-[420px] flex flex-col">
-            <CardContent className="p-0 flex flex-col h-full">
-              {/* Header */}
-              <div className="relative p-6 pb-4">
-                <div className="flex items-start gap-4">
-                  <Avatar className="w-14 h-14 ring-2 ring-primary/10 flex-shrink-0">
-                    <AvatarImage src={member.avatar_url || ''} alt={`${member.first_name} ${member.last_name}`} />
-                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                      {getInitials(member.first_name, member.last_name)}
-                    </AvatarFallback>
-                  </Avatar>
+        {filteredMembers.map((member) => {
+          const isExpanded = expandedCards.has(member.id);
+          
+          return (
+            <Card key={member.id} className="hover:shadow-lg transition-all duration-200 border-0 shadow-md flex flex-col overflow-hidden">
+              <CardContent className="p-0 flex flex-col h-full">
+                {/* Header Section */}
+                <div className="relative p-6 pb-4 bg-gradient-to-br from-primary/5 to-transparent">
+                  {/* Star Button */}
+                  {!isAdmin && (
+                    <div className="absolute top-4 right-4 z-10">
+                      <StarButton
+                        isStarred={isStarred(member.user_id)}
+                        onToggle={() => toggleStar(member.user_id)}
+                        size="sm"
+                      />
+                    </div>
+                  )}
                   
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-lg truncate text-foreground leading-tight">
-                      {member.first_name} {member.last_name}
-                    </h3>
+                  <div className="flex items-start gap-4 pr-8">
+                    <Avatar className="w-16 h-16 ring-2 ring-primary/20 flex-shrink-0">
+                      <AvatarImage src={member.avatar_url || ''} alt={`${member.first_name} ${member.last_name}`} />
+                      <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-lg">
+                        {getInitials(member.first_name, member.last_name)}
+                      </AvatarFallback>
+                    </Avatar>
                     
-                    {member.position && (
-                      <p className="text-sm text-muted-foreground truncate mt-1">
-                        {member.position}
-                      </p>
-                    )}
-                    
-                    {member.organization && (
-                      <div className="flex items-center gap-1 mt-1">
-                        <Building className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                        <p className="text-xs text-muted-foreground truncate">
-                          {member.organization}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-lg text-foreground leading-tight mb-1">
+                        {member.first_name} {member.last_name}
+                      </h3>
+                      
+                      {member.position && (
+                        <p className="text-sm font-medium text-foreground/80 line-clamp-1 mb-1">
+                          {member.position}
                         </p>
-                      </div>
-                    )}
+                      )}
+                      
+                      {member.organization && (
+                        <div className="flex items-center gap-1.5">
+                          <Building className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                          <p className="text-xs text-muted-foreground line-clamp-1">
+                            {member.organization}
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Content Section - Fixed height with scroll if needed */}
-              <div className="px-6 pb-4 space-y-2 flex-1 overflow-hidden">
-                <div className="space-y-2">
+                {/* Basic Info Section - Always Visible */}
+                <div className="px-6 py-4 space-y-3 flex-1">
+                  {/* Location */}
                   {(member.city || member.country) && (
-                    <div className="flex items-center gap-1">
-                      <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                      <p className="text-xs text-muted-foreground truncate">
+                    <div className="flex items-start gap-2">
+                      <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-muted-foreground line-clamp-2">
                         {member.city}{member.city && member.country && ', '}{member.country}
                       </p>
                     </div>
                   )}
 
+                  {/* Program */}
                   {member.program && (
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                      <p className="text-xs text-muted-foreground truncate">
+                    <div className="flex items-start gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-muted-foreground line-clamp-2">
                         {member.program}
                         {member.graduation_year && ` (${member.graduation_year})`}
                       </p>
                     </div>
                   )}
 
-                  {/* Contact Info (only if member allows it) */}
-                  {member.show_contact_info && (
-                    <div className="space-y-1">
-                      {member.email && (
-                        <div className="flex items-center gap-1">
-                          <Mail className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                          <a href={`mailto:${member.email}`} className="text-xs text-blue-600 hover:underline truncate">
-                            {member.email}
-                          </a>
-                        </div>
-                      )}
-                      
-                      {member.phone && (
-                        <div className="flex items-center gap-1">
-                          <Phone className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                          <a href={`tel:${member.phone}`} className="text-xs text-blue-600 hover:underline">
-                            {member.phone}
-                          </a>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Social Links */}
-                  <div className="flex gap-2 pt-1">
-                    {member.linkedin_url && (
-                      <a 
-                        href={member.linkedin_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 transition-colors p-1 rounded hover:bg-blue-50"
-                      >
-                        <Linkedin className="h-4 w-4" />
-                      </a>
-                    )}
-                    
-                    {member.website_url && (
-                      <a 
-                        href={member.website_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-gray-600 hover:text-gray-800 transition-colors p-1 rounded hover:bg-gray-50"
-                      >
-                        <Globe className="h-4 w-4" />
-                      </a>
-                    )}
-                  </div>
-
                   {/* Tags */}
-                  <div className="flex flex-wrap gap-1 pt-1">
+                  <div className="flex flex-wrap gap-1.5">
                     {member.experience_level && (
-                      <Badge variant="secondary" className="text-xs px-2 py-1">
+                      <Badge variant="secondary" className="text-xs px-2.5 py-0.5 font-medium">
                         {member.experience_level}
                       </Badge>
                     )}
                     
                     {member.organization_type && (
-                      <Badge variant="outline" className="text-xs px-2 py-1">
+                      <Badge variant="outline" className="text-xs px-2.5 py-0.5">
                         {member.organization_type}
                       </Badge>
                     )}
                   </div>
 
-                  {/* Skills Preview */}
-                  {member.skills && member.skills.length > 0 && (
-                    <div className="flex flex-wrap gap-1 pt-1">
-                      {member.skills.slice(0, 2).map((skill, index) => (
-                        <Badge key={index} variant="outline" className="text-xs px-2 py-1">
+                  {/* Skills Preview - Only show when not expanded */}
+                  {!isExpanded && member.skills && member.skills.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {member.skills.slice(0, 3).map((skill, index) => (
+                        <Badge key={index} variant="outline" className="text-xs px-2 py-0.5 bg-primary/5">
                           {skill}
                         </Badge>
                       ))}
-                      {member.skills.length > 2 && (
-                        <Badge variant="outline" className="text-xs px-2 py-1">
-                          +{member.skills.length - 2} more
+                      {member.skills.length > 3 && (
+                        <Badge variant="outline" className="text-xs px-2 py-0.5 bg-muted">
+                          +{member.skills.length - 3}
                         </Badge>
                       )}
                     </div>
                   )}
                 </div>
-              </div>
 
-              {/* Action Buttons - Fixed at bottom */}
-              <div className="px-6 pb-6 pt-4 border-t bg-muted/20 mt-auto">
-                <div className="flex items-center justify-between gap-2">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={() => onMemberDetails(member)}
-                    className="flex-1 h-9 text-sm font-medium"
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    View Details
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="h-9 w-9 p-0 hover:bg-muted">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={() => removeFromDirectory(member.user_id)}
-                        className="text-destructive text-sm"
+                {/* Expanded Details Section */}
+                {isExpanded && (
+                  <div className="px-6 pb-4 space-y-3 border-t pt-4 bg-muted/30">
+                    {/* Bio */}
+                    {member.bio && (
+                      <div>
+                        <h4 className="text-xs font-semibold text-foreground/70 mb-1 uppercase tracking-wide">About</h4>
+                        <p className="text-sm text-muted-foreground">{member.bio}</p>
+                      </div>
+                    )}
+
+                    {/* All Skills */}
+                    {member.skills && member.skills.length > 0 && (
+                      <div>
+                        <h4 className="text-xs font-semibold text-foreground/70 mb-2 uppercase tracking-wide">Skills</h4>
+                        <div className="flex flex-wrap gap-1.5">
+                          {member.skills.map((skill, index) => (
+                            <Badge key={index} variant="outline" className="text-xs px-2 py-0.5 bg-primary/5">
+                              {skill}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Interests */}
+                    {member.interests && member.interests.length > 0 && (
+                      <div>
+                        <h4 className="text-xs font-semibold text-foreground/70 mb-2 uppercase tracking-wide">Interests</h4>
+                        <div className="flex flex-wrap gap-1.5">
+                          {member.interests.map((interest, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs px-2 py-0.5">
+                              {interest}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Contact Info */}
+                    {member.show_contact_info && (member.email || member.phone) && (
+                      <div>
+                        <h4 className="text-xs font-semibold text-foreground/70 mb-2 uppercase tracking-wide">Contact</h4>
+                        <div className="space-y-2">
+                          {member.email && (
+                            <div className="flex items-center gap-2">
+                              <Mail className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              <a href={`mailto:${member.email}`} className="text-sm text-blue-600 hover:underline truncate">
+                                {member.email}
+                              </a>
+                            </div>
+                          )}
+                          
+                          {member.phone && (
+                            <div className="flex items-center gap-2">
+                              <Phone className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              <a href={`tel:${member.phone}`} className="text-sm text-blue-600 hover:underline">
+                                {member.phone}
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Social Links */}
+                    {(member.linkedin_url || member.website_url) && (
+                      <div>
+                        <h4 className="text-xs font-semibold text-foreground/70 mb-2 uppercase tracking-wide">Links</h4>
+                        <div className="flex gap-2">
+                          {member.linkedin_url && (
+                            <a 
+                              href={member.linkedin_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 transition-colors px-3 py-1.5 rounded-md hover:bg-blue-50 border border-blue-200"
+                            >
+                              <Linkedin className="h-4 w-4" />
+                              <span>LinkedIn</span>
+                            </a>
+                          )}
+                          
+                          {member.website_url && (
+                            <a 
+                              href={member.website_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-800 transition-colors px-3 py-1.5 rounded-md hover:bg-gray-50 border border-gray-200"
+                            >
+                              <Globe className="h-4 w-4" />
+                              <span>Website</span>
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Action Buttons - Fixed at bottom */}
+                <div className="px-6 pb-6 pt-4 border-t bg-muted/20 mt-auto">
+                  <div className="flex flex-col gap-2">
+                    {/* Primary Actions Row */}
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => toggleCardExpansion(member.id)}
+                        className="flex-1 h-9 text-sm font-medium"
                       >
-                        <X className="h-4 w-4 mr-2" />
-                        Remove from Directory
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-      
+                        {isExpanded ? (
+                          <>
+                            <ChevronUp className="h-4 w-4 mr-2" />
+                            Show Less
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="h-4 w-4 mr-2" />
+                            Show More
+                          </>
+                        )}
+                      </Button>
+                      
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => onMemberDetails(member)}
+                        className="flex-1 h-9 text-sm font-medium"
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Full Profile
+                      </Button>
+                    </div>
 
+                    {/* Remove from Directory Button */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeFromDirectory(member.user_id)}
+                      className="w-full h-9 text-sm text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <BookmarkMinus className="h-4 w-4 mr-2" />
+                      Remove from Directory
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Empty State */}
       {filteredMembers.length === 0 && (
         <Card>
-          <CardContent className="p-8 text-center">
-            <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No directory members found</h3>
-            <p className="text-muted-foreground">
+          <CardContent className="p-12 text-center">
+            <Users className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
+            <h3 className="text-xl font-semibold mb-2">
+              {showStarredOnly ? 'No starred members found' : 'No directory members found'}
+            </h3>
+            <p className="text-muted-foreground max-w-md mx-auto">
               {directoryMembers.length === 0 
                 ? "You haven't added any members to your directory yet. Go to 'All Members' to add some."
+                : showStarredOnly
+                ? "You haven't starred any members yet. Star some members to see them here."
                 : "Try adjusting your search criteria or filters to see more results."
               }
             </p>

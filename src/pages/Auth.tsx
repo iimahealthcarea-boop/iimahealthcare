@@ -94,6 +94,34 @@ export default function Auth() {
     setLoading(true);
     
     try {
+      // Check if email already exists in profiles table
+      const { data: existingProfile, error: checkError } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("email", email)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "not found" error
+        console.error('Error checking existing email:', checkError);
+        toast({
+          title: "Error",
+          description: "Failed to validate email. Please try again.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (existingProfile) {
+        toast({
+          title: "Email Already Exists",
+          description: "An account with this email already exists. Please use a different email or try signing in.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
       const { error } = await signUp(email, password, {
         first_name: firstName,
         last_name: lastName,

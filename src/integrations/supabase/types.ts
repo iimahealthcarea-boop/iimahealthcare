@@ -244,6 +244,35 @@ export type Database = {
           },
         ]
       }
+      user_starred_profiles: {
+        Row: {
+          created_at: string
+          id: string
+          starred_profile_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          starred_profile_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          starred_profile_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_starred_profiles_starred_profile_id_fkey"
+            columns: ["starred_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null

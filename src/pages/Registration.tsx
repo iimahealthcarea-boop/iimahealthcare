@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -37,8 +37,8 @@ export default function Registration() {
   type PreferredCommunication = 'Phone' | 'Email' | 'WhatsApp' | 'LinkedIn';
 
   const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
+    first_name: user?.profile?.first_name || '',
+    last_name: user?.profile?.last_name || '',
     phone: '',
     country_code: '',
     address: '',
@@ -234,6 +234,16 @@ export default function Registration() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (user?.profile) {
+      setFormData({
+        ...formData,
+        first_name: user.profile.first_name,
+        last_name: user.profile.last_name
+      });
+    }
+  }, [user, formData]);
 
   return (
     <div className="min-h-screen bg-background">

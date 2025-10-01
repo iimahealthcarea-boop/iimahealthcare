@@ -57,11 +57,11 @@ import {
   Linkedin,
   Globe,
 } from "lucide-react";
-import { 
-  addProfileChange, 
-  getChangedFields, 
+import {
+  addProfileChange,
+  getChangedFields,
   getUserName,
-  ProfileChange 
+  ProfileChange,
 } from "@/utils/profileChangeTracker";
 import { ProfileChangeTimeline } from "@/components/ProfileChangeTimeline";
 import * as XLSX from "xlsx";
@@ -70,6 +70,12 @@ import Header from "@/components/Header";
 import { useCountries } from "@/hooks/useCountries";
 import CountrySelector from "@/components/CountrySelector";
 import { OrganizationSelector } from "@/components/OrganizationSelector";
+import { ProfileSharedSections } from "@/components/ProfileSharedSections";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 type ProfileWithApproval = Tables<"profiles">;
 
@@ -117,18 +123,18 @@ export default function AdminDashboard() {
   });
   const { countries, loading: countriesLoading } = useCountries();
 
-  console.log("addMemberFormData", addMemberFormData);
-  console.log("countries", countries);
-
   const [showPassword, setShowPassword] = useState(false);
   const [isTimelineOpen, setIsTimelineOpen] = useState(false);
-  const [timelineProfile, setTimelineProfile] = useState<ProfileWithApproval | null>(null);
-  
+  const [timelineProfile, setTimelineProfile] =
+    useState<ProfileWithApproval | null>(null);
+
   // Search and filter states
-  const [searchTerm, setSearchTerm] = useState('');
-  const [experienceFilter, setExperienceFilter] = useState('all');
-  const [organizationTypeFilter, setOrganizationTypeFilter] = useState('all');
-  const [filteredProfiles, setFilteredProfiles] = useState<ProfileWithApproval[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [experienceFilter, setExperienceFilter] = useState("all");
+  const [organizationTypeFilter, setOrganizationTypeFilter] = useState("all");
+  const [filteredProfiles, setFilteredProfiles] = useState<
+    ProfileWithApproval[]
+  >([]);
 
   const fetchProfiles = useCallback(async () => {
     try {
@@ -156,61 +162,107 @@ export default function AdminDashboard() {
 
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter(profile => {
+      filtered = filtered.filter((profile) => {
         // Basic information
-        const nameMatch = `${profile.first_name || ''} ${profile.last_name || ''}`.toLowerCase().includes(searchLower);
-        const organizationMatch = profile.organization?.toLowerCase().includes(searchLower) || false;
-        const positionMatch = profile.position?.toLowerCase().includes(searchLower) || false;
-        const programMatch = profile.program?.toLowerCase().includes(searchLower) || false;
-        
+        const nameMatch = `${profile.first_name || ""} ${
+          profile.last_name || ""
+        }`
+          .toLowerCase()
+          .includes(searchLower);
+        const organizationMatch =
+          profile.organization?.toLowerCase().includes(searchLower) || false;
+        const positionMatch =
+          profile.position?.toLowerCase().includes(searchLower) || false;
+        const programMatch =
+          profile.program?.toLowerCase().includes(searchLower) || false;
+
         // Location information
-        const cityMatch = profile.city?.toLowerCase().includes(searchLower) || false;
-        const countryMatch = profile.country?.toLowerCase().includes(searchLower) || false;
-        const addressMatch = profile.address?.toLowerCase().includes(searchLower) || false;
-        
+        const cityMatch =
+          profile.city?.toLowerCase().includes(searchLower) || false;
+        const countryMatch =
+          profile.country?.toLowerCase().includes(searchLower) || false;
+        const addressMatch =
+          profile.address?.toLowerCase().includes(searchLower) || false;
+
         // Professional details
-        const experienceMatch = profile.experience_level?.toLowerCase().includes(searchLower) || false;
-        const orgTypeMatch = profile.organization_type?.toLowerCase().includes(searchLower) || false;
-        const graduationYearMatch = profile.graduation_year?.toString().includes(searchLower) || false;
-        
+        const experienceMatch =
+          profile.experience_level?.toLowerCase().includes(searchLower) ||
+          false;
+        const orgTypeMatch =
+          profile.organization_type?.toLowerCase().includes(searchLower) ||
+          false;
+        const graduationYearMatch =
+          profile.graduation_year?.toString().includes(searchLower) || false;
+
         // Bio and description
-        const bioMatch = profile.bio?.toLowerCase().includes(searchLower) || false;
-        
+        const bioMatch =
+          profile.bio?.toLowerCase().includes(searchLower) || false;
+
         // Skills array search
-        const skillsMatch = profile.skills?.some(skill => 
-          skill.toLowerCase().includes(searchLower)
-        ) || false;
-        
+        const skillsMatch =
+          profile.skills?.some((skill) =>
+            skill.toLowerCase().includes(searchLower)
+          ) || false;
+
         // Interests array search
-        const interestsMatch = profile.interests?.some(interest => 
-          interest.toLowerCase().includes(searchLower)
-        ) || false;
-        
+        const interestsMatch =
+          profile.interests?.some((interest) =>
+            interest.toLowerCase().includes(searchLower)
+          ) || false;
+
         // Social links
-        const linkedinMatch = profile.linkedin_url?.toLowerCase().includes(searchLower) || false;
-        const websiteMatch = profile.website_url?.toLowerCase().includes(searchLower) || false;
-        
+        const linkedinMatch =
+          profile.linkedin_url?.toLowerCase().includes(searchLower) || false;
+        const websiteMatch =
+          profile.website_url?.toLowerCase().includes(searchLower) || false;
+
         // Contact information
-        const emailMatch = profile.email?.toLowerCase().includes(searchLower) || false;
-        const phoneMatch = profile.phone?.toLowerCase().includes(searchLower) || false;
-        
+        const emailMatch =
+          profile.email?.toLowerCase().includes(searchLower) || false;
+        const phoneMatch =
+          profile.phone?.toLowerCase().includes(searchLower) || false;
+
         // Approval status
-        const statusMatch = profile.approval_status?.toLowerCase().includes(searchLower) || false;
-        
-        return nameMatch || organizationMatch || positionMatch || programMatch || 
-               cityMatch || countryMatch || addressMatch || experienceMatch || 
-               orgTypeMatch || graduationYearMatch || bioMatch || skillsMatch || 
-               interestsMatch || linkedinMatch || websiteMatch || emailMatch || 
-               phoneMatch || statusMatch;
+        const statusMatch =
+          profile.approval_status?.toLowerCase().includes(searchLower) || false;
+
+        return (
+          nameMatch ||
+          organizationMatch ||
+          positionMatch ||
+          programMatch ||
+          cityMatch ||
+          countryMatch ||
+          addressMatch ||
+          experienceMatch ||
+          orgTypeMatch ||
+          graduationYearMatch ||
+          bioMatch ||
+          skillsMatch ||
+          interestsMatch ||
+          linkedinMatch ||
+          websiteMatch ||
+          emailMatch ||
+          phoneMatch ||
+          statusMatch
+        );
       });
     }
 
-    if (experienceFilter && experienceFilter !== 'all') {
-      filtered = filtered.filter(profile => profile.experience_level === experienceFilter);
+    if (experienceFilter && experienceFilter !== "all") {
+      filtered = filtered.filter(
+        (profile) => profile.experience_level === experienceFilter
+      );
     }
 
-    if (organizationTypeFilter && organizationTypeFilter !== 'all' && organizationTypeFilter !== 'All organization types') {
-      filtered = filtered.filter(profile => profile.organization_type === organizationTypeFilter);
+    if (
+      organizationTypeFilter &&
+      organizationTypeFilter !== "all" &&
+      organizationTypeFilter !== "All organization types"
+    ) {
+      filtered = filtered.filter(
+        (profile) => profile.organization_type === organizationTypeFilter
+      );
     }
 
     setFilteredProfiles(filtered);
@@ -253,17 +305,17 @@ export default function AdminDashboard() {
       const changedFields = {
         approval_status: {
           oldValue: profile.approval_status,
-          newValue: 'approved'
-        }
+          newValue: "approved",
+        },
       };
 
-      const adminName = user?.email || 'Admin';
+      const adminName = user?.email || "Admin";
       await addProfileChange(
         profileUserId,
-        user?.id || '',
+        user?.id || "",
         adminName,
         changedFields,
-        'approve'
+        "approve"
       );
 
       // Approve the profile
@@ -328,21 +380,21 @@ export default function AdminDashboard() {
       const changedFields = {
         approval_status: {
           oldValue: profile.approval_status,
-          newValue: 'rejected'
+          newValue: "rejected",
         },
         rejection_reason: {
           oldValue: profile.rejection_reason,
-          newValue: rejectionReason
-        }
+          newValue: rejectionReason,
+        },
       };
 
-      const adminName = user?.email || 'Admin';
+      const adminName = user?.email || "Admin";
       await addProfileChange(
         profileUserId,
-        user?.id || '',
+        user?.id || "",
         adminName,
         changedFields,
-        'reject'
+        "reject"
       );
 
       // Reject the profile
@@ -468,15 +520,15 @@ export default function AdminDashboard() {
 
       // Track changes before updating
       const changedFields = getChangedFields(editingProfile, updatedData);
-      
+
       if (Object.keys(changedFields).length > 0) {
-        const adminName = user?.email || 'Admin';
+        const adminName = user?.email || "Admin";
         await addProfileChange(
           editingProfile.user_id,
-          user?.id || '',
+          user?.id || "",
           adminName,
           changedFields,
-          'admin_edit'
+          "admin_edit"
         );
       }
 
@@ -759,80 +811,89 @@ export default function AdminDashboard() {
   };
 
   const renderProfileCard = (profile: ProfileWithApproval) => (
-    <Card key={profile.id} className="hover:shadow-md transition-shadow">
-      <CardHeader className="pb-2">
+    <Card
+      key={profile.id}
+      className="hover:shadow-lg transition-all rounded-2xl border border-gray-200"
+    >
+      {/* Header */}
+      <CardHeader className="pb-3">
         <div className="flex justify-between items-start">
-          <div className="flex items-start gap-3">
-            <Avatar className="w-12 h-12 ring-2 ring-primary/10 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <Avatar className="w-14 h-14 ring-2 ring-primary/20 shadow-sm">
               <AvatarImage
                 src={profile.avatar_url || ""}
                 alt={`${profile.first_name} ${profile.last_name}`}
               />
-              <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+              <AvatarFallback className="bg-primary/10 text-primary font-bold">
                 {getInitials(profile.first_name, profile.last_name)}
               </AvatarFallback>
             </Avatar>
             <div>
-              <CardTitle className="text-lg">
+              <CardTitle className="text-base font-semibold">
                 {profile.first_name} {profile.last_name}
               </CardTitle>
-              <CardDescription>{profile.email}</CardDescription>
+              <p className="text-sm text-muted-foreground">
+                {profile.position || "—"}{" "}
+                {profile.organization && `@ ${profile.organization}`}
+              </p>
+              <CardDescription className="text-xs">
+                {profile.email}
+              </CardDescription>
             </div>
           </div>
           {getStatusBadge(profile.approval_status || "pending")}
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-2 text-sm">
-          {profile.organization && (
-            <p>
-              <strong>Organization:</strong> {profile.organization}
-            </p>
-          )}
-          {profile.position && (
-            <p>
-              <strong>Position:</strong> {profile.position}
-            </p>
-          )}
-          {profile.phone && (
-            <p>
-              <strong>Phone:</strong> {profile.phone}
-            </p>
-          )}
-          <p>
-            <strong>Registered:</strong>{" "}
-            {new Date(profile.created_at).toLocaleDateString()}
-          </p>
-          {profile.approval_status === "approved" && (
-            <div className="flex items-center justify-between pt-2 border-t">
-              <span className="text-sm font-medium">Public Profile</span>
-              <Switch
-                checked={profile.is_public || false}
-                onCheckedChange={() =>
-                  handleTogglePublicStatus(
-                    profile.user_id,
-                    profile.is_public || false
-                  )
-                }
-              />
-            </div>
-          )}
+
+      {/* Content */}
+      <CardContent className="space-y-2 text-sm">
+        {profile.phone && (
+          <div className="flex justify-between">
+            <span className="font-medium text-gray-600">Phone:</span>
+            <span className="text-gray-800">{profile.phone}</span>
+          </div>
+        )}
+        <div className="flex justify-between">
+          <span className="font-medium text-gray-600">Registered:</span>
+          <span>{new Date(profile.created_at).toLocaleDateString()}</span>
         </div>
 
-        <div className="flex flex-col gap-2 mt-4">
-          <div className="flex gap-2">
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSelectedProfile(profile)}
-                  className="flex-1"
-                >
-                  <Eye className="w-4 h-4 mr-1" />
-                  View Details
-                </Button>
-              </DialogTrigger>
+        {/* Expandable Quick Info */}
+        <Collapsible>
+          <CollapsibleTrigger className="text-xs text-primary hover:underline mt-1">
+            Show more info
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-2 space-y-1 text-xs text-gray-700">
+            {profile.city && (
+              <div>
+                <strong>City:</strong> {profile.city}
+              </div>
+            )}
+            {profile.country && (
+              <div>
+                <strong>Country:</strong> {profile.country}
+              </div>
+            )}
+          </CollapsibleContent>
+        </Collapsible>
+      </CardContent>
+
+      {/* Footer / Actions */}
+      <div className="p-4 space-y-2 border-t pt-2">
+        <div className="flex gap-2">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => setSelectedProfile(profile)}
+              >
+                <Eye className="w-4 h-4 mr-1" />
+                View Details
+              </Button>
+            </DialogTrigger>
+            {/* DialogContent as you already built */}
             <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <div className="flex items-center gap-3">
@@ -905,32 +966,63 @@ export default function AdminDashboard() {
 
                   {/* Professional Information */}
                   <div>
-                    <h4 className="font-semibold mb-2">
+                    <h4 className="font-semibold mb-3 text-lg">
                       Professional Information
                     </h4>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <strong>Organization:</strong>{" "}
-                        {selectedProfile.organization}
-                      </div>
-                      <div>
-                        <strong>Position:</strong> {selectedProfile.position}
-                      </div>
-                      <div>
-                        <strong>Experience:</strong>{" "}
-                        {selectedProfile.experience_level}
-                      </div>
-                      <div>
-                        <strong>Org Type:</strong>{" "}
-                        {selectedProfile.organization_type}
-                      </div>
-                      <div>
-                        <strong>Program:</strong> {selectedProfile.program}
-                      </div>
-                      <div>
-                        <strong>Graduation Year:</strong>{" "}
-                        {selectedProfile.graduation_year}
-                      </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {selectedProfile.organizations?.map((org, index) => (
+                        <div
+                          key={org.id}
+                          className="rounded-2xl border p-4 shadow-sm bg-white"
+                        >
+                          <h5 className="font-medium mb-2 text-primary">
+                            Organization {index + 1}: {org.currentOrg}
+                          </h5>
+
+                          <div className="space-y-1 text-sm text-muted-foreground">
+                            <p>
+                              <span className="font-semibold text-foreground">
+                                Type:
+                              </span>{" "}
+                              {org.orgType || "-"}
+                            </p>
+                            <p>
+                              <span className="font-semibold text-foreground">
+                                Experience:
+                              </span>{" "}
+                              {org.experience || "-"}
+                            </p>
+                            <p>
+                              <span className="font-semibold text-foreground">
+                                Role:
+                              </span>{" "}
+                              {org.role || "-"}
+                            </p>
+                            <p>
+                              <span className="font-semibold text-foreground">
+                                Description:
+                              </span>{" "}
+                              {org.description || "-"}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Preferred mode of communication */}
+                  <div>
+                    <h4 className="font-semibold mb-2">Communication Preferences</h4>
+                    <div className="space-y-2 text-sm">
+                      {(selectedProfile as any).preferred_mode_of_communication && (
+                        <div>
+                          <strong>Preferred Mode of Communication:</strong>{" "}
+                          {(selectedProfile as any).preferred_mode_of_communication.join(
+                            ", "
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1091,52 +1183,51 @@ export default function AdminDashboard() {
             </DialogContent>
           </Dialog>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => openTimeline(profile)}
-              className="flex-1"
-            >
-              <History className="w-4 h-4 mr-1" />
-              Timeline
-            </Button>
-          </div>
-
           <Button
             variant="outline"
             size="sm"
-            onClick={() => openEditDialog(profile)}
-            className="w-full"
+            className="flex-1"
+            onClick={() => openTimeline(profile)}
           >
-            <Edit className="w-4 h-4 mr-1" />
-            Edit Profile
+            <History className="w-4 h-4 mr-1" />
+            Timeline
           </Button>
-
-          {profile.approval_status === "pending" && (
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                onClick={() => handleApprove(profile.user_id)}
-                disabled={actionLoading}
-                className="flex-1"
-              >
-                <CheckCircle className="w-4 h-4 mr-1" />
-                Approve
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => handleReject(profile.user_id)}
-                disabled={actionLoading}
-                className="flex-1"
-              >
-                <XCircle className="w-4 h-4 mr-1" />
-                Reject
-              </Button>
-            </div>
-          )}
         </div>
-      </CardContent>
+
+        <Button
+          variant="secondary"
+          size="sm"
+          className="w-full"
+          onClick={() => openEditDialog(profile)}
+        >
+          <Edit className="w-4 h-4 mr-1" />
+          Edit Profile
+        </Button>
+
+        {profile.approval_status === "pending" && (
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              className="flex-1"
+              onClick={() => handleApprove(profile.user_id)}
+              disabled={actionLoading}
+            >
+              <CheckCircle className="w-4 h-4 mr-1" />
+              Approve
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="flex-1"
+              onClick={() => handleReject(profile.user_id)}
+              disabled={actionLoading}
+            >
+              <XCircle className="w-4 h-4 mr-1" />
+              Reject
+            </Button>
+          </div>
+        )}
+      </div>
     </Card>
   );
 
@@ -1173,6 +1264,12 @@ export default function AdminDashboard() {
               <Download className="w-4 h-4 mr-2" />
               Export Excel
             </Button>
+            <Link to="/organizations">
+              <Button variant="outline">
+                <Building className="w-4 h-4 mr-2" />
+                Organizations
+              </Button>
+            </Link>
             <Link to="/profile">
               <Button variant="outline">
                 <User className="w-4 h-4 mr-2" />
@@ -1232,7 +1329,8 @@ export default function AdminDashboard() {
               Search & Filter Profiles
             </CardTitle>
             <CardDescription>
-              Find profiles by name, organization, skills, bio, interests, or any other profile information
+              Find profiles by name, organization, skills, bio, interests, or
+              any other profile information
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -1246,17 +1344,22 @@ export default function AdminDashboard() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="experience-profiles">Experience Level</Label>
-                <Select value={experienceFilter} onValueChange={setExperienceFilter}>
+                <Select
+                  value={experienceFilter}
+                  onValueChange={setExperienceFilter}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="All experience levels" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All experience levels</SelectItem>
                     <SelectItem value="Student">Student</SelectItem>
-                    <SelectItem value="Recent Graduate">Recent Graduate</SelectItem>
+                    <SelectItem value="Recent Graduate">
+                      Recent Graduate
+                    </SelectItem>
                     <SelectItem value="Entry Level">Entry Level</SelectItem>
                     <SelectItem value="Mid Level">Mid Level</SelectItem>
                     <SelectItem value="Senior Level">Senior Level</SelectItem>
@@ -1264,24 +1367,39 @@ export default function AdminDashboard() {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div>
                 <Label htmlFor="orgType-profiles">Organization Type</Label>
-                <Select value={organizationTypeFilter} onValueChange={setOrganizationTypeFilter}>
+                <Select
+                  value={organizationTypeFilter}
+                  onValueChange={setOrganizationTypeFilter}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="All organization types" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All organization types</SelectItem>
-                    <SelectItem value="Hospital/Clinic">Hospital/Clinic</SelectItem>
+                    <SelectItem value="Hospital/Clinic">
+                      Hospital/Clinic
+                    </SelectItem>
                     <SelectItem value="HealthTech">HealthTech</SelectItem>
-                    <SelectItem value="Pharmaceutical">Pharmaceutical</SelectItem>
+                    <SelectItem value="Pharmaceutical">
+                      Pharmaceutical
+                    </SelectItem>
                     <SelectItem value="Biotech">Biotech</SelectItem>
-                    <SelectItem value="Medical Devices">Medical Devices</SelectItem>
+                    <SelectItem value="Medical Devices">
+                      Medical Devices
+                    </SelectItem>
                     <SelectItem value="Consulting">Consulting</SelectItem>
-                    <SelectItem value="Public Health/Policy">Public Health/Policy</SelectItem>
-                    <SelectItem value="Health Insurance">Health Insurance</SelectItem>
-                    <SelectItem value="Academic/Research">Academic/Research</SelectItem>
+                    <SelectItem value="Public Health/Policy">
+                      Public Health/Policy
+                    </SelectItem>
+                    <SelectItem value="Health Insurance">
+                      Health Insurance
+                    </SelectItem>
+                    <SelectItem value="Academic/Research">
+                      Academic/Research
+                    </SelectItem>
                     <SelectItem value="Startup">Startup</SelectItem>
                     <SelectItem value="VC">VC</SelectItem>
                     <SelectItem value="Other">Other</SelectItem>
@@ -1295,7 +1413,9 @@ export default function AdminDashboard() {
         {/* Results Count */}
         <div className="flex items-center gap-2 text-sm text-muted-foreground mt-4 mb-4">
           <Users className="h-4 w-4" />
-          <span>Showing {filteredProfiles.length} of {profiles.length} profiles</span>
+          <span>
+            Showing {filteredProfiles.length} of {profiles.length} profiles
+          </span>
         </div>
 
         {/* Profiles List */}
@@ -1326,7 +1446,8 @@ export default function AdminDashboard() {
           </div>
 
           <TabsContent value="pending" className="space-y-4">
-            {filteredProfiles.filter((p) => p.approval_status === "pending").length > 0 ? (
+            {filteredProfiles.filter((p) => p.approval_status === "pending")
+              .length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredProfiles
                   .filter((p) => p.approval_status === "pending")
@@ -1336,12 +1457,14 @@ export default function AdminDashboard() {
               <Card>
                 <CardContent className="p-8 text-center">
                   <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No pending profiles found</h3>
+                  <h3 className="text-lg font-semibold mb-2">
+                    No pending profiles found
+                  </h3>
                   <p className="text-muted-foreground">
-                    {profiles.filter((p) => p.approval_status === "pending").length === 0 
+                    {profiles.filter((p) => p.approval_status === "pending")
+                      .length === 0
                       ? "There are no pending profiles to review."
-                      : "Try adjusting your search criteria or filters to see more results."
-                    }
+                      : "Try adjusting your search criteria or filters to see more results."}
                   </p>
                 </CardContent>
               </Card>
@@ -1349,7 +1472,8 @@ export default function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="approved" className="space-y-4">
-            {filteredProfiles.filter((p) => p.approval_status === "approved").length > 0 ? (
+            {filteredProfiles.filter((p) => p.approval_status === "approved")
+              .length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredProfiles
                   .filter((p) => p.approval_status === "approved")
@@ -1359,12 +1483,14 @@ export default function AdminDashboard() {
               <Card>
                 <CardContent className="p-8 text-center">
                   <CheckCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No approved profiles found</h3>
+                  <h3 className="text-lg font-semibold mb-2">
+                    No approved profiles found
+                  </h3>
                   <p className="text-muted-foreground">
-                    {profiles.filter((p) => p.approval_status === "approved").length === 0 
+                    {profiles.filter((p) => p.approval_status === "approved")
+                      .length === 0
                       ? "There are no approved profiles yet."
-                      : "Try adjusting your search criteria or filters to see more results."
-                    }
+                      : "Try adjusting your search criteria or filters to see more results."}
                   </p>
                 </CardContent>
               </Card>
@@ -1372,7 +1498,8 @@ export default function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="rejected" className="space-y-4">
-            {filteredProfiles.filter((p) => p.approval_status === "rejected").length > 0 ? (
+            {filteredProfiles.filter((p) => p.approval_status === "rejected")
+              .length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredProfiles
                   .filter((p) => p.approval_status === "rejected")
@@ -1382,12 +1509,14 @@ export default function AdminDashboard() {
               <Card>
                 <CardContent className="p-8 text-center">
                   <XCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No rejected profiles found</h3>
+                  <h3 className="text-lg font-semibold mb-2">
+                    No rejected profiles found
+                  </h3>
                   <p className="text-muted-foreground">
-                    {profiles.filter((p) => p.approval_status === "rejected").length === 0 
+                    {profiles.filter((p) => p.approval_status === "rejected")
+                      .length === 0
                       ? "There are no rejected profiles."
-                      : "Try adjusting your search criteria or filters to see more results."
-                    }
+                      : "Try adjusting your search criteria or filters to see more results."}
                   </p>
                 </CardContent>
               </Card>
@@ -1403,12 +1532,13 @@ export default function AdminDashboard() {
               <Card>
                 <CardContent className="p-8 text-center">
                   <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No profiles found</h3>
+                  <h3 className="text-lg font-semibold mb-2">
+                    No profiles found
+                  </h3>
                   <p className="text-muted-foreground">
-                    {profiles.length === 0 
+                    {profiles.length === 0
                       ? "There are no profiles in the system yet."
-                      : "Try adjusting your search criteria or filters to see more results."
-                    }
+                      : "Try adjusting your search criteria or filters to see more results."}
                   </p>
                 </CardContent>
               </Card>
@@ -1449,404 +1579,20 @@ export default function AdminDashboard() {
           </DialogHeader>
 
           {editingProfile && (
-            <div className="space-y-6">
-              {/* Personal Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Personal Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="edit-first_name">First Name</Label>
-                    <Input
-                      id="edit-first_name"
-                      value={editFormData.first_name || ""}
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          first_name: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-last_name">Last Name</Label>
-                    <Input
-                      id="edit-last_name"
-                      value={editFormData.last_name || ""}
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          last_name: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-email">Email</Label>
-                    <Input
-                      id="edit-email"
-                      type="email"
-                      value={editFormData.email || ""}
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          email: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-phone">Phone</Label>
-                    <Input
-                      id="edit-phone"
-                      value={editFormData.phone || ""}
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          phone: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-date_of_birth">Date of Birth</Label>
-                    <Input
-                      id="edit-date_of_birth"
-                      type="date"
-                      value={editFormData.date_of_birth || ""}
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          date_of_birth: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-city">City</Label>
-                    <Input
-                      id="edit-city"
-                      value={editFormData.city || ""}
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          city: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-country">Country</Label>
-                    <Input
-                      id="edit-country"
-                      value={editFormData.country || ""}
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          country: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <Label htmlFor="edit-address">Address</Label>
-                    <Textarea
-                      id="edit-address"
-                      value={editFormData.address || ""}
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          address: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Professional Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">
-                  Professional Information
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="edit-organization">Organization</Label>
-                    {/* <Input
-                      id="edit-organization"
-                      value={editFormData.organization || ""}
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          organization: e.target.value,
-                        })
-                      }
-                    /> */}
-                    <OrganizationSelector
-                  value={editFormData.organization || ""}
-                  onChange={(value) => setEditFormData({ ...editFormData, organization: value })}
-                  placeholder="Search or add organization..."
-                />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-position">Position</Label>
-                    <Input
-                      id="edit-position"
-                      value={editFormData.position || ""}
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          position: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-experience_level">
-                      Experience Level
-                    </Label>
-                    <Select
-                      value={editFormData.experience_level || ""}
-                      onValueChange={(value) =>
-                        setEditFormData({
-                          ...editFormData,
-                          experience_level: value as
-                            | "Student"
-                            | "Recent Graduate"
-                            | "Entry Level"
-                            | "Mid Level"
-                            | "Senior Level"
-                            | "Executive",
-                        })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select experience level" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Student">Student</SelectItem>
-                        <SelectItem value="Recent Graduate">
-                          Recent Graduate
-                        </SelectItem>
-                        <SelectItem value="Entry Level">Entry Level</SelectItem>
-                        <SelectItem value="Mid Level">Mid Level</SelectItem>
-                        <SelectItem value="Senior Level">
-                          Senior Level
-                        </SelectItem>
-                        <SelectItem value="Executive">Executive</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-organization_type">
-                      Organization Type
-                    </Label>
-                    <Select
-                      value={editFormData.organization_type || ""}
-                       onValueChange={(value) =>
-                         setEditFormData({
-                           ...editFormData,
-                           organization_type: value as any, // eslint-disable-line @typescript-eslint/no-explicit-any
-                         })
-                       }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select organization type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Hospital/Clinic">
-                          Hospital/Clinic
-                        </SelectItem>
-                        <SelectItem value="HealthTech">HealthTech</SelectItem>
-                        <SelectItem value="Pharmaceutical">
-                          Pharmaceutical
-                        </SelectItem>
-                        <SelectItem value="Biotech">Biotech</SelectItem>
-                        <SelectItem value="Medical Devices">
-                          Medical Devices
-                        </SelectItem>
-                        <SelectItem value="Consulting">Consulting</SelectItem>
-                        <SelectItem value="Public Health/Policy">
-                          Public Health/Policy
-                        </SelectItem>
-                        <SelectItem value="Health Insurance">
-                          Health Insurance
-                        </SelectItem>
-                        <SelectItem value="Academic/Research">
-                          Academic/Research
-                        </SelectItem>
-                        <SelectItem value="Startup">Startup</SelectItem>
-                        <SelectItem value="VC">VC</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-program">Program</Label>
-                    <Input
-                      id="edit-program"
-                      value={editFormData.program || ""}
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          program: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-graduation_year">
-                      Graduation Year
-                    </Label>
-                    <Input
-                      id="edit-graduation_year"
-                      type="number"
-                      value={editFormData.graduation_year || ""}
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          graduation_year: parseInt(e.target.value) || null,
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Additional Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">
-                  Additional Information
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="edit-bio">Bio</Label>
-                    <Textarea
-                      id="edit-bio"
-                      value={editFormData.bio || ""}
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          bio: e.target.value,
-                        })
-                      }
-                      placeholder="Tell us about yourself..."
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-skills">
-                      Skills (comma-separated)
-                    </Label>
-                    <Input
-                      id="edit-skills"
-                      value={skillsInput}
-                      onChange={(e) => setSkillsInput(e.target.value)}
-                      placeholder="JavaScript, React, Python..."
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-interests">
-                      Interests (comma-separated)
-                    </Label>
-                    <Input
-                      id="edit-interests"
-                      value={interestsInput}
-                      onChange={(e) => setInterestsInput(e.target.value)}
-                      placeholder="Technology, Travel, Sports..."
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="edit-linkedin_url">LinkedIn URL</Label>
-                      <Input
-                        id="edit-linkedin_url"
-                        value={editFormData.linkedin_url || ""}
-                        onChange={(e) =>
-                          setEditFormData({
-                            ...editFormData,
-                            linkedin_url: e.target.value,
-                          })
-                        }
-                        placeholder="https://linkedin.com/in/yourprofile"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="edit-website_url">Website URL</Label>
-                      <Input
-                        id="edit-website_url"
-                        value={editFormData.website_url || ""}
-                        onChange={(e) =>
-                          setEditFormData({
-                            ...editFormData,
-                            website_url: e.target.value,
-                          })
-                        }
-                        placeholder="https://yourwebsite.com"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Privacy Settings */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Privacy Settings</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="edit-is_public">Public Profile</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Allow others to see this profile in the directory
-                      </p>
-                    </div>
-                    <Switch
-                      id="edit-is_public"
-                      checked={editFormData.is_public || false}
-                      onCheckedChange={(checked) =>
-                        setEditFormData({ ...editFormData, is_public: checked })
-                      }
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="edit-show_contact_info">
-                        Show Contact Information
-                      </Label>
-                      <p className="text-sm text-muted-foreground">
-                        Display email, phone, and LinkedIn to other users
-                      </p>
-                    </div>
-                    <Switch
-                      id="edit-show_contact_info"
-                      checked={editFormData.show_contact_info || false}
-                      onCheckedChange={(checked) =>
-                        setEditFormData({
-                          ...editFormData,
-                          show_contact_info: checked,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="edit-show_location">Show Location</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Display location information to other users
-                      </p>
-                    </div>
-                    <Switch
-                      id="edit-show_location"
-                      checked={editFormData.show_location || false}
-                      onCheckedChange={(checked) =>
-                        setEditFormData({
-                          ...editFormData,
-                          show_location: checked,
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-
+            <>
+              <ProfileSharedSections
+                formData={editFormData}
+                onFormDataChange={(newData) =>
+                  setEditFormData((prev) => ({
+                    ...prev,
+                    ...(newData as Partial<ProfileWithApproval>),
+                  }))
+                }
+                skillsInput={skillsInput}
+                onSkillsInputChange={setSkillsInput}
+                interestsInput={interestsInput}
+                onInterestsInputChange={setInterestsInput}
+              />
               {/* Action Buttons */}
               <div className="flex justify-end gap-2 pt-4 border-t">
                 <Button
@@ -1871,7 +1617,7 @@ export default function AdminDashboard() {
                   )}
                 </Button>
               </div>
-            </div>
+            </>
           )}
         </DialogContent>
       </Dialog>
@@ -1926,35 +1672,35 @@ export default function AdminDashboard() {
                 />
               </div>
             </div>
-             <div>
-               <Label htmlFor="add-phone">Phone *</Label>
-               <div className="flex gap-2">
-                 <CountrySelector
-                   value={addMemberFormData.country_code || ""}
-                   onValueChange={(value) =>
-                     setAddMemberFormData({
-                       ...addMemberFormData,
-                       country_code: value,
-                     })
-                   }
-                   countries={countries}
-                   placeholder="Code"
-                   className="w-40"
-                 />
-                 <Input
-                   id="add-phone"
-                   value={addMemberFormData.phone}
-                   onChange={(e) =>
-                     setAddMemberFormData({
-                       ...addMemberFormData,
-                       phone: e.target.value,
-                     })
-                   }
-                   placeholder="Enter phone number"
-                   required
-                 />
-               </div>
-             </div>
+            <div>
+              <Label htmlFor="add-phone">Phone *</Label>
+              <div className="flex gap-2">
+                <CountrySelector
+                  value={addMemberFormData.country_code || ""}
+                  onValueChange={(value) =>
+                    setAddMemberFormData({
+                      ...addMemberFormData,
+                      country_code: value,
+                    })
+                  }
+                  countries={countries}
+                  placeholder="Code"
+                  className="w-40"
+                />
+                <Input
+                  id="add-phone"
+                  value={addMemberFormData.phone}
+                  onChange={(e) =>
+                    setAddMemberFormData({
+                      ...addMemberFormData,
+                      phone: e.target.value,
+                    })
+                  }
+                  placeholder="Enter phone number"
+                  required
+                />
+              </div>
+            </div>
 
             <div>
               <Label htmlFor="add-email">Email *</Label>

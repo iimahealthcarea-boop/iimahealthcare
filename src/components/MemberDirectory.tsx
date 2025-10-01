@@ -11,7 +11,7 @@ import MemberDetailsDialog from './MemberDetailsDialog';
 type Profile = Tables<'profiles'>;
 
 export default function MemberDirectory() {
-  const [activeTab, setActiveTab] = useState('directory');
+  const [activeTab, setActiveTab] = useState('all');
   const [userDirectoryIds, setUserDirectoryIds] = useState<Set<string>>(new Set());
   const [selectedMember, setSelectedMember] = useState<Profile | null>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
@@ -86,8 +86,8 @@ export default function MemberDirectory() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="directory">My Directory</TabsTrigger>
           <TabsTrigger value="all">All Members</TabsTrigger>
+          <TabsTrigger value="directory">My Directory</TabsTrigger>
         </TabsList>
 
         <TabsContent value="directory" className="space-y-6">
