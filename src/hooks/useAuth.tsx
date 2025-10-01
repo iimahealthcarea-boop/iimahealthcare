@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
+import { useToast } from '@/components/ui/use-toast';
 
 type UserRole = 'admin' | 'normal_user';
 type ApprovalStatus = 'pending' | 'approved' | 'rejected';
@@ -30,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   const fetchUserRole = async (userId: string) => {
     try {
@@ -60,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshUserData = async () => {
+    setLoading(true);
     if (!session?.user) return;
     
     const { role, profile } = await fetchUserRole(session.user.id);
@@ -68,6 +71,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role: role as UserRole,
       profile,
       approvalStatus: profile?.approval_status as ApprovalStatus
+    });
+    setLoading(false);
+    toast({
+      title: "Success",
+      description: "User data refreshed successfully",
+      variant: "success",
     });
   };
 

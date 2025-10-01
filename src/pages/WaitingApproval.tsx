@@ -1,12 +1,14 @@
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, RefreshCw, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
 
 export default function WaitingApproval() {
-  const { user, refreshUserData, signOut } = useAuth();
+  const { user, refreshUserData, signOut, loading } = useAuth();
+
+console.log({loading})
 
   const getStatusIcon = () => {
     switch (user?.approvalStatus) {
@@ -74,7 +76,7 @@ export default function WaitingApproval() {
                 onClick={refreshUserData}
                 className="w-full"
               >
-                <RefreshCw className="mr-2 h-4 w-4" />
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
                 Check Status
               </Button>
             </div>
