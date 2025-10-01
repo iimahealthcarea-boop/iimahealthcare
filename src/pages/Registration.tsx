@@ -8,15 +8,21 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { useCountries } from '@/hooks/useCountries';
-import { Loader2, X } from 'lucide-react';
+import { Loader2, X, Upload } from 'lucide-react';
 import Header from '@/components/Header';
 import { OrganizationSelector } from '@/components/OrganizationSelector';
 import { addProfileChange } from '@/utils/profileChangeTracker';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { 
+  compressImage, 
+  validateImageFile, 
+  AVATAR_COMPRESSION_OPTIONS 
+} from '@/utils/imageCompression';
 
 export default function Registration() {
   const { user, refreshUserData } = useAuth();
@@ -24,6 +30,8 @@ export default function Registration() {
   const { toast } = useToast();
   const { countries, loading: countriesLoading } = useCountries();
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.profile?.avatar_url || null);
 
   type Organization = {
     id: string;
@@ -84,6 +92,30 @@ export default function Registration() {
     if (!formData.address.trim()) {
       newErrors.address = 'Address is required';
     }
+    if (!formData.country.trim()) {
+      newErrors.country = 'Country is required';
+    }
+    if (!formData.country_code.trim()) {
+      newErrors.country_code = 'Country code is required';
+    }
+    if (!formData.city.trim()) {
+      newErrors.city = 'City is required';
+    }
+    if (!formData.program) {
+      newErrors.program = 'Program is required';
+    }
+    // If any organization rows exist, validate visible fields
+    formData.organizations.forEach((org, idx) => {
+      if (!org.currentOrg.trim()) {
+        newErrors[`organizations_${idx}_currentOrg`] = 'Organization name is required';
+      }
+      if (!org.orgType.trim()) {
+        newErrors[`organizations_${idx}_orgType`] = 'Organization type is required';
+      }
+      if (!org.role.trim()) {
+        newErrors[`organizations_${idx}_role`] = 'Role is required';
+      }
+    });
 
     // Email validation (user email from auth)
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -97,7 +129,7 @@ export default function Registration() {
       newErrors.phone = 'Please enter a valid phone number (e.g., +91XXXXXXXXXX)';
     }
 
-    // Program must be from list if provided
+    // Program must be from list
     if (formData.program && !['MBA-PGDBM','MBA-FABM','MBA-PGPX','PhD','MBA-FPGP','ePGD-ABA','FDP','AFP','SMP','Other'].includes(formData.program)) {
       newErrors.program = 'Please select a valid program';
     }
@@ -143,7 +175,7 @@ export default function Registration() {
     if (!validateForm()) {
       toast({
         title: "Validation Error",
-        description: "Please correct the errors in the form",
+        description: "Please fill all the details.",
         variant: "destructive",
       });
       return;
@@ -160,6 +192,7 @@ export default function Registration() {
         .update({
           first_name: formData.first_name,
           last_name: formData.last_name,
+          avatar_url: avatarUrl,
           phone: formData.phone,
           country_code: formData.country_code,
           address: formData.address,
@@ -242,8 +275,50 @@ export default function Registration() {
         first_name: user.profile.first_name,
         last_name: user.profile.last_name
       });
+      setAvatarUrl(user.profile.avatar_url || null);
     }
   }, [user, formData]);
+
+  const getInitials = (first?: string, last?: string) => `${(first||'').charAt(0)}${(last||'').charAt(0)}`.toUpperCase();
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
+      toast({ title: 'Invalid file', description: validation.error, variant: 'destructive' });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const compressionResult = await compressImage(file, AVATAR_COMPRESSION_OPTIONS);
+      const fileExt = 'jpg';
+      const fileName = `${user.id}/avatar.${fileExt}`;
+
+      // Remove previous
+      if (avatarUrl) {
+        const existingPath = avatarUrl.split('/').pop();
+        if (existingPath) {
+          await supabase.storage.from('profile-pictures').remove([`${user.id}/${existingPath}`]);
+        }
+      }
+
+      const { error: uploadError } = await supabase.storage
+        .from('profile-pictures')
+        .upload(fileName, compressionResult.file, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from('profile-pictures').getPublicUrl(fileName);
+      setAvatarUrl(data.publicUrl);
+      toast({ title: 'Photo ready', description: 'Your profile picture will be saved with the form.' });
+    } catch (err) {
+      toast({ title: 'Upload failed', description: 'Please try again.', variant: 'destructive' });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -260,6 +335,34 @@ export default function Registration() {
             </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Profile Picture */}
+              {/* <div className="flex flex-col items-center space-y-4">
+                <div className="relative">
+                  <Avatar className="w-24 h-24">
+                    <AvatarImage src={avatarUrl || ''} alt="Profile picture" />
+                    <AvatarFallback className="text-lg">
+                      {getInitials(formData.first_name, formData.last_name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  {uploading && (
+                    <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                      <Loader2 className="h-6 w-6 text-white animate-spin" />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="avatar-upload" className="cursor-pointer">
+                    <Button variant="outline" size="sm" disabled={uploading} asChild>
+                      <span>
+                        <Upload className="h-4 w-4 mr-2" />
+                        {uploading ? 'Uploading...' : 'Upload Photo'}
+                      </span>
+                    </Button>
+                  </Label>
+                  <Input id="avatar-upload" type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
+                </div>
+              </div> */}
+
               {/* Personal Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Personal Information</h3>
@@ -289,6 +392,9 @@ export default function Registration() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {errors.country && (
+                    <p className="text-sm text-red-500 mt-1">{errors.country}</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -339,6 +445,9 @@ export default function Registration() {
                           ))}
                         </SelectContent>
                       </Select>
+                      {errors.country_code && (
+                        <p className="text-sm text-red-500 mt-1">{errors.country_code}</p>
+                      )}
                       <Input
                         placeholder="Phone number"
                         value={formData.phone}
@@ -384,6 +493,9 @@ export default function Registration() {
                     onChange={(e) => setFormData({...formData, city: e.target.value})}
                     placeholder="Enter your city"
                   />
+                  {errors.city && (
+                    <p className="text-sm text-red-500 mt-1">{errors.city}</p>
+                  )}
                 </div>
               </div>
 
@@ -451,6 +563,9 @@ export default function Registration() {
                             }
                           />
                         </div>
+                        {errors[`organizations_${index}_currentOrg`] && (
+                          <p className="text-sm text-red-500 mt-1">{errors[`organizations_${index}_currentOrg`]}</p>
+                        )}
                         <div>
                           <Label>Organization Type</Label>
                           <Select
@@ -482,6 +597,9 @@ export default function Registration() {
                               <SelectItem value="Other">Other</SelectItem>
                             </SelectContent>
                           </Select>
+                          {errors[`organizations_${index}_orgType`] && (
+                            <p className="text-sm text-red-500 mt-1">{errors[`organizations_${index}_orgType`]}</p>
+                          )}
                         </div>
                         <div>
                           <Label>Experience (Years)</Label>
@@ -512,6 +630,9 @@ export default function Registration() {
                             }
                             placeholder="e.g., Senior Manager"
                           />
+                          {errors[`organizations_${index}_role`] && (
+                            <p className="text-sm text-red-500 mt-1">{errors[`organizations_${index}_role`]}</p>
+                          )}
                         </div>
                       </div>
                       <div>
