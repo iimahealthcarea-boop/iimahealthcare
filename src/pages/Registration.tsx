@@ -50,8 +50,8 @@ export default function Registration() {
     position: '',
     // New fields mirroring Profile
     program: '' as '' | 'MBA-PGDBM' | 'MBA-FABM' | 'MBA-PGPX' | 'PhD' | 'MBA-FPGP' | 'ePGD-ABA' | 'FDP' | 'AFP' | 'SMP' | 'Other',
-    experience_level: '',
-    organization_type: '',
+    // experience_level: '',
+    // organization_type: '',
     graduation_year: '',
     bio: '',
     skills: '',
@@ -169,8 +169,8 @@ export default function Registration() {
           organization: formData.organization,
           position: formData.position,
           program: formData.program || null,
-          experience_level: formData.experience_level as "Entry Level" | "Mid Level" | "Senior Level" | "Executive" | "Student" | "Recent Graduate",
-          organization_type: formData.organization_type as "Corporate" | "Startup" | "Non-Profit" | "Government" | "Consulting" | "Education" | "Healthcare" | "Technology" | "Finance" | "Other",
+          // experience_level: formData.experience_level as "Entry Level" | "Mid Level" | "Senior Level" | "Executive" | "Student" | "Recent Graduate",
+          // organization_type: formData.organization_type as "Corporate" | "Startup" | "Non-Profit" | "Government" | "Consulting" | "Education" | "Healthcare" | "Technology" | "Finance" | "Other",
           graduation_year: formData.graduation_year ? parseInt(formData.graduation_year) : null,
           bio: formData.bio,
           skills: skillsArray,
@@ -533,7 +533,7 @@ export default function Registration() {
                     </div>
                   ))}
                 </div>
-
+{/* 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="experience_level">Experience Level</Label>
@@ -573,7 +573,7 @@ export default function Registration() {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
+                </div> */}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
