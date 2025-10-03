@@ -10,22 +10,17 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Mail, Phone, MapPin, Building, Calendar, Edit, Users, AlertTriangle, Send } from 'lucide-react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import MemberDirectory from '@/components/MemberDirectory';
 
 export default function UserDashboard() {
-  const { user, isApproved } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [issueMessage, setIssueMessage] = useState('');
   const [isSubmittingIssue, setIsSubmittingIssue] = useState(false);
   const [isIssueDialogOpen, setIsIssueDialogOpen] = useState(false);
-
-  // Redirect if not approved
-  if (!isApproved) {
-    return <Navigate to="/waiting-approval" replace />;
-  }
 
   const profile = user?.profile;
 

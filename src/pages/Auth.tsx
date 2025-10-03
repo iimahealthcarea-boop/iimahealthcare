@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, GraduationCap } from "lucide-react";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -171,10 +171,24 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+    <div className="mt-10 flex flex-col items-center justify-center bg-background p-4">
+      {/* Logo/Header */}
+      <div className="mb-8 text-center">
+        <button
+          onClick={() => navigate("/")}
+          className="flex items-center gap-3 text-2xl font-bold text-primary hover:text-primary/80 transition-colors cursor-pointer group"
+        >
+          <div className="p-2 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors">
+            <GraduationCap className="h-8 w-8 text-primary" />
+          </div>
+          <span>IIM-AMS Portal</span>
+        </button>
+      
+      </div>
+
+      <Card className="w-full max-w-md shadow-md pb-10 pt-5 mt-20">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">IIM-AMS Portal</CardTitle>
+          <CardTitle className="text-xl">Welcome Back</CardTitle>
           <CardDescription>
             Sign in to your account or create a new one
           </CardDescription>
