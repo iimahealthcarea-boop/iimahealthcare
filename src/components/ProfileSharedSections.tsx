@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { OrganizationSelector } from "@/components/OrganizationSelector";
+import { CitySelector } from "@/components/CitySelector";
 import {
   Card,
   CardContent,
@@ -37,6 +38,7 @@ export interface ProfileSharedFormData {
   email: string | null;
   phone: string | null;
   country_code: string | null;
+  gender: string | null;
   program: ProgramType | null;
   graduation_year: number | null;
   organization: string | null;
@@ -46,6 +48,7 @@ export interface ProfileSharedFormData {
   location: string | null;
   city: string | null;
   country: string | null;
+  pincode: string | null;
   linkedin_url: string | null;
   website_url: string | null;
   bio: string | null;
@@ -221,6 +224,26 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                 }
               />
             </div>
+            <div>
+              <Label htmlFor="gender">Gender</Label>
+              <Select
+                value={formData.gender || ""}
+                onValueChange={(value) =>
+                  onFormDataChange({ ...formData, gender: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select your gender" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Male">Male</SelectItem>
+                  <SelectItem value="Female">Female</SelectItem>
+                  <SelectItem value="Non-binary">Non-binary</SelectItem>
+                  <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
             <div>
               <Label htmlFor="country">Country</Label>
@@ -252,12 +275,24 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
             </div>
             <div>
               <Label htmlFor="city">City</Label>
-              <Input
-                id="city"
+              <CitySelector
                 value={formData.city || ""}
-                onChange={(e) =>
-                  onFormDataChange({ ...formData, city: e.target.value })
+                onChange={(value) =>
+                  onFormDataChange({ ...formData, city: value })
                 }
+                placeholder="Select or add your city"
+                country={formData.country || ""}
+              />
+            </div>
+            <div>
+              <Label htmlFor="pincode">Pincode/ZIP Code</Label>
+              <Input
+                id="pincode"
+                value={formData.pincode || ""}
+                onChange={(e) =>
+                  onFormDataChange({ ...formData, pincode: e.target.value })
+                }
+                placeholder="Enter your pincode/ZIP code"
               />
             </div>
             <div>

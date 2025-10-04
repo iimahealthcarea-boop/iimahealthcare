@@ -44,6 +44,44 @@ export type Database = {
         }
         Relationships: []
       }
+      cities: {
+        Row: {
+          id: string
+          name: string
+          country: string
+          state_province: string | null
+          created_at: string
+          updated_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          country: string
+          state_province?: string | null
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          country?: string
+          state_province?: string | null
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cities_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       otp_codes: {
         Row: {
           created_at: string
@@ -100,6 +138,7 @@ export type Database = {
             | Database["public"]["Enums"]["experience_level"]
             | null
           first_name: string | null
+          gender: string | null
           graduation_year: number | null
           id: string
           interests: string[] | null
@@ -112,6 +151,7 @@ export type Database = {
             | Database["public"]["Enums"]["organization_type"]
             | null
           phone: string | null
+          pincode: string | null
           position: string | null
           program: string | null
           rejection_reason: string | null
@@ -145,6 +185,7 @@ export type Database = {
             | Database["public"]["Enums"]["experience_level"]
             | null
           first_name?: string | null
+          gender?: string | null
           graduation_year?: number | null
           id?: string
           interests?: string[] | null
@@ -157,6 +198,7 @@ export type Database = {
             | Database["public"]["Enums"]["organization_type"]
             | null
           phone?: string | null
+          pincode?: string | null
           position?: string | null
           program?: string | null
           rejection_reason?: string | null
@@ -190,6 +232,7 @@ export type Database = {
             | Database["public"]["Enums"]["experience_level"]
             | null
           first_name?: string | null
+          gender?: string | null
           graduation_year?: number | null
           id?: string
           interests?: string[] | null
@@ -202,6 +245,7 @@ export type Database = {
             | Database["public"]["Enums"]["organization_type"]
             | null
           phone?: string | null
+          pincode?: string | null
           position?: string | null
           program?: string | null
           rejection_reason?: string | null

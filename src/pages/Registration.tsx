@@ -14,6 +14,7 @@ import { useCountries } from '@/hooks/useCountries';
 import { Loader2, X, Upload } from 'lucide-react';
 import Header from '@/components/Header';
 import { OrganizationSelector } from '@/components/OrganizationSelector';
+import { CitySelector } from '@/components/CitySelector';
 import { addProfileChange } from '@/utils/profileChangeTracker';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -48,11 +49,13 @@ export default function Registration() {
     first_name: user?.profile?.first_name || '',
     last_name: user?.profile?.last_name || '',
     phone: '',
-    country_code: '',
+    country_code: '+91',
     address: '',
     date_of_birth: '',
     city: '',
-    country: '',
+    country: 'India',
+    pincode: '',
+    gender: '',
     // Legacy single-organization fields (kept for compatibility)
     organization: '',
     position: '',
@@ -100,6 +103,12 @@ export default function Registration() {
     }
     if (!formData.city.trim()) {
       newErrors.city = 'City is required';
+    }
+    if (!formData.pincode.trim()) {
+      newErrors.pincode = 'Pincode is required';
+    }
+    if (!formData.gender.trim()) {
+      newErrors.gender = 'Gender is required';
     }
     if (!formData.program) {
       newErrors.program = 'Program is required';
@@ -199,6 +208,8 @@ export default function Registration() {
           date_of_birth: formData.date_of_birth || null,
           city: formData.city,
           country: formData.country,
+          pincode: formData.pincode,
+          gender: formData.gender,
           organization: formData.organization,
           position: formData.position,
           program: formData.program || null,
@@ -228,6 +239,8 @@ export default function Registration() {
         approval_status: { oldValue: null, newValue: 'pending' },
         first_name: { oldValue: null, newValue: formData.first_name },
         last_name: { oldValue: null, newValue: formData.last_name },
+        gender: { oldValue: null, newValue: formData.gender },
+        pincode: { oldValue: null, newValue: formData.pincode },
         organization: { oldValue: null, newValue: formData.organization },
         position: { oldValue: null, newValue: formData.position },
         program: { oldValue: null, newValue: formData.program },
@@ -267,6 +280,8 @@ export default function Registration() {
       setLoading(false);
     }
   };
+
+  console.log("countries", countries);
 
   useEffect(() => {
     if (user?.profile) {
@@ -470,6 +485,27 @@ export default function Registration() {
                     />
                   </div>
                 </div>
+                <div>
+                  <Label htmlFor="gender">Gender *</Label>
+                  <Select
+                    value={formData.gender}
+                    onValueChange={(value) => setFormData({...formData, gender: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select your gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
+                      {/* <SelectItem value="Non-binary">Non-binary</SelectItem>
+                      <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem> */}
+                    </SelectContent>
+                  </Select>
+                  {errors.gender && (
+                    <p className="text-sm text-red-500 mt-1">{errors.gender}</p>
+                  )}
+                </div>
 
                 <div>
                   <Label htmlFor="address">Address *</Label>
@@ -484,19 +520,36 @@ export default function Registration() {
                     <p className="text-sm text-red-500 mt-1">{errors.address}</p>
                   )}
                 </div>
+                
 
                 <div>
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
+                  <Label htmlFor="city">City *</Label>
+                  <CitySelector
                     value={formData.city}
-                    onChange={(e) => setFormData({...formData, city: e.target.value})}
-                    placeholder="Enter your city"
+                    onChange={(value) => setFormData({...formData, city: value})}
+                    placeholder="Select or add your city"
+                    country={formData.country}
                   />
                   {errors.city && (
                     <p className="text-sm text-red-500 mt-1">{errors.city}</p>
                   )}
                 </div>
+
+                <div>
+                  <Label htmlFor="pincode">Pincode/ZIP Code *</Label>
+                  <Input
+                    id="pincode"
+                    value={formData.pincode}
+                    onChange={(e) => setFormData({...formData, pincode: e.target.value})}
+                    placeholder="Enter your pincode/ZIP code"
+                    className={errors.pincode ? 'border-red-500' : ''}
+                  />
+                  {errors.pincode && (
+                    <p className="text-sm text-red-500 mt-1">{errors.pincode}</p>
+                  )}
+                </div>
+
+               
               </div>
 
 
@@ -893,11 +946,11 @@ export default function Registration() {
                       <SelectValue placeholder="Select your status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Active">Active</SelectItem>
+                      {/* <SelectItem value="Active">Active</SelectItem> */}
                       <SelectItem value="Alumni">Alumni</SelectItem>
                       <SelectItem value="Student">Student</SelectItem>
                       <SelectItem value="Faculty">Faculty</SelectItem>
-                      <SelectItem value="Inactive">Inactive</SelectItem>
+                      {/* <SelectItem value="Inactive">Inactive</SelectItem> */}
                     </SelectContent>
                   </Select>
                 </div>

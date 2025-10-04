@@ -31,7 +31,7 @@ export default function Header({ showUserInfo = false, showSignOut = false }: He
             <div className="flex items-center space-x-3">
               <GraduationCap className="h-10 w-10 text-blue-200" />
               <div>
-                <h1 className="text-2xl font-bold">IIM-AMS</h1>
+                <h1 className="text-2xl font-bold">IIMA Healthcare SIG</h1>
                 <p className="text-sm text-blue-200">Alumni Management System</p>
               </div>
             </div>

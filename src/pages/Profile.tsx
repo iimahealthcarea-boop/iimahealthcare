@@ -100,6 +100,7 @@ interface Profile {
   email: string | null;
   phone: string | null;
   country_code: string | null;
+  gender: string | null;
   program: ProgramType | null;
   graduation_year: number | null;
   organization: string | null;
@@ -109,6 +110,7 @@ interface Profile {
   location: string | null;
   city: string | null;
   country: string | null;
+  pincode: string | null;
   linkedin_url: string | null;
   website_url: string | null;
   bio: string | null;
