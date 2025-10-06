@@ -92,7 +92,7 @@ interface ChangeRecord {
   isAdmin: boolean;
 }
 
-interface Profile {
+export interface Profile {
   id: string;
   user_id: string;
   first_name: string | null;
@@ -114,6 +114,8 @@ interface Profile {
   linkedin_url: string | null;
   website_url: string | null;
   bio: string | null;
+  altEmail: string | null;
+  other_social_media_handles: string | null;
   interests: string[] | null;
   skills: string[] | null;
   status: ProfileStatus | null;
@@ -123,6 +125,10 @@ interface Profile {
   avatar_url: string | null;
   preferred_mode_of_communication?: PreferredCommunication[] | null;
   organizations?: Organization[] | null;
+  date_of_birth: string | null;
+  address: string | null;
+  willing_to_mentor?: "Yes" | "No" | "Maybe" | null;
+  areas_of_contribution?: string[] | null;
 }
 
 const Profile = () => {
@@ -134,14 +140,25 @@ const Profile = () => {
   const [uploading, setUploading] = useState(false);
   const [interestsInput, setInterestsInput] = useState("");
   const [skillsInput, setSkillsInput] = useState("");
-  const [preferredCommunication, setPreferredCommunication] = useState<
-    PreferredCommunication[]
-  >([]);
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  // Preferred communication and organizations are edited via profile state through ProfileSharedSections
   const navigate = useNavigate();
   const { toast } = useToast();
   const { countries, loading: countriesLoading } = useCountries();
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
+  
+  const handlePreferredCommunicationChange = (
+    value: PreferredCommunication,
+    checked: boolean
+  ) => {
+    setProfile((prev) => {
+      if (!prev) return prev;
+      const current = prev.preferred_mode_of_communication || [];
+      const updated = checked
+        ? [...current, value]
+        : current.filter((v) => v !== value);
+      return { ...prev, preferred_mode_of_communication: updated };
+    });
+  };
 
   const fetchProfile = useCallback(
     async (userId: string) => {
@@ -160,19 +177,11 @@ const Profile = () => {
             variant: "destructive",
           });
         } else {
-          setProfile(data as Profile);
-          setEditingProfile(data as Profile);
+          setProfile(data as unknown as Profile);
+          setEditingProfile(data as unknown as Profile);
           setInterestsInput(data.interests?.join(", ") || "");
           setSkillsInput(data.skills?.join(", ") || "");
-          setPreferredCommunication(
-            ((data as Record<string, unknown>)
-              .preferred_mode_of_communication as PreferredCommunication[]) ||
-              []
-          );
-          setOrganizations(
-            ((data as Record<string, unknown>)
-              .organizations as Organization[]) || []
-          );
+          // preferred_mode_of_communication and organizations are held in profile/editingProfile directly
         }
       } catch (error) {
         console.error("Error:", error);
@@ -219,8 +228,12 @@ const Profile = () => {
         ...profile,
         interests,
         skills,
-        preferred_mode_of_communication: preferredCommunication,
-        organizations: organizations,
+        // Read from profile (single source of truth updated via onFormDataChange)
+        preferred_mode_of_communication:
+          (profile as Profile).preferred_mode_of_communication || [],
+        organizations: (profile as Profile).organizations || [],
+        willing_to_mentor: (profile as Profile).willing_to_mentor ?? null,
+        areas_of_contribution: (profile as Profile).areas_of_contribution || [],
       };
 
       // Track changes before updating
@@ -283,44 +296,9 @@ const Profile = () => {
     setSkillsInput(newSkills.join(", "));
   };
 
-  const handlePreferredCommunicationChange = (
-    value: PreferredCommunication,
-    checked: boolean
-  ) => {
-    if (checked) {
-      setPreferredCommunication((prev) => [...prev, value]);
-    } else {
-      setPreferredCommunication((prev) =>
-        prev.filter((item) => item !== value)
-      );
-    }
-  };
+  // Preferred communication toggling is handled inside ProfileSharedSections via onFormDataChange
 
-  const addOrganization = () => {
-    const newOrg: Organization = {
-      id: Date.now().toString(),
-      currentOrg: "",
-      orgType: "",
-      experience: "",
-      description: "",
-      role: "",
-    };
-    setOrganizations((prev) => [...prev, newOrg]);
-  };
-
-  const updateOrganization = (
-    id: string,
-    field: keyof Organization,
-    value: string
-  ) => {
-    setOrganizations((prev) =>
-      prev.map((org) => (org.id === id ? { ...org, [field]: value } : org))
-    );
-  };
-
-  const removeOrganization = (id: string) => {
-    setOrganizations((prev) => prev.filter((org) => org.id !== id));
-  };
+  // Organization add/update/remove handled inside ProfileSharedSections via onFormDataChange
 
 
   const handleAvatarUpload = async (
@@ -512,6 +490,7 @@ const Profile = () => {
               ...(newData as Partial<Profile>),
             }))
           }
+          handlePreferredCommunicationChange={handlePreferredCommunicationChange}
           skillsInput={skillsInput}
           onSkillsInputChange={setSkillsInput}
           interestsInput={interestsInput}

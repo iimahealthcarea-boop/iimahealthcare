@@ -21,9 +21,12 @@ import {
 } from "@/components/ui/card";
 import { useCountries } from "@/hooks/useCountries";
 import { Button } from "./ui/button";
-import { X } from "lucide-react";
+import { X, Check, ChevronsUpDown } from "lucide-react";
 import { Checkbox } from "./ui/checkbox";
 import { Badge } from "./ui/badge";
+import { SectionDivider } from "./SectionDivider";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 type ExperienceLevel = string;
 type OrganizationType = string;
@@ -52,6 +55,8 @@ export interface ProfileSharedFormData {
   linkedin_url: string | null;
   website_url: string | null;
   bio: string | null;
+  altEmail: string | null;
+  other_social_media_handles: string | null;
   interests: string[] | null;
   skills: string[] | null;
   status: ProfileStatus | null;
@@ -63,11 +68,14 @@ export interface ProfileSharedFormData {
   organizations?: Organization[] | null;
   date_of_birth: string | null;
   address: string | null;
+  willing_to_mentor?: "Yes" | "No" | "Maybe" | null;
+  areas_of_contribution?: string[] | null;
 }
 
 interface ProfileSharedSectionsProps {
   formData: Partial<ProfileSharedFormData>;
   onFormDataChange: (newData: Partial<ProfileSharedFormData>) => void;
+  handlePreferredCommunicationChange: (value: PreferredCommunication, checked: boolean) => void;
   skillsInput: string;
   onSkillsInputChange: (value: string) => void;
   interestsInput: string;
@@ -101,9 +109,36 @@ type Profile = {
   location: string;
 };
 
+const SKILL_OPTIONS: string[] = [
+  "Operations Management",
+  "Strategy and Business Development",
+  "Product Management",
+  "Marketing and Sales",
+  "Supply Chain Management",
+  "Finance and Investment",
+  "Digital Health / AI / ML",
+  "Public Health / Policy",
+  "Regulatory Affairs / Compliance",
+  "Clinical Research",
+  "Health Economics",
+  "Other",
+];
+
+const CONTRIBUTION_OPTIONS: string[] = [
+  "Mentorship",
+  "Guest Lectures / Speaking Engagements",
+  "Startup Collaboration",
+  "Investment Opportunities",
+  "Recruitment / Job Referrals",
+  "Public Health Initiatives",
+  "Research Collaborations",
+  "Other",
+];
+
 export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
   formData,
   onFormDataChange,
+  // handlePreferredCommunicationChange,
   skillsInput,
   onSkillsInputChange,
   interestsInput,
@@ -119,11 +154,12 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
   );
   const [preferredCommunication, setPreferredCommunication] = useState<
     PreferredCommunication[]
-  >(formData.preferred_mode_of_communication || []);
-
+  >(formData?.preferred_mode_of_communication || []);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const removeOrganization = (id: string) => {
     setOrganizations((prev) => prev.filter((org) => org.id !== id));
   };
+  
 
   const addOrganization = () => {
     setOrganizations((prev) => [
@@ -155,10 +191,12 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
   ) => {
     if (checked) {
       setPreferredCommunication((prev) => [...prev, value]);
+      onFormDataChange({ ...formData, preferred_mode_of_communication: [...formData.preferred_mode_of_communication, value] });
     } else {
       setPreferredCommunication((prev) =>
         prev.filter((item) => item !== value)
       );
+      onFormDataChange({ ...formData, preferred_mode_of_communication: formData.preferred_mode_of_communication.filter((item) => item !== value) });
     }
   };
 
@@ -167,7 +205,9 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
       {/* Personal Information */}
       {showPersonal && (
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Personal Information</h3>
+          <SectionDivider title="Personal Information" />
+
+          {/* <h3 className="text-lg font-semibold">Personal Information</h3> */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="first_name">First Name</Label>
@@ -186,27 +226,6 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                 value={formData.last_name || ""}
                 onChange={(e) =>
                   onFormDataChange({ ...formData, last_name: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email || ""}
-                onChange={(e) =>
-                  onFormDataChange({ ...formData, email: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                value={formData.phone || ""}
-                onChange={(e) =>
-                  onFormDataChange({ ...formData, phone: e.target.value })
                 }
               />
             </div>
@@ -239,224 +258,235 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                   <SelectItem value="Male">Male</SelectItem>
                   <SelectItem value="Female">Female</SelectItem>
                   <SelectItem value="Non-binary">Non-binary</SelectItem>
-                  <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
+                  <SelectItem value="Prefer not to say">
+                    Prefer not to say
+                  </SelectItem>
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+          </div>
+          <div>
+            <Label htmlFor="city">Current City *</Label>
+            <CitySelector
+              value={formData.city}
+              onChange={(value) =>
+                onFormDataChange({ ...formData, city: value })
+              }
+              placeholder="Select or add your city"
+              country={formData.country}
+            />
+            {errors.city && (
+              <p className="text-sm text-red-500 mt-1">{errors.city}</p>
+            )}
+          </div>
 
-            <div>
-              <Label htmlFor="country">Country</Label>
+          <div>
+            <Label htmlFor="country">Country *</Label>
+            <Select
+              onValueChange={(value) => {
+                const selectedCountry = countries.find((c) => c.name === value);
+                onFormDataChange({
+                  ...formData,
+                  country: value,
+                  country_code: selectedCountry?.dialCode || "",
+                });
+              }}
+              value={formData.country}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select your country first" />
+              </SelectTrigger>
+              <SelectContent>
+                {countries.map((country) => (
+                  <SelectItem key={country.code} value={country.name}>
+                    {country.flag} {country.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.country && (
+              <p className="text-sm text-red-500 mt-1">{errors.country}</p>
+            )}
+          </div>
+
+          <div>
+            <Label htmlFor="address">Permanent Address *</Label>
+            <Textarea
+              id="address"
+              value={formData.address}
+              onChange={(e) =>
+                onFormDataChange({ ...formData, address: e.target.value })
+              }
+              required
+              className={errors.address ? "border-red-500" : ""}
+            />
+            {errors.address && (
+              <p className="text-sm text-red-500 mt-1">{errors.address}</p>
+            )}
+          </div>
+          <div>
+            <Label htmlFor="pincode">Pincode/ZIP Code *</Label>
+            <Input
+              id="pincode"
+              value={formData.pincode}
+              onChange={(e) =>
+                onFormDataChange({ ...formData, pincode: e.target.value })
+              }
+              placeholder="Enter your pincode/ZIP code"
+              className={errors.pincode ? "border-red-500" : ""}
+            />
+            {errors.pincode && (
+              <p className="text-sm text-red-500 mt-1">{errors.pincode}</p>
+            )}
+          </div>
+        </div>
+      )}
+      <div className="space-y-4">
+        <SectionDivider title="Contact Information" />
+        <div className="flex flex-col gap-4">
+          <div className="">
+            <Label>Phone Number *</Label>
+            <div className="flex gap-2">
               <Select
-                value={formData.country || ""}
-                onValueChange={(value) => {
-                  const selectedCountry = countries.find(
-                    (c) => c.name === value
-                  );
-                  onFormDataChange({
-                    ...formData,
-                    country: value,
-                    country_code:
-                      selectedCountry?.dialCode || formData.country_code,
-                  });
-                }}
+                value={formData.country_code}
+                onValueChange={(value) =>
+                  onFormDataChange({ ...formData, country_code: value })
+                }
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select country" />
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Code" />
                 </SelectTrigger>
                 <SelectContent>
-                  {countries.map((country) => (
-                    <SelectItem key={country.code} value={country.name}>
-                      {country.flag} {country.name}
+                  {countries.map((country, index) => (
+                    <SelectItem
+                      key={`${country.code}-${country.dialCode}-${index}`}
+                      value={country.dialCode}
+                    >
+                      {country.flag} {country.dialCode}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-              <Label htmlFor="city">City</Label>
-              <CitySelector
-                value={formData.city || ""}
-                onChange={(value) =>
-                  onFormDataChange({ ...formData, city: value })
-                }
-                placeholder="Select or add your city"
-                country={formData.country || ""}
-              />
-            </div>
-            <div>
-              <Label htmlFor="pincode">Pincode/ZIP Code</Label>
+              {errors?.country_code && (
+                <p className="text-sm text-red-500 mt-1">
+                  {errors.country_code}
+                </p>
+              )}
               <Input
-                id="pincode"
-                value={formData.pincode || ""}
+                placeholder="Phone number"
+                value={formData.phone}
                 onChange={(e) =>
-                  onFormDataChange({ ...formData, pincode: e.target.value })
+                  onFormDataChange({ ...formData, phone: e.target.value })
                 }
-                placeholder="Enter your pincode/ZIP code"
+                required
+                className={`flex-1 ${errors.phone ? "border-red-500" : ""}`}
               />
             </div>
-            <div>
-              <Label htmlFor="location">Full Location</Label>
-              <Input
-                id="location"
-                value={formData.location || ""}
-                onChange={(e) =>
-                  onFormDataChange({ ...formData, location: e.target.value })
-                }
-                placeholder="e.g., Mumbai, India"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <Label htmlFor="address">Address</Label>
-              <Textarea
-                id="address"
-                value={formData.address || ""}
-                onChange={(e) =>
-                  onFormDataChange({ ...formData, address: e.target.value })
-                }
-              />
-            </div>
+            {errors.phone && (
+              <p className="text-sm text-red-500 mt-1">{errors.phone}</p>
+            )}
+          </div>
+          <div>
+            <Label htmlFor="email">Email *</Label>
+            <Input
+              id="email"
+              type="email"
+              value={formData.email || ""}
+              onChange={(e) =>
+                onFormDataChange({
+                  ...formData,
+                  email: e.target.value,
+                })
+              }
+            />
+          </div>
+          <div>
+            <Label htmlFor="altEmail">Alternate Email</Label>
+            <Input
+              id="altEmail"
+              placeholder="example@email.com"
+              type="email"
+              value={formData.altEmail || ""}
+              onChange={(e) =>
+                onFormDataChange({
+                  ...formData,
+                  altEmail: e.target.value,
+                })
+              }
+            />
+          </div>
+          <div>
+            <Label htmlFor="linkedin_url">LinkedIn URL</Label>
+            <Input
+              id="linkedin_url"
+              type="url"
+              value={formData.linkedin_url}
+              onChange={(e) =>
+                onFormDataChange({
+                  ...formData,
+                  linkedin_url: e.target.value,
+                })
+              }
+              placeholder="https://linkedin.com/in/yourprofile"
+              className={errors.linkedin_url ? "border-red-500" : ""}
+            />
+            {errors.linkedin_url && (
+              <p className="text-sm text-red-500 mt-1">{errors.linkedin_url}</p>
+            )}
+          </div>
+          <div>
+            <Label htmlFor="website_url">Website URL</Label>
+            <Input
+              id="website_url"
+              type="url"
+              value={formData.website_url}
+              onChange={(e) =>
+                onFormDataChange({
+                  ...formData,
+                  website_url: e.target.value,
+                })
+              }
+              placeholder="https://yourwebsite.com"
+              className={errors.website_url ? "border-red-500" : ""}
+            />
+            {errors.website_url && (
+              <p className="text-sm text-red-500 mt-1">{errors.website_url}</p>
+            )}
+          </div>
+          <div>
+            <Label htmlFor="other_social_media_handles">
+              Any Other Social Media Handles
+            </Label>
+            <Input
+              id="other_social_media_handles"
+              type="url"
+              value={formData.other_social_media_handles}
+              onChange={(e) =>
+                onFormDataChange({
+                  ...formData,
+                  other_social_media_handles: e.target.value,
+                })
+              }
+              placeholder="Any other social media handles"
+              className={
+                errors.other_social_media_handles ? "border-red-500" : ""
+              }
+            />
+            {errors.other_social_media_handles && (
+              <p className="text-sm text-red-500 mt-1">
+                {errors.other_social_media_handles}
+              </p>
+            )}
           </div>
         </div>
-      )}
-      {/* <Card>
-          <CardHeader>
-            <CardTitle>Location</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="country">Country</Label>
-                <Select
-                  value={formData.country || ""}
-                  onValueChange={(value) => {
-                    const selectedCountry = countries.find(
-                      (c) => c.name === value
-                    );
-                    onFormDataChange({
-                      ...formData,
-                      country: value,
-                      country_code:
-                        selectedCountry?.dialCode || formData.country_code,
-                    });
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select country" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {countries.map((country) => (
-                      <SelectItem key={country.code} value={country.name}>
-                        {country.flag} {country.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
-                  value={formData.city || ""}
-                  onChange={(e) =>
-                    onFormDataChange({ ...formData, city: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label htmlFor="location">Full Location</Label>
-                <Input
-                  id="location"
-                  value={formData.location || ""}
-                  onChange={(e) =>
-                    onFormDataChange({ ...formData, location: e.target.value })
-                  }
-                  placeholder="e.g., Mumbai, India"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card> */}
+      </div>
 
       {/* Professional Information */}
       {showProfessional && (
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Professional Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* <div>
-            <Label htmlFor="organization">Organization</Label>
-            <OrganizationSelector
-              value={formData.organization || ""}
-              onChange={(value) =>
-                onFormDataChange({ ...formData, organization: value })
-              }
-              placeholder="Search or add organization..."
-            />
-          </div>
-          <div>
-            <Label htmlFor="position">Position</Label>
-            <Input
-              id="position"
-              value={formData.position || ""}
-              onChange={(e) =>
-                onFormDataChange({ ...formData, position: e.target.value })
-              }
-            />
-          </div> */}
-            {/* <div>
-            <Label htmlFor="experience_level">Experience Level</Label>
-            <Select
-              value={formData.experience_level || ""}
-              onValueChange={(value) =>
-                onFormDataChange({
-                  ...formData,
-                  experience_level: value as ExperienceLevel,
-                })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select experience level" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Student">Student</SelectItem>
-                <SelectItem value="Recent Graduate">Recent Graduate</SelectItem>
-                <SelectItem value="Entry Level">Entry Level</SelectItem>
-                <SelectItem value="Mid Level">Mid Level</SelectItem>
-                <SelectItem value="Senior Level">Senior Level</SelectItem>
-                <SelectItem value="Executive">Executive</SelectItem>
-              </SelectContent>
-            </Select>
-          </div> */}
-            {/* <div>
-            <Label htmlFor="organization_type">Organization Type</Label>
-            <Select
-              value={formData.organization_type || ""}
-              onValueChange={(value) =>
-                onFormDataChange({
-                  ...formData,
-                  organization_type: value as OrganizationType,
-                })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select organization type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Hospital/Clinic">Hospital/Clinic</SelectItem>
-                <SelectItem value="HealthTech">HealthTech</SelectItem>
-                <SelectItem value="Pharmaceutical">Pharmaceutical</SelectItem>
-                <SelectItem value="Biotech">Biotech</SelectItem>
-                <SelectItem value="Medical Devices">Medical Devices</SelectItem>
-                <SelectItem value="Consulting">Consulting</SelectItem>
-                <SelectItem value="Public Health/Policy">Public Health/Policy</SelectItem>
-                <SelectItem value="Health Insurance">Health Insurance</SelectItem>
-                <SelectItem value="Academic/Research">Academic/Research</SelectItem>
-                <SelectItem value="Startup">Startup</SelectItem>
-                <SelectItem value="VC">VC</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div> */}
+          <SectionDivider title="Professional Information" />
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="program">Program</Label>
               <Select
@@ -490,79 +520,99 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
               <Input
                 id="graduation_year"
                 type="number"
-                value={formData.graduation_year || ""}
+                min="1950"
+                max="2040"
+                value={formData.graduation_year}
                 onChange={(e) =>
                   onFormDataChange({
                     ...formData,
-                    graduation_year: parseInt(e.target.value) || null,
+                    graduation_year: parseInt(e.target.value),
                   })
                 }
+                className={errors.graduation_year ? "border-red-500" : ""}
               />
+              {errors.graduation_year && (
+                <p className="text-sm text-red-500 mt-1">
+                  {errors.graduation_year}
+                </p>
+              )}
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Organizations */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Organizations</CardTitle>
-          <CardDescription>
-            Add your work experience and organizational affiliations
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {organizations.map((org, index) => (
-            <div key={org.id} className="border rounded-lg p-4 space-y-4">
+          {/* Current Organization */}
+
+          <div className="space-y-4">
+            <h4 className="font-medium">Current Organization</h4>
+            <div className="border rounded-lg p-4 space-y-4">
               <div className="flex justify-between items-center">
-                <h4 className="font-medium">Organization {index + 1}</h4>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => removeOrganization(org.id)}
-                  className="text-destructive hover:text-destructive"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+                <h5 className="font-medium">Current Organization</h5>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor={`org-${org.id}-currentOrg`}>
-                    Organization Name
-                  </Label>
-                  {/* <Input
-                      id={`org-${org.id}-currentOrg`}
-                      value={org.currentOrg}
-                      onChange={(e) => updateOrganization(org.id, 'currentOrg', e.target.value)}
-                      placeholder="Enter organization name"
-                    /> */}
+                  <Label>Organization Name</Label>
                   <OrganizationSelector
-                    value={org.currentOrg}
+                    value={formData?.organizations?.[0]?.currentOrg}
                     onChange={(value) =>
-                      updateOrganization(org.id, "currentOrg", value)
+                      onFormDataChange({
+                        ...formData,
+                        organizations: (
+                          formData.organizations && formData.organizations.length > 0
+                            ? formData.organizations
+                            : [
+                                {
+                                  id: Date.now().toString(),
+                                  currentOrg: "",
+                                  orgType: "",
+                                  experience: "",
+                                  description: "",
+                                  role: "",
+                                } as Organization,
+                              ]
+                        ).map((o, index) => (index === 0 ? { ...o, currentOrg: value } : o)),
+                      })
                     }
                   />
                 </div>
+                {errors[`organizations_0_currentOrg`] && (
+                  <p className="text-sm text-red-500 mt-1">
+                    {errors[`organizations_0_currentOrg`]}
+                  </p>
+                )}
                 <div>
-                  <Label htmlFor={`org-${org.id}-orgType`}>
-                    Organization Type
-                  </Label>
+                  <Label>Organization Type</Label>
                   <Select
-                    value={org.orgType}
+                    value={formData?.organizations?.[0]?.orgType}
                     onValueChange={(value) =>
-                      updateOrganization(org.id, "orgType", value)
+                      onFormDataChange({
+                        ...formData,
+                        organizations: (
+                          formData.organizations && formData.organizations.length > 0
+                            ? formData.organizations
+                            : [
+                                {
+                                  id: Date.now().toString(),
+                                  currentOrg: "",
+                                  orgType: "",
+                                  experience: "",
+                                  description: "",
+                                  role: "",
+                                } as Organization,
+                              ]
+                        ).map((o, index) => (index === 0 ? { ...o, orgType: value } : o)),
+                      })
                     }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select organization type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Hospital/Clinic">
-                        Hospital/Clinic
+                      <SelectItem value="Hospital / Clinic">
+                        Hospital / Clinic
                       </SelectItem>
-                      <SelectItem value="HealthTech">HealthTech</SelectItem>
+                      <SelectItem value="HealthTech Company">
+                        HealthTech Company
+                      </SelectItem>
                       <SelectItem value="Pharmaceutical">
                         Pharmaceutical
                       </SelectItem>
@@ -570,83 +620,315 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                       <SelectItem value="Medical Devices">
                         Medical Devices
                       </SelectItem>
-                      <SelectItem value="Consulting">Consulting</SelectItem>
-                      <SelectItem value="Public Health/Policy">
-                        Public Health/Policy
+                      <SelectItem value="Consulting Firm">
+                        Consulting Firm
+                      </SelectItem>
+                      <SelectItem value="Public Health / Policy Organization">
+                        Public Health / Policy Organization
                       </SelectItem>
                       <SelectItem value="Health Insurance">
                         Health Insurance
                       </SelectItem>
-                      <SelectItem value="Academic/Research">
-                        Academic/Research
+                      <SelectItem value="Academic / Research Institution">
+                        Academic / Research Institution
                       </SelectItem>
-                      <SelectItem value="Startup">Startup</SelectItem>
-                      <SelectItem value="VC">VC</SelectItem>
+                      <SelectItem value="Startup / Entrepreneurial Venture">
+                        Startup / Entrepreneurial Venture
+                      </SelectItem>
+                      <SelectItem value="Investment / Venture Capital">
+                        Investment / Venture Capital
+                      </SelectItem>
                       <SelectItem value="Other">Other</SelectItem>
                     </SelectContent>
                   </Select>
+                  {errors[`organizations_0_orgType`] && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {errors[`organizations_0_orgType`]}
+                    </p>
+                  )}
                 </div>
                 <div>
-                  <Label htmlFor={`org-${org.id}-experience`}>
-                    Experience (Years)
-                  </Label>
+                  <Label>Experience (Years)</Label>
                   <Input
-                    id={`org-${org.id}-experience`}
-                    value={org.experience}
+                    value={formData?.organizations?.[0]?.experience}
                     onChange={(e) =>
-                      updateOrganization(org.id, "experience", e.target.value)
+                      onFormDataChange({
+                        ...formData,
+                        organizations: (
+                          formData.organizations && formData.organizations.length > 0
+                            ? formData.organizations
+                            : [
+                                {
+                                  id: Date.now().toString(),
+                                  currentOrg: "",
+                                  orgType: "",
+                                  experience: "",
+                                  description: "",
+                                  role: "",
+                                } as Organization,
+                              ]
+                        ).map((o, index) =>
+                          index === 0 ? { ...o, experience: e?.target.value } : o
+                        ),
+                      })
                     }
                     placeholder="e.g., 2-3 years"
                   />
                 </div>
                 <div>
-                  <Label htmlFor={`org-${org.id}-role`}>Role/Position</Label>
+                  <Label>Role/Position</Label>
                   <Input
-                    id={`org-${org.id}-role`}
-                    value={org.role}
+                    value={formData?.organizations?.[0]?.role}
                     onChange={(e) =>
-                      updateOrganization(org.id, "role", e.target.value)
+                      onFormDataChange({
+                        ...formData,
+                        organizations: (
+                          formData.organizations && formData.organizations.length > 0
+                            ? formData.organizations
+                            : [
+                                {
+                                  id: Date.now().toString(),
+                                  currentOrg: "",
+                                  orgType: "",
+                                  experience: "",
+                                  description: "",
+                                  role: "",
+                                } as Organization,
+                              ]
+                        ).map((o, index) => (index === 0 ? { ...o, role: e.target.value } : o)),
+                      })
                     }
                     placeholder="e.g., Senior Manager"
                   />
+                  {errors[`organizations_0_role`] && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {errors[`organizations_0_role`]}
+                    </p>
+                  )}
                 </div>
               </div>
-
               <div>
-                <Label htmlFor={`org-${org.id}-description`}>Description</Label>
+                <Label>Description</Label>
                 <Textarea
-                  id={`org-${org.id}-description`}
-                  value={org.description}
+                  value={formData?.organizations?.[0]?.description}
                   onChange={(e) =>
-                    updateOrganization(org.id, "description", e.target.value)
+                    onFormDataChange({
+                      ...formData,
+                      organizations: (
+                        formData.organizations && formData.organizations.length > 0
+                          ? formData.organizations
+                          : [
+                              {
+                                id: Date.now().toString(),
+                                currentOrg: "",
+                                orgType: "",
+                                experience: "",
+                                description: "",
+                                role: "",
+                              } as Organization,
+                            ]
+                      ).map((o, index) =>
+                        index === 0 ? { ...o, description: e?.target.value } : o
+                      ),
+                    })
                   }
                   placeholder="Describe your role and responsibilities..."
                   rows={3}
                 />
               </div>
             </div>
-          ))}
+          </div>
+          {/* Other Organizations */}
+          <div className="space-y-4">
+            
+            {(formData.organizations || []).slice(1).map((org, index) => (
+              <div key={org.id} className="border rounded-lg p-4 space-y-4">
+                <div className="flex justify-between items-center">
+                  <h5 className="font-medium">Organization {index + 2}</h5>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      onFormDataChange({
+                        ...formData,
+                        organizations: (formData.organizations || []).filter(
+                          (o) => o.id !== org.id
+                        ),
+                      })
+                    }
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
 
-          <Button
-            type="button"
-            variant="outline"
-            onClick={addOrganization}
-            className="w-full"
-          >
-            + Add Organization
-          </Button>
-        </CardContent>
-      </Card>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Organization Name</Label>
+                    <OrganizationSelector
+                      value={org?.currentOrg}
+                      onChange={(value) =>
+                        onFormDataChange({
+                          ...formData,
+                          organizations: (formData.organizations || []).map((o) =>
+                            o.id === org.id ? { ...o, currentOrg: value } : o
+                          ),
+                        })
+                      }
+                    />
+                  </div>
+                  {errors[`organizations_${index + 1}_currentOrg`] && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {errors[`organizations_${index + 1}_currentOrg`]}
+                    </p>
+                  )}
+                  <div>
+                    <Label>Organization Type</Label>
+                    <Select
+                      value={org.orgType}
+                      onValueChange={(value) =>
+                        onFormDataChange({
+                          ...formData,
+                          organizations: (formData.organizations || []).map((o) =>
+                            o.id === org.id ? { ...o, orgType: value } : o
+                          ),
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select organization type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Hospital/Clinic">
+                          Hospital/Clinic
+                        </SelectItem>
+                        <SelectItem value="HealthTech">HealthTech</SelectItem>
+                        <SelectItem value="Pharmaceutical">
+                          Pharmaceutical
+                        </SelectItem>
+                        <SelectItem value="Biotech">Biotech</SelectItem>
+                        <SelectItem value="Medical Devices">
+                          Medical Devices
+                        </SelectItem>
+                        <SelectItem value="Consulting">Consulting</SelectItem>
+                        <SelectItem value="Public Health/Policy">
+                          Public Health/Policy
+                        </SelectItem>
+                        <SelectItem value="Health Insurance">
+                          Health Insurance
+                        </SelectItem>
+                        <SelectItem value="Academic/Research">
+                          Academic/Research
+                        </SelectItem>
+                        <SelectItem value="Startup">Startup</SelectItem>
+                        <SelectItem value="VC">VC</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {errors[`organizations_${index + 1}_orgType`] && (
+                      <p className="text-sm text-red-500 mt-1">
+                        {errors[`organizations_${index + 1}_orgType`]}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <Label>Experience (Years)</Label>
+                    <Input
+                      value={org.experience}
+                      onChange={(e) =>
+                        onFormDataChange({
+                          ...formData,
+                          organizations: (formData.organizations || []).map((o) =>
+                            o.id === org.id
+                              ? { ...o, experience: e.target.value }
+                              : o
+                          ),
+                        })
+                      }
+                      placeholder="e.g., 2-3 years"
+                    />
+                  </div>
+                  <div>
+                    <Label>Role/Position</Label>
+                    <Input
+                      value={org.role}
+                      onChange={(e) =>
+                        onFormDataChange({
+                          ...formData,
+                          organizations: (formData.organizations || []).map((o) =>
+                            o.id === org.id ? { ...o, role: e.target.value } : o
+                          ),
+                        })
+                      }
+                      placeholder="e.g., Senior Manager"
+                    />
+                    {errors[`organizations_${index + 1}_role`] && (
+                      <p className="text-sm text-red-500 mt-1">
+                        {errors[`organizations_${index + 1}_role`]}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <Label>Description</Label>
+                  <Textarea
+                    value={org.description}
+                    onChange={(e) =>
+                      onFormDataChange({
+                        ...formData,
+                        organizations: (formData.organizations || []).map((o) =>
+                          o.id === org.id
+                            ? { ...o, description: e.target.value }
+                            : o
+                        ),
+                      })
+                    }
+                    placeholder="Describe your role and responsibilities..."
+                    rows={3}
+                  />
+                </div>
+              </div>
+            ))}
+            <div className="flex items-center justify-center">
+              {/* <h4 className="font-medium">Other Organizations</h4> */}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  const newOrg = {
+                    id: Date.now().toString(),
+                    currentOrg: "",
+                    orgType: "",
+                    experience: "",
+                    description: "",
+                    role: "",
+                  } as Organization;
+                  onFormDataChange({
+                    ...formData,
+                    organizations: [...(formData.organizations || []), newOrg],
+                  });
+                }}
+              >
+                + Add More Organization
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Preferred Mode of Communication */}
-      <Card>
+      <div className="space-y-4">
+        <SectionDivider title="Preferred Mode of Communication" />
+
+      {/* <Card>
         <CardHeader>
           <CardTitle>Preferred Mode of Communication</CardTitle>
           <CardDescription>
             Select your preferred ways to be contacted
           </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        </CardHeader> */}
+        <div className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {(
               [
@@ -678,7 +960,7 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
           </div>
           {preferredCommunication.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-2">
-              {preferredCommunication.map((option) => (
+              {preferredCommunication?.map((option) => (
                 <Badge
                   key={option}
                   variant="secondary"
@@ -695,13 +977,115 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+
+      {/* Mentoring & Contributions */}
+      <div className="space-y-4">
+        <SectionDivider title="Mentoring & Contributions" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label>Willingness to Mentor or Collaborate with Fellow Alumni</Label>
+            <Select
+              value={(formData.willing_to_mentor as "Yes" | "No" | "Maybe" | undefined) || ""}
+              onValueChange={(v) =>
+                onFormDataChange({
+                  ...formData,
+                  willing_to_mentor: v as "Yes" | "No" | "Maybe",
+                })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select Yes / No / Maybe" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Yes">Yes</SelectItem>
+                <SelectItem value="No">No</SelectItem>
+                <SelectItem value="Maybe">Maybe</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Areas You're Open to Contributing In</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="justify-between w-full">
+                  <span>
+                    {(formData.areas_of_contribution || []).length > 0
+                      ? `${(formData.areas_of_contribution || []).length} selected`
+                      : "Select areas of contribution"}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[300px] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search areas..." />
+                  <CommandList>
+                    <CommandEmpty>No areas found.</CommandEmpty>
+                    <CommandGroup>
+                      {CONTRIBUTION_OPTIONS.map((option) => {
+                        const isChecked = (formData.areas_of_contribution || []).includes(option);
+                        return (
+                          <CommandItem
+                            key={option}
+                            value={option}
+                            onSelect={() => {
+                              const base = formData.areas_of_contribution || [];
+                              const updated = base.includes(option)
+                                ? base.filter((s) => s !== option)
+                                : [...base, option];
+                              onFormDataChange({
+                                ...formData,
+                                areas_of_contribution: updated,
+                              });
+                            }}
+                            className="flex items-center justify-between gap-2"
+                          >
+                            <span className="truncate pr-2">{option}</span>
+                            {isChecked ? (
+                              <Check className="h-4 w-4" />
+                            ) : (
+                              <span className="h-4 w-4" />
+                            )}
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            {(formData.areas_of_contribution || []).length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {(formData.areas_of_contribution || []).map((area) => (
+                  <Badge key={area} variant="secondary" className="cursor-pointer">
+                    {area}
+                    <X
+                      className="ml-1 h-3 w-3"
+                      onClick={() => {
+                        const base = formData.areas_of_contribution || [];
+                        const updated = base.filter((s) => s !== area);
+                        onFormDataChange({
+                          ...formData,
+                          areas_of_contribution: updated,
+                        });
+                      }}
+                    />
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Additional Information */}
       {showAdditional && (
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Additional Information</h3>
+          <SectionDivider title="Additional Information" />
+
+          {/* <h3 className="text-lg font-semibold">Additional Information</h3> */}
           <div className="space-y-4">
             <div>
               <Label htmlFor="bio">Bio</Label>
@@ -715,13 +1099,95 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
               />
             </div>
             <div>
-              <Label htmlFor="skills">Skills (comma-separated)</Label>
-              <Input
-                id="skills"
-                value={skillsInput}
-                onChange={(e) => onSkillsInputChange(e.target.value)}
-                placeholder="JavaScript, React, Python..."
-              />
+              <Label htmlFor="skills">Primary Areas of Expertise</Label>
+              <div className="flex flex-col gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="justify-between">
+                      <span>
+                        {(() => {
+                          const selected = (skillsInput || "")
+                            .split(",")
+                            .map((s) => s.trim())
+                            .filter((s) => s.length > 0);
+                          return selected.length > 0
+                            ? `${selected.length} selected`
+                            : "Select skills";
+                        })()}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search skills..." />
+                      <CommandList>
+                        <CommandEmpty>No skills found.</CommandEmpty>
+                        <CommandGroup>
+                          {SKILL_OPTIONS.map((option) => {
+                            const selected = (skillsInput || "")
+                              .split(",")
+                              .map((s) => s.trim())
+                              .filter((s) => s.length > 0);
+                            const isChecked = selected.includes(option);
+                            return (
+                              <CommandItem
+                                key={option}
+                                value={option}
+                                onSelect={() => {
+                                  const base = (skillsInput || "")
+                                    .split(",")
+                                    .map((s) => s.trim())
+                                    .filter((s) => s.length > 0);
+                                  const updated = isChecked
+                                    ? base.filter((s) => s !== option)
+                                    : [...base, option];
+                                  onSkillsInputChange(updated.join(", "));
+                                }}
+                                className="flex items-center justify-between gap-2"
+                              >
+                                <span className="truncate pr-2">{option}</span>
+                                {isChecked ? (
+                                  <Check className="h-4 w-4" />
+                                ) : (
+                                  <span className="h-4 w-4" />
+                                )}
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+
+                {(() => {
+                  const selected = (skillsInput || "")
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter((s) => s.length > 0);
+                  return selected.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {selected.map((skill) => (
+                        <Badge key={skill} variant="secondary" className="cursor-pointer">
+                          {skill}
+                          <X
+                            className="ml-1 h-3 w-3"
+                            onClick={() => {
+                              const base = (skillsInput || "")
+                                .split(",")
+                                .map((s) => s.trim())
+                                .filter((s) => s.length > 0);
+                              const updated = base.filter((s) => s !== skill);
+                              onSkillsInputChange(updated.join(", "));
+                            }}
+                          />
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : null;
+                })()}
+              </div>
             </div>
             <div>
               <Label htmlFor="interests">Interests (comma-separated)</Label>
@@ -732,36 +1198,6 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                 placeholder="Technology, Travel, Sports..."
               />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="linkedin_url">LinkedIn URL</Label>
-                <Input
-                  id="linkedin_url"
-                  value={formData.linkedin_url || ""}
-                  onChange={(e) =>
-                    onFormDataChange({
-                      ...formData,
-                      linkedin_url: e.target.value,
-                    })
-                  }
-                  placeholder="https://linkedin.com/in/yourprofile"
-                />
-              </div>
-              <div>
-                <Label htmlFor="website_url">Website URL</Label>
-                <Input
-                  id="website_url"
-                  value={formData.website_url || ""}
-                  onChange={(e) =>
-                    onFormDataChange({
-                      ...formData,
-                      website_url: e.target.value,
-                    })
-                  }
-                  placeholder="https://yourwebsite.com"
-                />
-              </div>
-            </div>
           </div>
         </div>
       )}
@@ -769,7 +1205,9 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
       {/* Privacy Settings */}
       {showPrivacy && (
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Privacy Settings</h3>
+          <SectionDivider title="Privacy Settings" />
+
+          {/* <h3 className="text-lg font-semibold">Privacy Settings</h3> */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
