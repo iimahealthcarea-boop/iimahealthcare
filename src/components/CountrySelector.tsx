@@ -68,8 +68,8 @@ export default function CountrySelector({
         {/* Country List */}
         <div className="max-h-60 overflow-y-auto">
           {filteredCountries.length > 0 ? (
-            filteredCountries.map((country) => (
-              <SelectItem key={country.code} value={country.dialCode}>
+            filteredCountries.map((country, index) => (
+              <SelectItem key={`${country.code}-${country.dialCode}-${index}`} value={country.dialCode}>
                 <div className="flex items-center gap-2">
                   <span>{country.flag}</span>
                   <span className="font-medium">{country.dialCode}</span>

@@ -181,7 +181,7 @@ export default function Auth() {
           <div className="p-2 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors">
             <GraduationCap className="h-8 w-8 text-primary" />
           </div>
-          <span>IIM-AMS Portal</span>
+          <span>IIMA Healthcare SIG Members Portal</span>
         </button>
       
       </div>

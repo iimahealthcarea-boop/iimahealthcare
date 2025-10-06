@@ -1,28 +1,44 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { useToast } from '@/hooks/use-toast';
-import { useCountries } from '@/hooks/useCountries';
-import { Loader2, X, Upload } from 'lucide-react';
-import Header from '@/components/Header';
-import { OrganizationSelector } from '@/components/OrganizationSelector';
-import { addProfileChange } from '@/utils/profileChangeTracker';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { 
-  compressImage, 
-  validateImageFile, 
-  AVATAR_COMPRESSION_OPTIONS 
-} from '@/utils/imageCompression';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
+import { useCountries } from "@/hooks/useCountries";
+import { Loader2, X, Upload } from "lucide-react";
+import Header from "@/components/Header";
+import { OrganizationSelector } from "@/components/OrganizationSelector";
+import { CitySelector } from "@/components/CitySelector";
+import { addProfileChange } from "@/utils/profileChangeTracker";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import {
+  compressImage,
+  validateImageFile,
+  AVATAR_COMPRESSION_OPTIONS,
+} from "@/utils/imageCompression";
+import { SectionDivider } from "@/components/SectionDivider";
+import { ProfileSharedSections } from "@/components/ProfileSharedSections";
+import type { ProfileSharedFormData } from "@/components/ProfileSharedSections";
 
 export default function Registration() {
   const { user, refreshUserData } = useAuth();
@@ -31,7 +47,9 @@ export default function Registration() {
   const { countries, loading: countriesLoading } = useCountries();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.profile?.avatar_url || null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(
+    user?.profile?.avatar_url || null
+  );
 
   type Organization = {
     id: string;
@@ -42,102 +60,150 @@ export default function Registration() {
     role: string;
   };
 
-  type PreferredCommunication = 'Phone' | 'Email' | 'WhatsApp' | 'LinkedIn';
+  type PreferredCommunication = "Phone" | "Email" | "WhatsApp" | "LinkedIn";
 
   const [formData, setFormData] = useState({
-    first_name: user?.profile?.first_name || '',
-    last_name: user?.profile?.last_name || '',
-    phone: '',
-    country_code: '',
-    address: '',
-    date_of_birth: '',
-    city: '',
-    country: '',
+    first_name: user?.profile?.first_name || "",
+    last_name: user?.profile?.last_name || "",
+    phone: "",
+    altEmail: "",
+    email: user?.email,
+    country_code: "+91",
+    address: "",
+    date_of_birth: "",
+    city: "",
+    country: "India",
+    pincode: "",
+    gender: "",
     // Legacy single-organization fields (kept for compatibility)
-    organization: '',
-    position: '',
+    organization: "",
+    position: "",
     // New fields mirroring Profile
-    program: '' as '' | 'MBA-PGDBM' | 'MBA-FABM' | 'MBA-PGPX' | 'PhD' | 'MBA-FPGP' | 'ePGD-ABA' | 'FDP' | 'AFP' | 'SMP' | 'Other',
+    program: "" as
+      | ""
+      | "MBA-PGDBM"
+      | "MBA-FABM"
+      | "MBA-PGPX"
+      | "PhD"
+      | "MBA-FPGP"
+      | "ePGD-ABA"
+      | "FDP"
+      | "AFP"
+      | "SMP"
+      | "Other",
     // experience_level: '',
     // organization_type: '',
-    graduation_year: '',
-    bio: '',
-    skills: '',
-    interests: '',
-    linkedin_url: '',
-    website_url: '',
+    graduation_year: "",
+    bio: "",
+    skills: "",
+    interests: "",
+    linkedin_url: "",
+    website_url: "",
     preferred_mode_of_communication: [] as PreferredCommunication[],
     organizations: [] as Organization[],
     is_public: true,
     show_contact_info: true,
     show_location: true,
-    status: '' as '' | 'Active' | 'Alumni' | 'Student' | 'Faculty' | 'Inactive',
+    status: "" as "" | "Active" | "Alumni" | "Student" | "Faculty" | "Inactive",
+    other_social_media_handles: "",
+    willing_to_mentor: null as null | "Yes" | "No" | "Maybe",
+    areas_of_contribution: [] as string[],
   });
 
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  console.log("formData", formData);
+
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   const validateForm = () => {
-    const newErrors: {[key: string]: string} = {};
+    const newErrors: { [key: string]: string } = {};
 
     // Required fields validation
     if (!formData.first_name.trim()) {
-      newErrors.first_name = 'First name is required';
+      newErrors.first_name = "First name is required";
     }
     if (!formData.last_name.trim()) {
-      newErrors.last_name = 'Last name is required';
+      newErrors.last_name = "Last name is required";
     }
     if (!formData.phone.trim()) {
-      newErrors.phone = 'Phone number is required';
+      newErrors.phone = "Phone number is required";
+    }
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required";
     }
     if (!formData.address.trim()) {
-      newErrors.address = 'Address is required';
+      newErrors.address = "Address is required";
     }
     if (!formData.country.trim()) {
-      newErrors.country = 'Country is required';
+      newErrors.country = "Country is required";
     }
     if (!formData.country_code.trim()) {
-      newErrors.country_code = 'Country code is required';
+      newErrors.country_code = "Country code is required";
     }
     if (!formData.city.trim()) {
-      newErrors.city = 'City is required';
+      newErrors.city = "City is required";
+    }
+    if (!formData.pincode.trim()) {
+      newErrors.pincode = "Pincode is required";
+    }
+    if (!formData.gender.trim()) {
+      newErrors.gender = "Gender is required";
     }
     if (!formData.program) {
-      newErrors.program = 'Program is required';
+      newErrors.program = "Program is required";
     }
     // If any organization rows exist, validate visible fields
     formData.organizations.forEach((org, idx) => {
-      if (!org.currentOrg.trim()) {
-        newErrors[`organizations_${idx}_currentOrg`] = 'Organization name is required';
+      if (!org?.currentOrg.trim()) {
+        newErrors[`organizations_${idx}_currentOrg`] =
+          "Organization name is required";
       }
-      if (!org.orgType.trim()) {
-        newErrors[`organizations_${idx}_orgType`] = 'Organization type is required';
+      if (!org?.orgType.trim()) {
+        newErrors[`organizations_${idx}_orgType`] =
+          "Organization type is required";
       }
       if (!org.role.trim()) {
-        newErrors[`organizations_${idx}_role`] = 'Role is required';
+        newErrors[`organizations_${idx}_role`] = "Role is required";
       }
     });
 
     // Email validation (user email from auth)
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (user?.email && !emailPattern.test(user.email)) {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = "Please enter a valid email address";
     }
 
     // Phone number validation (international format)
-    const phonePattern = /^(\+\d{1,3})?[\s.-]?\(?\d{1,4}\)?[\s.-]?\d{1,4}[\s.-]?\d{1,9}$/;
+    const phonePattern =
+      /^(\+\d{1,3})?[\s.-]?\(?\d{1,4}\)?[\s.-]?\d{1,4}[\s.-]?\d{1,9}$/;
     if (formData.phone && !phonePattern.test(formData.phone.trim())) {
-      newErrors.phone = 'Please enter a valid phone number (e.g., +91XXXXXXXXXX)';
+      newErrors.phone =
+        "Please enter a valid phone number (e.g., +91XXXXXXXXXX)";
     }
 
     // Program must be from list
-    if (formData.program && !['MBA-PGDBM','MBA-FABM','MBA-PGPX','PhD','MBA-FPGP','ePGD-ABA','FDP','AFP','SMP','Other'].includes(formData.program)) {
-      newErrors.program = 'Please select a valid program';
+    if (
+      formData.program &&
+      ![
+        "MBA-PGDBM",
+        "MBA-FABM",
+        "MBA-PGPX",
+        "PhD",
+        "MBA-FPGP",
+        "ePGD-ABA",
+        "FDP",
+        "AFP",
+        "SMP",
+        "Other",
+      ].includes(formData.program)
+    ) {
+      newErrors.program = "Please select a valid program";
     }
 
     // Validate organizations entries minimally
     formData.organizations.forEach((org, idx) => {
-      if (!org.currentOrg.trim()) {
-        newErrors[`organizations_${idx}_currentOrg`] = 'Organization name is required';
+      if (!org?.currentOrg.trim()) {
+        newErrors[`organizations_${idx}_currentOrg`] =
+          "Organization name is required";
       }
     });
 
@@ -145,14 +211,16 @@ export default function Registration() {
     if (formData.linkedin_url && formData.linkedin_url.trim()) {
       const urlPattern = /^https?:\/\/.+/;
       if (!urlPattern.test(formData.linkedin_url)) {
-        newErrors.linkedin_url = 'Please enter a valid URL starting with http:// or https://';
+        newErrors.linkedin_url =
+          "Please enter a valid URL starting with http:// or https://";
       }
     }
 
     if (formData.website_url && formData.website_url.trim()) {
       const urlPattern = /^https?:\/\/.+/;
       if (!urlPattern.test(formData.website_url)) {
-        newErrors.website_url = 'Please enter a valid URL starting with http:// or https://';
+        newErrors.website_url =
+          "Please enter a valid URL starting with http:// or https://";
       }
     }
 
@@ -161,7 +229,9 @@ export default function Registration() {
       const currentYear = new Date().getFullYear();
       const gradYear = parseInt(formData.graduation_year);
       if (gradYear < 1950 || gradYear > currentYear + 10) {
-        newErrors.graduation_year = `Please enter a valid graduation year between 1950 and ${currentYear + 10}`;
+        newErrors.graduation_year = `Please enter a valid graduation year between 1950 and ${
+          currentYear + 10
+        }`;
       }
     }
 
@@ -169,13 +239,25 @@ export default function Registration() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handlePreferredCommunicationChange = (
+    value: PreferredCommunication,
+    checked: boolean
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      preferred_mode_of_communication: checked
+        ? [...prev.preferred_mode_of_communication, value]
+        : prev.preferred_mode_of_communication.filter((v) => v !== value),
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       toast({
         title: "Validation Error",
-        description: "Please fill all the details.",
+        description: `Please fill all the details. ${Object.values(errors).join(", ")}`,
         variant: "destructive",
       });
       return;
@@ -184,83 +266,121 @@ export default function Registration() {
     setLoading(true);
 
     try {
-      const skillsArray = formData.skills.split(',').map(s => s.trim()).filter(s => s);
-      const interestsArray = formData.interests.split(',').map(s => s.trim()).filter(s => s);
+      const skillsArray = formData.skills
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s);
+      const interestsArray = formData.interests
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s);
 
       const { error } = await supabase
-        .from('profiles')
+        .from("profiles")
         .update({
           first_name: formData.first_name,
           last_name: formData.last_name,
           avatar_url: avatarUrl,
           phone: formData.phone,
+          altEmail: formData.altEmail,
+          email: formData.email,
           country_code: formData.country_code,
           address: formData.address,
           date_of_birth: formData.date_of_birth || null,
           city: formData.city,
           country: formData.country,
+          pincode: formData.pincode,
+          gender: formData.gender,
           organization: formData.organization,
           position: formData.position,
           program: formData.program || null,
           // experience_level: formData.experience_level as "Entry Level" | "Mid Level" | "Senior Level" | "Executive" | "Student" | "Recent Graduate",
           // organization_type: formData.organization_type as "Corporate" | "Startup" | "Non-Profit" | "Government" | "Consulting" | "Education" | "Healthcare" | "Technology" | "Finance" | "Other",
-          graduation_year: formData.graduation_year ? parseInt(formData.graduation_year) : null,
+          graduation_year: formData.graduation_year
+            ? parseInt(formData.graduation_year)
+            : null,
           bio: formData.bio,
           skills: skillsArray,
           interests: interestsArray,
           linkedin_url: formData.linkedin_url,
           website_url: formData.website_url,
-          preferred_mode_of_communication: formData.preferred_mode_of_communication,
+          preferred_mode_of_communication:
+            formData.preferred_mode_of_communication,
           organizations: formData.organizations,
           is_public: formData.is_public,
           show_contact_info: formData.show_contact_info,
           show_location: formData.show_location,
           status: formData.status || null,
-          approval_status: 'pending'
+          approval_status: "pending",
+          other_social_media_handles: formData.other_social_media_handles,
+          willing_to_mentor: formData.willing_to_mentor,
+          areas_of_contribution: formData.areas_of_contribution,
         })
-        .eq('user_id', user?.id);
+        .eq("user_id", user?.id);
 
       if (error) throw error;
 
       // Track profile creation
-      const userName = `${formData.first_name} ${formData.last_name}`.trim() || user?.email || 'User';
+      const userName =
+        `${formData.first_name} ${formData.last_name}`.trim() ||
+        user?.email ||
+        "User";
       const creationFields = {
-        approval_status: { oldValue: null, newValue: 'pending' },
+        approval_status: { oldValue: null, newValue: "pending" },
         first_name: { oldValue: null, newValue: formData.first_name },
         last_name: { oldValue: null, newValue: formData.last_name },
+        gender: { oldValue: null, newValue: formData.gender },
+        pincode: { oldValue: null, newValue: formData.pincode },
         organization: { oldValue: null, newValue: formData.organization },
         position: { oldValue: null, newValue: formData.position },
         program: { oldValue: null, newValue: formData.program },
-        preferred_mode_of_communication: { oldValue: null, newValue: formData.preferred_mode_of_communication },
+        preferred_mode_of_communication: {
+          oldValue: null,
+          newValue: formData.preferred_mode_of_communication,
+        },
         organizations: { oldValue: null, newValue: formData.organizations },
-        privacy: { oldValue: null, newValue: { is_public: formData.is_public, show_contact_info: formData.show_contact_info, show_location: formData.show_location, status: formData.status } }
+        willing_to_mentor: { oldValue: null, newValue: formData.willing_to_mentor },
+        areas_of_contribution: { oldValue: null, newValue: formData.areas_of_contribution },
+        privacy: {
+          oldValue: null,
+          newValue: {
+            is_public: formData.is_public,
+            show_contact_info: formData.show_contact_info,
+            show_location: formData.show_location,
+            status: formData.status,
+          },
+        },
       };
 
       try {
         await addProfileChange(
-          user?.id || '',
-          user?.id || '',
+          user?.id || "",
+          user?.id || "",
           userName,
           creationFields,
-          'create'
+          "create"
         );
       } catch (changeError) {
-        console.error('Failed to track profile creation:', changeError);
+        console.error("Failed to track profile creation:", changeError);
         // Don't fail the registration if change tracking fails
       }
 
       await refreshUserData();
-      
+
       toast({
         title: "Registration Submitted",
-        description: "Your profile has been submitted for admin approval. You'll be notified once it's reviewed.",
+        description:
+          "Your profile has been submitted for admin approval. You'll be notified once it's reviewed.",
       });
-      
-      navigate('/waiting-approval');
+
+      navigate("/waiting-approval");
     } catch (error: unknown) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to submit registration",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to submit registration",
         variant: "destructive",
       });
     } finally {
@@ -268,53 +388,77 @@ export default function Registration() {
     }
   };
 
+  console.log("countries", countries);
+
   useEffect(() => {
     if (user?.profile) {
-      setFormData({
-        ...formData,
+      setFormData((prev) => ({
+        ...prev,
         first_name: user.profile.first_name,
-        last_name: user.profile.last_name
-      });
+        last_name: user.profile.last_name,
+        email: user.profile.email,
+      }));
       setAvatarUrl(user.profile.avatar_url || null);
     }
-  }, [user, formData]);
+  }, [user]);
 
-  const getInitials = (first?: string, last?: string) => `${(first||'').charAt(0)}${(last||'').charAt(0)}`.toUpperCase();
+  const getInitials = (first?: string, last?: string) =>
+    `${(first || "").charAt(0)}${(last || "").charAt(0)}`.toUpperCase();
 
-  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file || !user) return;
 
     const validation = validateImageFile(file);
     if (!validation.valid) {
-      toast({ title: 'Invalid file', description: validation.error, variant: 'destructive' });
+      toast({
+        title: "Invalid file",
+        description: validation.error,
+        variant: "destructive",
+      });
       return;
     }
 
     setUploading(true);
     try {
-      const compressionResult = await compressImage(file, AVATAR_COMPRESSION_OPTIONS);
-      const fileExt = 'jpg';
+      const compressionResult = await compressImage(
+        file,
+        AVATAR_COMPRESSION_OPTIONS
+      );
+      const fileExt = "jpg";
       const fileName = `${user.id}/avatar.${fileExt}`;
 
       // Remove previous
       if (avatarUrl) {
-        const existingPath = avatarUrl.split('/').pop();
+        const existingPath = avatarUrl.split("/").pop();
         if (existingPath) {
-          await supabase.storage.from('profile-pictures').remove([`${user.id}/${existingPath}`]);
+          await supabase.storage
+            .from("profile-pictures")
+            .remove([`${user.id}/${existingPath}`]);
         }
       }
 
       const { error: uploadError } = await supabase.storage
-        .from('profile-pictures')
+        .from("profile-pictures")
         .upload(fileName, compressionResult.file, { upsert: true });
       if (uploadError) throw uploadError;
 
-      const { data } = supabase.storage.from('profile-pictures').getPublicUrl(fileName);
+      const { data } = supabase.storage
+        .from("profile-pictures")
+        .getPublicUrl(fileName);
       setAvatarUrl(data.publicUrl);
-      toast({ title: 'Photo ready', description: 'Your profile picture will be saved with the form.' });
+      toast({
+        title: "Photo ready",
+        description: "Your profile picture will be saved with the form.",
+      });
     } catch (err) {
-      toast({ title: 'Upload failed', description: 'Please try again.', variant: 'destructive' });
+      toast({
+        title: "Upload failed",
+        description: "Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setUploading(false);
     }
@@ -323,20 +467,21 @@ export default function Registration() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <div className="p-4">
         <div className="max-w-2xl mx-auto">
           <Card>
             <CardHeader>
               <CardTitle>Complete Your Registration</CardTitle>
               <CardDescription>
-                Please fill in your complete profile details. Your registration will be reviewed by an administrator.
+                Please fill in your complete profile details. Your registration
+                will be reviewed by an administrator.
               </CardDescription>
             </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Profile Picture */}
-              {/* <div className="flex flex-col items-center space-y-4">
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Profile Picture */}
+                <div className="flex flex-col items-center space-y-4">
                 <div className="relative">
                   <Avatar className="w-24 h-24">
                     <AvatarImage src={avatarUrl || ''} alt="Profile picture" />
@@ -361,557 +506,33 @@ export default function Registration() {
                   </Label>
                   <Input id="avatar-upload" type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
                 </div>
-              </div> */}
-
-              {/* Personal Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Personal Information</h3>
-                
-                {/* Country Selection First */}
-                <div>
-                  <Label htmlFor="country">Country *</Label>
-                  <Select 
-                    onValueChange={(value) => {
-                      const selectedCountry = countries.find(c => c.name === value);
-                      setFormData({
-                        ...formData, 
-                        country: value,
-                        country_code: selectedCountry?.dialCode || ''
-                      });
-                    }}
-                    value={formData.country}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select your country first" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {countries.map((country) => (
-                        <SelectItem key={country.code} value={country.name}>
-                          {country.flag} {country.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.country && (
-                    <p className="text-sm text-red-500 mt-1">{errors.country}</p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="first_name">First Name *</Label>
-                    <Input
-                      id="first_name"
-                      value={formData.first_name}
-                      onChange={(e) => setFormData({...formData, first_name: e.target.value})}
-                      required
-                      className={errors.first_name ? 'border-red-500' : ''}
-                    />
-                    {errors.first_name && (
-                      <p className="text-sm text-red-500 mt-1">{errors.first_name}</p>
-                    )}
-                  </div>
-                  <div>
-                    <Label htmlFor="last_name">Last Name *</Label>
-                    <Input
-                      id="last_name"
-                      value={formData.last_name}
-                      onChange={(e) => setFormData({...formData, last_name: e.target.value})}
-                      required
-                      className={errors.last_name ? 'border-red-500' : ''}
-                    />
-                    {errors.last_name && (
-                      <p className="text-sm text-red-500 mt-1">{errors.last_name}</p>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Phone Number *</Label>
-                    <div className="flex gap-2">
-                      <Select
-                        value={formData.country_code}
-                        onValueChange={(value) => setFormData({...formData, country_code: value})}
-                      >
-                        <SelectTrigger className="w-32">
-                          <SelectValue placeholder="Code" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {countries.map((country) => (
-                            <SelectItem key={country.code} value={country.dialCode}>
-                              {country.flag} {country.dialCode}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {errors.country_code && (
-                        <p className="text-sm text-red-500 mt-1">{errors.country_code}</p>
-                      )}
-                      <Input
-                        placeholder="Phone number"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                        required
-                        className={`flex-1 ${errors.phone ? 'border-red-500' : ''}`}
-                      />
-                    </div>
-                    {errors.phone && (
-                      <p className="text-sm text-red-500 mt-1">{errors.phone}</p>
-                    )}
-                  </div>
-                  <div>
-                    <Label htmlFor="date_of_birth">Date of Birth</Label>
-                    <Input
-                      id="date_of_birth"
-                      type="date"
-                      value={formData.date_of_birth}
-                      onChange={(e) => setFormData({...formData, date_of_birth: e.target.value})}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="address">Address *</Label>
-                  <Textarea
-                    id="address"
-                    value={formData.address}
-                    onChange={(e) => setFormData({...formData, address: e.target.value})}
-                    required
-                    className={errors.address ? 'border-red-500' : ''}
-                  />
-                  {errors.address && (
-                    <p className="text-sm text-red-500 mt-1">{errors.address}</p>
-                  )}
-                </div>
-
-                <div>
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
-                    value={formData.city}
-                    onChange={(e) => setFormData({...formData, city: e.target.value})}
-                    placeholder="Enter your city"
-                  />
-                  {errors.city && (
-                    <p className="text-sm text-red-500 mt-1">{errors.city}</p>
-                  )}
-                </div>
               </div>
 
+                <ProfileSharedSections
+                  formData={formData as unknown as ProfileSharedFormData}
+                  onFormDataChange={(newData: Partial<ProfileSharedFormData>) =>
+                    setFormData((prev) => ({ ...prev, ...(newData as unknown as typeof formData) }))
+                  }
+                  handlePreferredCommunicationChange={handlePreferredCommunicationChange}
+                  skillsInput={formData.skills}
+                  onSkillsInputChange={(v) => setFormData({ ...formData, skills: v })}
+                  interestsInput={formData.interests}
+                  onInterestsInputChange={(v) => setFormData({ ...formData, interests: v })}
+                  showPersonal={true}
+                  showProfessional={true}
+                  showAdditional={true}
+                  showPrivacy={true}
+                />
 
-              {/* Professional Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Professional Information</h3>
-                {/* Multiple Organizations */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium">Organizations</h4>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        const newOrg = {
-                          id: Date.now().toString(),
-                          currentOrg: '',
-                          orgType: '',
-                          experience: '',
-                          description: '',
-                          role: '',
-                        } as Organization;
-                        setFormData({
-                          ...formData,
-                          organizations: [...formData.organizations, newOrg],
-                        });
-                      }}
-                    >
-                      + Add Organization
-                    </Button>
-                  </div>
-                  {formData.organizations.map((org, index) => (
-                    <div key={org.id} className="border rounded-lg p-4 space-y-4">
-                      <div className="flex justify-between items-center">
-                        <h5 className="font-medium">Organization {index + 1}</h5>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            setFormData({
-                              ...formData,
-                              organizations: formData.organizations.filter(o => o.id !== org.id),
-                            })
-                          }
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label>Organization Name</Label>
-                          <OrganizationSelector
-                            value={org.currentOrg}
-                            onChange={(value) =>
-                              setFormData({
-                                ...formData,
-                                organizations: formData.organizations.map(o =>
-                                  o.id === org.id ? { ...o, currentOrg: value } : o
-                                ),
-                              })
-                            }
-                          />
-                        </div>
-                        {errors[`organizations_${index}_currentOrg`] && (
-                          <p className="text-sm text-red-500 mt-1">{errors[`organizations_${index}_currentOrg`]}</p>
-                        )}
-                        <div>
-                          <Label>Organization Type</Label>
-                          <Select
-                            value={org.orgType}
-                            onValueChange={(value) =>
-                              setFormData({
-                                ...formData,
-                                organizations: formData.organizations.map(o =>
-                                  o.id === org.id ? { ...o, orgType: value } : o
-                                ),
-                              })
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select organization type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Hospital/Clinic">Hospital/Clinic</SelectItem>
-                              <SelectItem value="HealthTech">HealthTech</SelectItem>
-                              <SelectItem value="Pharmaceutical">Pharmaceutical</SelectItem>
-                              <SelectItem value="Biotech">Biotech</SelectItem>
-                              <SelectItem value="Medical Devices">Medical Devices</SelectItem>
-                              <SelectItem value="Consulting">Consulting</SelectItem>
-                              <SelectItem value="Public Health/Policy">Public Health/Policy</SelectItem>
-                              <SelectItem value="Health Insurance">Health Insurance</SelectItem>
-                              <SelectItem value="Academic/Research">Academic/Research</SelectItem>
-                              <SelectItem value="Startup">Startup</SelectItem>
-                              <SelectItem value="VC">VC</SelectItem>
-                              <SelectItem value="Other">Other</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          {errors[`organizations_${index}_orgType`] && (
-                            <p className="text-sm text-red-500 mt-1">{errors[`organizations_${index}_orgType`]}</p>
-                          )}
-                        </div>
-                        <div>
-                          <Label>Experience (Years)</Label>
-                          <Input
-                            value={org.experience}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                organizations: formData.organizations.map(o =>
-                                  o.id === org.id ? { ...o, experience: e.target.value } : o
-                                ),
-                              })
-                            }
-                            placeholder="e.g., 2-3 years"
-                          />
-                        </div>
-                        <div>
-                          <Label>Role/Position</Label>
-                          <Input
-                            value={org.role}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                organizations: formData.organizations.map(o =>
-                                  o.id === org.id ? { ...o, role: e.target.value } : o
-                                ),
-                              })
-                            }
-                            placeholder="e.g., Senior Manager"
-                          />
-                          {errors[`organizations_${index}_role`] && (
-                            <p className="text-sm text-red-500 mt-1">{errors[`organizations_${index}_role`]}</p>
-                          )}
-                        </div>
-                      </div>
-                      <div>
-                        <Label>Description</Label>
-                        <Textarea
-                          value={org.description}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              organizations: formData.organizations.map(o =>
-                                o.id === org.id ? { ...o, description: e.target.value } : o
-                              ),
-                            })
-                          }
-                          placeholder="Describe your role and responsibilities..."
-                          rows={3}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-{/* 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="experience_level">Experience Level</Label>
-                    <Select onValueChange={(value) => setFormData({...formData, experience_level: value})}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select experience level" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Student">Student</SelectItem>
-                        <SelectItem value="Recent Graduate">Recent Graduate</SelectItem>
-                        <SelectItem value="Entry Level">Entry Level</SelectItem>
-                        <SelectItem value="Mid Level">Mid Level</SelectItem>
-                        <SelectItem value="Senior Level">Senior Level</SelectItem>
-                        <SelectItem value="Executive">Executive</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="organization_type">Organization Type</Label>
-                    <Select onValueChange={(value) => setFormData({...formData, organization_type: value})}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select organization type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Hospital/Clinic">Hospital/Clinic</SelectItem>
-                        <SelectItem value="HealthTech">HealthTech</SelectItem>
-                        <SelectItem value="Pharmaceutical">Pharmaceutical</SelectItem>
-                        <SelectItem value="Biotech">Biotech</SelectItem>
-                        <SelectItem value="Medical Devices">Medical Devices</SelectItem>
-                        <SelectItem value="Consulting">Consulting</SelectItem>
-                        <SelectItem value="Public Health/Policy">Public Health/Policy</SelectItem>
-                        <SelectItem value="Health Insurance">Health Insurance</SelectItem>
-                        <SelectItem value="Academic/Research">Academic/Research</SelectItem>
-                        <SelectItem value="Startup">Startup</SelectItem>
-                        <SelectItem value="VC">VC</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div> */}
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="program">Program</Label>
-                    <Select
-                      value={formData.program}
-                      onValueChange={(value) => setFormData({ ...formData, program: value as typeof formData.program })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select your program" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="MBA-PGDBM">MBA-PGDBM</SelectItem>
-                        <SelectItem value="MBA-FABM">MBA-FABM</SelectItem>
-                        <SelectItem value="MBA-PGPX">MBA-PGPX</SelectItem>
-                        <SelectItem value="PhD">PhD</SelectItem>
-                        <SelectItem value="MBA-FPGP">MBA-FPGP</SelectItem>
-                        <SelectItem value="ePGD-ABA">ePGD-ABA</SelectItem>
-                        <SelectItem value="FDP">FDP</SelectItem>
-                        <SelectItem value="AFP">AFP</SelectItem>
-                        <SelectItem value="SMP">SMP</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="graduation_year">Graduation Year</Label>
-                    <Input
-                      id="graduation_year"
-                      type="number"
-                      min="1950"
-                      max="2040"
-                      value={formData.graduation_year}
-                      onChange={(e) => setFormData({...formData, graduation_year: e.target.value})}
-                      className={errors.graduation_year ? 'border-red-500' : ''}
-                    />
-                    {errors.graduation_year && (
-                      <p className="text-sm text-red-500 mt-1">{errors.graduation_year}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Preferred Communication */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Preferred Mode of Communication</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {(['Phone','Email','WhatsApp','LinkedIn'] as PreferredCommunication[]).map((option) => (
-                    <div key={option} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`pref-${option.toLowerCase()}`}
-                        checked={formData.preferred_mode_of_communication.includes(option)}
-                        onCheckedChange={(checked) => {
-                          setFormData({
-                            ...formData,
-                            preferred_mode_of_communication: checked
-                              ? [...formData.preferred_mode_of_communication, option]
-                              : formData.preferred_mode_of_communication.filter((x) => x !== option),
-                          });
-                        }}
-                      />
-                      <Label htmlFor={`pref-${option.toLowerCase()}`} className="text-sm font-medium">
-                        {option}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-                {formData.preferred_mode_of_communication.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {formData.preferred_mode_of_communication.map((option) => (
-                      <Badge key={option} variant="secondary" className="cursor-pointer" onClick={() =>
-                        setFormData({
-                          ...formData,
-                          preferred_mode_of_communication: formData.preferred_mode_of_communication.filter((x) => x !== option),
-                        })
-                      }>
-                        {option}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Additional Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Additional Information</h3>
-                <div>
-                  <Label htmlFor="bio">Bio</Label>
-                  <Textarea
-                    id="bio"
-                    value={formData.bio}
-                    onChange={(e) => setFormData({...formData, bio: e.target.value})}
-                    placeholder="Tell us about yourself..."
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="skills">Skills (comma-separated)</Label>
-                    <Input
-                      id="skills"
-                      value={formData.skills}
-                      onChange={(e) => setFormData({...formData, skills: e.target.value})}
-                      placeholder="JavaScript, React, Python..."
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="interests">Interests (comma-separated)</Label>
-                    <Input
-                      id="interests"
-                      value={formData.interests}
-                      onChange={(e) => setFormData({...formData, interests: e.target.value})}
-                      placeholder="Technology, Travel, Sports..."
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="linkedin_url">LinkedIn URL</Label>
-                    <Input
-                      id="linkedin_url"
-                      type="url"
-                      value={formData.linkedin_url}
-                      onChange={(e) => setFormData({...formData, linkedin_url: e.target.value})}
-                      placeholder="https://linkedin.com/in/yourprofile"
-                      className={errors.linkedin_url ? 'border-red-500' : ''}
-                    />
-                    {errors.linkedin_url && (
-                      <p className="text-sm text-red-500 mt-1">{errors.linkedin_url}</p>
-                    )}
-                  </div>
-                  <div>
-                    <Label htmlFor="website_url">Website URL</Label>
-                    <Input
-                      id="website_url"
-                      type="url"
-                      value={formData.website_url}
-                      onChange={(e) => setFormData({...formData, website_url: e.target.value})}
-                      placeholder="https://yourwebsite.com"
-                      className={errors.website_url ? 'border-red-500' : ''}
-                    />
-                    {errors.website_url && (
-                      <p className="text-sm text-red-500 mt-1">{errors.website_url}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Privacy Settings */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Privacy Settings</h3>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="is_public">Public Profile</Label>
-                    <p className="text-sm text-muted-foreground">Allow others to see your profile in the directory</p>
-                  </div>
-                  <Switch
-                    id="is_public"
-                    checked={formData.is_public}
-                    onCheckedChange={(checked) => setFormData({ ...formData, is_public: checked })}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="show_contact_info">Show Contact Information</Label>
-                    <p className="text-sm text-muted-foreground">Display email, phone, and LinkedIn to other users</p>
-                  </div>
-                  <Switch
-                    id="show_contact_info"
-                    checked={formData.show_contact_info}
-                    onCheckedChange={(checked) => setFormData({ ...formData, show_contact_info: checked })}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="show_location">Show Location</Label>
-                    <p className="text-sm text-muted-foreground">Display your location information to other users</p>
-                  </div>
-                  <Switch
-                    id="show_location"
-                    checked={formData.show_location}
-                    onCheckedChange={(checked) => setFormData({ ...formData, show_location: checked })}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="status">Status</Label>
-                  <Select
-                    value={formData.status}
-                    onValueChange={(value) => setFormData({ ...formData, status: value as typeof formData.status })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select your status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Active">Active</SelectItem>
-                      <SelectItem value="Alumni">Alumni</SelectItem>
-                      <SelectItem value="Student">Student</SelectItem>
-                      <SelectItem value="Faculty">Faculty</SelectItem>
-                      <SelectItem value="Inactive">Inactive</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Submit Registration
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Submit Registration
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </div>
     </div>
   );
 }
