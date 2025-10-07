@@ -32,7 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Tables } from "@/integrations/supabase/types";
+import { Tables, Json } from "@/integrations/supabase/types";
 import {
   Users,
   Clock,
@@ -70,7 +70,7 @@ import Header from "@/components/Header";
 import { useCountries } from "@/hooks/useCountries";
 import CountrySelector from "@/components/CountrySelector";
 import { OrganizationSelector } from "@/components/OrganizationSelector";
-import { ProfileSharedSections } from "@/components/ProfileSharedSections";
+import { ProfileSharedSections, ProfileSharedFormData } from "@/components/ProfileSharedSections";
 import {
   Collapsible,
   CollapsibleContent,
@@ -106,8 +106,8 @@ export default function AdminDashboard() {
   const [editingProfile, setEditingProfile] =
     useState<ProfileWithApproval | null>(null);
   const [editFormData, setEditFormData] = useState<
-    Partial<ProfileWithApproval>
-  >({});
+    Partial<ProfileSharedFormData>
+  >({} as Partial<ProfileSharedFormData>);
   const [editLoading, setEditLoading] = useState(false);
   const [interestsInput, setInterestsInput] = useState("");
   const [skillsInput, setSkillsInput] = useState("");
@@ -127,6 +127,14 @@ export default function AdminDashboard() {
   const [isTimelineOpen, setIsTimelineOpen] = useState(false);
   const [timelineProfile, setTimelineProfile] =
     useState<ProfileWithApproval | null>(null);
+  const [updateRequests, setUpdateRequests] = useState<
+    Tables<'profile_update_requests'>[]
+  >([]);
+  const [requestsLoading, setRequestsLoading] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<
+    Tables<'profile_update_requests'> | null
+  >(null);
+  const [requestEditPayload, setRequestEditPayload] = useState<Record<string, unknown> | null>(null);
 
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState("");
@@ -156,6 +164,30 @@ export default function AdminDashboard() {
       setLoading(false);
     }
   }, [toast]);
+
+  console.log("updateRequests", updateRequests);
+
+  const fetchUpdateRequests = useCallback(async () => {
+    if (!isAdmin) return;
+    setRequestsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('profile_update_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setUpdateRequests(data || []);
+    } catch (error) {
+      console.error('Error fetching update requests:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch update requests',
+        variant: 'destructive',
+      });
+    } finally {
+      setRequestsLoading(false);
+    }
+  }, [isAdmin, toast]);
 
   const filterProfiles = useCallback(() => {
     let filtered = profiles;
@@ -271,8 +303,9 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (isAdmin) {
       fetchProfiles();
+      fetchUpdateRequests();
     }
-  }, [isAdmin, fetchProfiles]);
+  }, [isAdmin, fetchProfiles, fetchUpdateRequests]);
 
   useEffect(() => {
     filterProfiles();
@@ -286,10 +319,50 @@ export default function AdminDashboard() {
   const handleRefresh = async () => {
     setLoading(true);
     await fetchProfiles();
+    await fetchUpdateRequests();
     toast({
       title: "Refreshed",
       description: "Profile list has been updated",
     });
+  };
+
+  const handleApproveRequest = async (requestId: string, override?: Record<string, unknown>) => {
+    setActionLoading(true);
+    try {
+      const { error } = await supabase.rpc('approve_profile_update_request', {
+        request_id: requestId,
+        override_payload: (override as unknown as Json) || null,
+      });
+      if (error) throw error;
+      toast({ title: 'Request Approved', description: 'Profile updated successfully.' });
+      await fetchProfiles();
+      await fetchUpdateRequests();
+      setSelectedRequest(null);
+    } catch (error) {
+      console.error('Error approving request:', error);
+      toast({ title: 'Error', description: 'Failed to approve request', variant: 'destructive' });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRejectRequest = async (requestId: string, reason?: string) => {
+    setActionLoading(true);
+    try {
+      const { error } = await supabase.rpc('reject_profile_update_request', {
+        request_id: requestId,
+        reason: reason || null,
+      });
+      if (error) throw error;
+      toast({ title: 'Request Rejected', description: 'The request has been rejected.' });
+      await fetchUpdateRequests();
+      setSelectedRequest(null);
+    } catch (error) {
+      console.error('Error rejecting request:', error);
+      toast({ title: 'Error', description: 'Failed to reject request', variant: 'destructive' });
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleApprove = async (profileUserId: string) => {
@@ -486,7 +559,12 @@ export default function AdminDashboard() {
 
   const openEditDialog = (profile: ProfileWithApproval) => {
     setEditingProfile(profile);
-    setEditFormData({ ...profile });
+    // Map DB profile to shared form data types
+    setEditFormData({
+      ...(profile as unknown as Partial<ProfileSharedFormData>),
+      preferred_mode_of_communication: ((profile as unknown as { preferred_mode_of_communication?: string[] }).preferred_mode_of_communication || []) as ProfileSharedFormData['preferred_mode_of_communication'],
+      organizations: (profile.organizations as unknown as ProfileSharedFormData['organizations']) || [],
+    });
     setInterestsInput(profile.interests?.join(", ") || "");
     setSkillsInput(profile.skills?.join(", ") || "");
     setIsEditDialogOpen(true);
@@ -512,11 +590,11 @@ export default function AdminDashboard() {
         .map((item) => item.trim())
         .filter((item) => item.length > 0);
 
-      const updatedData = {
+      const updatedData: Record<string, unknown> = {
         ...editFormData,
         interests,
         skills,
-      };
+      } as unknown as Record<string, unknown>;
 
       // Track changes before updating
       const changedFields = getChangedFields(editingProfile, updatedData);
@@ -534,7 +612,7 @@ export default function AdminDashboard() {
 
       const { error } = await supabase
         .from("profiles")
-        .update(updatedData)
+        .update(updatedData as unknown as Record<string, unknown>)
         .eq("user_id", editingProfile.user_id);
 
       if (error) throw error;
@@ -543,7 +621,7 @@ export default function AdminDashboard() {
       setProfiles((prev) =>
         prev.map((profile) =>
           profile.user_id === editingProfile.user_id
-            ? { ...profile, ...updatedData }
+            ? ({ ...profile, ...(updatedData as unknown as Partial<ProfileWithApproval>) } as ProfileWithApproval)
             : profile
         )
       );
@@ -810,6 +888,13 @@ export default function AdminDashboard() {
     }
   };
 
+  const formatValue = (value: unknown): string => {
+    if (value === null || value === undefined) return "—";
+    if (Array.isArray(value)) return value.length ? value.join(", ") : "—";
+    if (typeof value === "object") return JSON.stringify(value);
+    return String(value);
+  };
+
   const renderProfileCard = (profile: ProfileWithApproval) => (
     <Card
       key={profile.id}
@@ -971,13 +1056,13 @@ export default function AdminDashboard() {
                     </h4>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {selectedProfile.organizations?.map((org, index) => (
+                      {Array.isArray(selectedProfile.organizations as unknown as Array<Record<string, unknown>>) ? (selectedProfile.organizations as unknown as Array<Record<string, unknown>>).map((org, index: number) => (
                         <div
-                          key={org.id}
+                          key={String((org as Record<string, unknown>).id ?? index)}
                           className="rounded-2xl border p-4 shadow-sm bg-white"
                         >
                           <h5 className="font-medium mb-2 text-primary">
-                            Organization {index + 1}: {org.currentOrg}
+                            Organization {index + 1}: {String((org as Record<string, unknown>).currentOrg ?? '-')}
                           </h5>
 
                           <div className="space-y-1 text-sm text-muted-foreground">
@@ -985,29 +1070,29 @@ export default function AdminDashboard() {
                               <span className="font-semibold text-foreground">
                                 Type:
                               </span>{" "}
-                              {org.orgType || "-"}
+                              {String((org as Record<string, unknown>).orgType ?? '-')}
                             </p>
                             <p>
                               <span className="font-semibold text-foreground">
                                 Experience:
                               </span>{" "}
-                              {org.experience || "-"}
+                              {String((org as Record<string, unknown>).experience ?? '-')}
                             </p>
                             <p>
                               <span className="font-semibold text-foreground">
                                 Role:
                               </span>{" "}
-                              {org.role || "-"}
+                              {String((org as Record<string, unknown>).role ?? '-')}
                             </p>
                             <p>
                               <span className="font-semibold text-foreground">
                                 Description:
                               </span>{" "}
-                              {org.description || "-"}
+                              {String((org as Record<string, unknown>).description ?? '-')}
                             </p>
                           </div>
                         </div>
-                      ))}
+                      )) : null}
                     </div>
                   </div>
 
@@ -1015,10 +1100,10 @@ export default function AdminDashboard() {
                   <div>
                     <h4 className="font-semibold mb-2">Communication Preferences</h4>
                     <div className="space-y-2 text-sm">
-                      {(selectedProfile as any).preferred_mode_of_communication && (
+                      {Array.isArray((selectedProfile as unknown as { preferred_mode_of_communication?: string[] }).preferred_mode_of_communication) && (
                         <div>
                           <strong>Preferred Mode of Communication:</strong>{" "}
-                          {(selectedProfile as any).preferred_mode_of_communication.join(
+                          {((selectedProfile as unknown as { preferred_mode_of_communication?: string[] }).preferred_mode_of_communication || []).join(
                             ", "
                           )}
                         </div>
@@ -1432,6 +1517,7 @@ export default function AdminDashboard() {
                 Rejected ({filteredStats.rejected})
               </TabsTrigger>
               <TabsTrigger value="all">All ({filteredStats.total})</TabsTrigger>
+              <TabsTrigger value="requests">Update Requests</TabsTrigger>
             </TabsList>
             <Button
               variant="outline"
@@ -1544,6 +1630,84 @@ export default function AdminDashboard() {
               </Card>
             )}
           </TabsContent>
+
+          {/* Update Requests Tab */}
+          <TabsContent value="requests" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Profile Update Requests</CardTitle>
+                <CardDescription>
+                  Review and manage user-submitted profile changes
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {requestsLoading ? (
+                  <div className="py-6 text-center text-sm">Loading requests...</div>
+                ) : updateRequests.length === 0 ? (
+                  <div className="py-6 text-center text-sm text-muted-foreground">No update requests</div>
+                ) : (
+                  <div className="space-y-3">
+                    {updateRequests.filter((r) => r.status === "pending").map((req) => {
+                      const proposed = (req.submitted_payload as unknown as Record<string, unknown>) || {};
+                      const profile = profiles.find((p) => p.user_id === req.profile_user_id);
+                      const fields = Object.keys(proposed);
+                      return (
+                        <Card key={req.id} className="border rounded-xl">
+                          <CardContent className="p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="text-sm font-medium">Request ID: {req.id}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  Submitted: {new Date(req.created_at).toLocaleString()} | Status: {req.status}
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button variant="outline" size="sm" onClick={() => { setSelectedRequest(req); setRequestEditPayload(proposed); }}>
+                                  <Edit className="w-4 h-4 mr-1" /> Edit
+                                </Button>
+                                <Button size="sm" onClick={() => handleApproveRequest(req.id)} disabled={actionLoading}>
+                                  <CheckCircle className="w-4 h-4 mr-1" /> Approve
+                                </Button>
+                                <Button variant="destructive" size="sm" onClick={() => handleRejectRequest(req.id)} disabled={actionLoading}>
+                                  <XCircle className="w-4 h-4 mr-1" /> Reject
+                                </Button>
+                              </div>
+                            </div>
+
+                            {/* Diff table */}
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="text-left text-muted-foreground">
+                                    <th className="py-2 pr-4">Field</th>
+                                    <th className="py-2 pr-4">Current</th>
+                                    <th className="py-2 pr-4">Proposed</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {fields.map((key) => (
+                                    <tr key={key} className="border-t">
+                                      <td className="py-2 pr-4 align-top font-medium">{key}</td>
+                                      <td className="py-2 pr-4 align-top text-muted-foreground">{formatValue((profile as unknown as Record<string, unknown>)?.[key])}</td>
+                                      <td className="py-2 pr-4 align-top">{formatValue((proposed as Record<string, unknown>)[key])}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+
+                            {req.admin_notes && (
+                              <div className="text-xs text-muted-foreground">Notes: {req.admin_notes}</div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </main>
 
@@ -1585,9 +1749,10 @@ export default function AdminDashboard() {
                 onFormDataChange={(newData) =>
                   setEditFormData((prev) => ({
                     ...prev,
-                    ...(newData as Partial<ProfileWithApproval>),
+                    ...(newData as Partial<ProfileSharedFormData>),
                   }))
                 }
+                handlePreferredCommunicationChange={() => {}}
                 skillsInput={skillsInput}
                 onSkillsInputChange={setSkillsInput}
                 interestsInput={interestsInput}
@@ -1619,6 +1784,42 @@ export default function AdminDashboard() {
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Request Payload Dialog */}
+      <Dialog open={!!selectedRequest} onOpenChange={(open) => { if (!open) { setSelectedRequest(null); setRequestEditPayload(null); } }}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Edit Request Payload</DialogTitle>
+            <DialogDescription>
+              Adjust fields before approval. Approving applies these changes to the user profile.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Textarea
+              value={(() => {
+                try { return JSON.stringify(requestEditPayload ?? {}, null, 2); } catch { return '{}'; }
+              })()}
+              onChange={(e) => {
+                try {
+                  const parsed = JSON.parse(e.target.value || '{}') as Record<string, unknown>;
+                  setRequestEditPayload(parsed);
+                } catch {
+                  // ignore parse errors while typing
+                }
+              }}
+              className="min-h-[300px] font-mono text-xs"
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => { setSelectedRequest(null); setRequestEditPayload(null); }}>
+                <X className="h-4 w-4 mr-2" /> Cancel
+              </Button>
+              <Button onClick={() => selectedRequest && handleApproveRequest(selectedRequest.id, requestEditPayload || undefined)} disabled={actionLoading}>
+                <Save className="h-4 w-4 mr-2" /> Approve with Edits
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 

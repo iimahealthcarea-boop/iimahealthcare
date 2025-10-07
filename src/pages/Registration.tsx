@@ -524,6 +524,35 @@ export default function Registration() {
                   showPrivacy={true}
                 />
 
+                {/* Consents - shown at the end of the form */}
+                {/* <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      id="consent-directory"
+                      checked={formData.is_public}
+                      onCheckedChange={(checked) =>
+                        setFormData((prev) => ({ ...prev, is_public: Boolean(checked) }))
+                      }
+                    />
+                    <Label htmlFor="consent-directory" className="leading-6">
+                      Consent to Include Information in the IIMA Healthcare Directory
+                    </Label>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      id="consent-share-contact"
+                      checked={formData.show_contact_info}
+                      onCheckedChange={(checked) =>
+                        setFormData((prev) => ({ ...prev, show_contact_info: Boolean(checked) }))
+                      }
+                    />
+                    <Label htmlFor="consent-share-contact" className="leading-6">
+                      Consent to Share Contact Information with Other Alumni
+                    </Label>
+                  </div>
+                </div> */}
+
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Submit Registration

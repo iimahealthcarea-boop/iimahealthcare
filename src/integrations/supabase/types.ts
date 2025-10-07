@@ -150,10 +150,12 @@ export type Database = {
           organization_type:
             | Database["public"]["Enums"]["organization_type"]
             | null
+          organizations: Json | null
           phone: string | null
           pincode: string | null
           position: string | null
           program: string | null
+          preferred_mode_of_communication: string[] | null
           rejection_reason: string | null
           show_contact_info: boolean | null
           show_location: boolean | null
@@ -197,10 +199,12 @@ export type Database = {
           organization_type?:
             | Database["public"]["Enums"]["organization_type"]
             | null
+          organizations?: Json | null
           phone?: string | null
           pincode?: string | null
           position?: string | null
           program?: string | null
+          preferred_mode_of_communication?: string[] | null
           rejection_reason?: string | null
           show_contact_info?: boolean | null
           show_location?: boolean | null
@@ -244,10 +248,12 @@ export type Database = {
           organization_type?:
             | Database["public"]["Enums"]["organization_type"]
             | null
+          organizations?: Json | null
           phone?: string | null
           pincode?: string | null
           position?: string | null
           program?: string | null
+          preferred_mode_of_communication?: string[] | null
           rejection_reason?: string | null
           show_contact_info?: boolean | null
           show_location?: boolean | null
@@ -256,6 +262,45 @@ export type Database = {
           updated_at?: string
           user_id?: string
           website_url?: string | null
+        }
+        Relationships: []
+      }
+      profile_update_requests: {
+        Row: {
+          id: string
+          profile_user_id: string
+          submitted_by: string
+          submitted_payload: Json
+          status: Database["public"]["Enums"]["profile_update_request_status"]
+          admin_notes: string | null
+          reviewed_by: string | null
+          reviewed_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          profile_user_id: string
+          submitted_by: string
+          submitted_payload: Json
+          status?: Database["public"]["Enums"]["profile_update_request_status"]
+          admin_notes?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          profile_user_id?: string
+          submitted_by?: string
+          submitted_payload?: Json
+          status?: Database["public"]["Enums"]["profile_update_request_status"]
+          admin_notes?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -439,6 +484,18 @@ export type Database = {
         Args: { user_id: string }
         Returns: string
       }
+        submit_profile_update_request: {
+          Args: { payload: Json }
+          Returns: string
+        }
+        approve_profile_update_request: {
+          Args: { request_id: string; override_payload?: Json }
+          Returns: undefined
+        }
+        reject_profile_update_request: {
+          Args: { request_id: string; reason?: string }
+          Returns: undefined
+        }
     }
     Enums: {
       experience_level:
@@ -471,6 +528,7 @@ export type Database = {
       profile_approval_status: "pending" | "approved" | "rejected"
       profile_status: "Active" | "Alumni" | "Student" | "Faculty" | "Inactive"
       user_role: "admin" | "normal_user"
+        profile_update_request_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
