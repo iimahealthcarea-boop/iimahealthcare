@@ -21,28 +21,58 @@ export function getChangedFields(
   newProfile: Record<string, unknown>,
   fieldsToTrack: string[] = [
     'first_name', 'last_name', 'email', 'phone', 'country_code',
-    'address', 'date_of_birth', 'city', 'country', 'organization',
+    'address', 'date_of_birth', 'gender', 'pincode', 'location', 'city', 'country', 'organization',
     'position', 'program', 'experience_level', 'organization_type',
     'graduation_year', 'bio', 'interests', 'skills', 'linkedin_url',
     'website_url', 'show_contact_info', 'show_location', 'is_public',
+    'preferred_mode_of_communication', 'organizations', 'willing_to_mentor', 'areas_of_contribution',
     'approval_status', 'rejection_reason'
   ]
 ): Record<string, { oldValue: unknown; newValue: unknown }> {
   const changes: Record<string, { oldValue: unknown; newValue: unknown }> = {};
 
+  const normalize = (value: unknown): unknown => {
+    if (Array.isArray(value)) {
+      // For arrays of primitives, sort for stable comparison
+      if (value.every(v => typeof v !== 'object')) {
+        return [...value].map(v => String(v)).sort();
+      }
+      // For arrays of objects, normalize each object by sorted keys
+      return (value as unknown[]).map((item) => {
+        if (item && typeof item === 'object') {
+          const obj = item as Record<string, unknown>;
+          const sortedEntries = Object.keys(obj).sort().map(k => [k, obj[k]] as const);
+          return Object.fromEntries(sortedEntries);
+        }
+        return item;
+      });
+    }
+    if (value && typeof value === 'object') {
+      const obj = value as Record<string, unknown>;
+      const sortedEntries = Object.keys(obj).sort().map(k => [k, normalize(obj[k])] as const);
+      return Object.fromEntries(sortedEntries);
+    }
+    return value;
+  };
+
   fieldsToTrack.forEach(field => {
     const oldValue = oldProfile[field];
     const newValue = newProfile[field];
     
-    // Handle array comparison for interests and skills
-    if (field === 'interests' || field === 'skills') {
-      const oldArray = Array.isArray(oldValue) ? oldValue : [];
-      const newArray = Array.isArray(newValue) ? newValue : [];
-      
-      if (JSON.stringify(oldArray.sort()) !== JSON.stringify(newArray.sort())) {
-        changes[field] = { oldValue: oldArray, newValue: newArray };
+    // Handle array comparison for arrays and complex JSON (including organizations)
+    if (
+      field === 'interests' ||
+      field === 'skills' ||
+      field === 'preferred_mode_of_communication' ||
+      field === 'areas_of_contribution' ||
+      field === 'organizations'
+    ) {
+      const oldNorm = normalize(oldValue);
+      const newNorm = normalize(newValue);
+      if (JSON.stringify(oldNorm) !== JSON.stringify(newNorm)) {
+        changes[field] = { oldValue, newValue };
       }
-    } else if (oldValue !== newValue) {
+    } else if (normalize(oldValue) !== normalize(newValue)) {
       changes[field] = { oldValue, newValue };
     }
   });
@@ -151,6 +181,9 @@ export function formatFieldName(fieldName: string): string {
     country_code: 'Country Code',
     address: 'Address',
     date_of_birth: 'Date of Birth',
+    gender: 'Gender',
+    pincode: 'Pincode / ZIP',
+    location: 'Location',
     city: 'City',
     country: 'Country',
     organization: 'Organization',
@@ -167,6 +200,10 @@ export function formatFieldName(fieldName: string): string {
     show_contact_info: 'Show Contact Info',
     show_location: 'Show Location',
     is_public: 'Public Profile',
+    preferred_mode_of_communication: 'Preferred Communication',
+    organizations: 'Organizations',
+    willing_to_mentor: 'Willing to Mentor',
+    areas_of_contribution: 'Areas of Contribution',
     approval_status: 'Approval Status',
     rejection_reason: 'Rejection Reason'
   };
@@ -183,7 +220,16 @@ export function formatFieldValue(value: unknown, fieldName: string): string {
   }
 
   if (Array.isArray(value)) {
-    return value.length > 0 ? value.join(', ') : 'None';
+    // If array of primitives
+    if (value.every(v => typeof v !== 'object')) {
+      return value.length > 0 ? (value as unknown[]).join(', ') as string : 'None';
+    }
+    // Array of objects (e.g., organizations)
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return '—';
+    }
   }
 
   if (fieldName === 'date_of_birth' && typeof value === 'string') {

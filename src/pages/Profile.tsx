@@ -43,6 +43,7 @@ import {
   formatFileSize, 
   AVATAR_COMPRESSION_OPTIONS 
 } from "@/utils/imageCompression";
+import { Json } from "@/integrations/supabase/types";
 
 type OrganizationType =
   | "Corporate"
@@ -224,11 +225,10 @@ const Profile = () => {
         .map((item) => item.trim())
         .filter((item) => item.length > 0);
 
-      const updatedData = {
-        ...profile,
+      const updatedDataProfile: Profile = {
+        ...(profile as Profile),
         interests,
         skills,
-        // Read from profile (single source of truth updated via onFormDataChange)
         preferred_mode_of_communication:
           (profile as Profile).preferred_mode_of_communication || [],
         organizations: (profile as Profile).organizations || [],
@@ -236,42 +236,78 @@ const Profile = () => {
         areas_of_contribution: (profile as Profile).areas_of_contribution || [],
       };
 
-      // Track changes before updating
-      const changedFields = getChangedFields(editingProfile as unknown as Record<string, unknown>, updatedData as unknown as Record<string, unknown>);
+      // If normal user, submit a profile update request instead of direct update
+      const isNormalUser = authUser?.role !== "admin";
 
-      if (Object.keys(changedFields).length > 0) {
-        const userName =
-          `${profile.first_name} ${profile.last_name}`.trim() ||
-          user.email ||
-          "User";
-        await addProfileChange(
-          user.id,
-          user.id,
-          userName,
-          changedFields,
-          "update"
+      if (isNormalUser) {
+        // Build a minimal PATCH-like payload containing only changed keys
+        const changed = getChangedFields(
+          editingProfile as unknown as Record<string, unknown>,
+          updatedDataProfile as unknown as Record<string, unknown>
         );
-      }
 
-      const { error } = await supabase
-        .from("profiles")
-        .update(updatedData)
-        .eq("user_id", user.id);
-
-      if (error) {
-        console.error("Error updating profile:", error);
-        toast({
-          title: "Error",
-          description: "Failed to update profile",
-          variant: "destructive",
+        const diffPayload: Record<string, unknown> = {};
+        Object.entries(changed).forEach(([key, change]) => {
+          diffPayload[key] = (change as { oldValue: unknown; newValue: unknown }).newValue;
         });
+
+        const payload: Json = diffPayload as unknown as Json;
+        const { error: reqError } = await supabase.rpc(
+          "submit_profile_update_request",
+          { payload }
+        );
+
+        if (reqError) {
+          console.error("Error submitting update request:", reqError);
+          toast({
+            title: "Error",
+            description: "Failed to submit update request",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Update request submitted",
+            description: "An admin will review your changes shortly.",
+          });
+        }
       } else {
-        toast({
-          title: "Success",
-          description: "Profile updated successfully",
-        });
-        // Update local state
-        setProfile(updatedData);
+        // Admins can update directly and track timeline as admin_edit
+        const changedFields = getChangedFields(
+          editingProfile as unknown as Record<string, unknown>,
+          updatedDataProfile as unknown as Record<string, unknown>
+        );
+
+        if (Object.keys(changedFields).length > 0) {
+          const adminName = authUser?.email || "Admin";
+          await addProfileChange(
+            user.id,
+            user.id,
+            adminName,
+            changedFields,
+            "admin_edit"
+          );
+        }
+
+        const { error } = await supabase
+          .from("profiles")
+          .update(updatedDataProfile as unknown as Record<string, unknown>)
+          .eq("user_id", user.id);
+
+        if (error) {
+          console.error("Error updating profile:", error);
+          toast({
+            title: "Error",
+            description: "Failed to update profile",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Success",
+            description: "Profile updated successfully",
+          });
+          // Update local state
+          setProfile(updatedDataProfile);
+        }
       }
     } catch (error) {
       console.error("Error:", error);
