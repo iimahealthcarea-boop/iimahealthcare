@@ -50,6 +50,11 @@ export default function Registration() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(
     user?.profile?.avatar_url || null
   );
+  const [consent, setConsent] = useState({
+    is_public: false,
+    show_contact_info: false,
+  });
+
 
   type Organization = {
     id: string;
@@ -65,8 +70,8 @@ export default function Registration() {
   const [formData, setFormData] = useState({
     first_name: user?.profile?.first_name || "",
     last_name: user?.profile?.last_name || "",
-    phone: "",
-    altEmail: "",
+    phone: user?.profile?.phone || "",
+    altEmail:"",
     email: user?.email,
     country_code: "+91",
     address: "",
@@ -101,8 +106,8 @@ export default function Registration() {
     website_url: "",
     preferred_mode_of_communication: [] as PreferredCommunication[],
     organizations: [] as Organization[],
-    is_public: true,
-    show_contact_info: true,
+    is_public: false,
+    show_contact_info: false,
     show_location: true,
     status: "" as "" | "Active" | "Alumni" | "Student" | "Faculty" | "Inactive",
     other_social_media_handles: "",
@@ -233,6 +238,14 @@ export default function Registration() {
           currentYear + 10
         }`;
       }
+    }
+
+    // Consent validations
+    if (!consent.is_public) {
+      newErrors.is_public = "Please consent to include your information in the directory";
+    }
+    if (!consent.show_contact_info) {
+      newErrors.show_contact_info = "Please consent to share your contact information with other alumni";
     }
 
     setErrors(newErrors);
@@ -525,33 +538,43 @@ export default function Registration() {
                 />
 
                 {/* Consents - shown at the end of the form */}
-                {/* <div className="space-y-4">
+                <div className="space-y-4">
                   <div className="flex items-start gap-3">
                     <Checkbox
                       id="consent-directory"
-                      checked={formData.is_public}
+                      checked={consent.is_public}
                       onCheckedChange={(checked) =>
-                        setFormData((prev) => ({ ...prev, is_public: Boolean(checked) }))
+                        setConsent((prev) => ({ ...prev, is_public: Boolean(checked) }))
                       }
                     />
-                    <Label htmlFor="consent-directory" className="leading-6">
-                      Consent to Include Information in the IIMA Healthcare Directory
-                    </Label>
+                    <div>
+                      <Label htmlFor="consent-directory" className="leading-6">
+                        Consent to Include Information in the IIMA Healthcare Directory
+                      </Label>
+                      {errors.is_public && (
+                        <p className="text-sm text-red-500 mt-1">{errors.is_public}</p>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex items-start gap-3">
                     <Checkbox
                       id="consent-share-contact"
-                      checked={formData.show_contact_info}
+                      checked={consent.show_contact_info}
                       onCheckedChange={(checked) =>
-                        setFormData((prev) => ({ ...prev, show_contact_info: Boolean(checked) }))
-                      }
+                          setConsent((prev) => ({ ...prev, show_contact_info: Boolean(checked) }))
+                        }
                     />
-                    <Label htmlFor="consent-share-contact" className="leading-6">
-                      Consent to Share Contact Information with Other Alumni
-                    </Label>
+                    <div>
+                      <Label htmlFor="consent-share-contact" className="leading-6">
+                        Consent to Share Contact Information with Other Alumni
+                      </Label>
+                      {errors.show_contact_info && (
+                        <p className="text-sm text-red-500 mt-1">{errors.show_contact_info}</p>
+                      )}
+                    </div>
                   </div>
-                </div> */}
+                </div>
 
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
