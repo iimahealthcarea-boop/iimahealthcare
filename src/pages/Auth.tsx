@@ -5,22 +5,29 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, GraduationCap } from "lucide-react";
+import { Loader2, GraduationCap, EyeOff, Eye } from "lucide-react";
 
 export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, signIn, signUp } = useAuth();
-  
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("signin");
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     // Redirect if already authenticated
@@ -31,7 +38,7 @@ export default function Auth() {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password) {
       toast({
         title: "Error",
@@ -42,7 +49,7 @@ export default function Auth() {
     }
 
     setLoading(true);
-    
+
     try {
       const { error } = await signIn(email, password);
 
@@ -59,7 +66,7 @@ export default function Auth() {
         });
       }
     } catch (error) {
-      console.error('Sign in error:', error);
+      console.error("Sign in error:", error);
       toast({
         title: "Error",
         description: "An unexpected error occurred",
@@ -72,7 +79,7 @@ export default function Auth() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password || !firstName || !lastName) {
       toast({
         title: "Error",
@@ -92,7 +99,7 @@ export default function Auth() {
     }
 
     setLoading(true);
-    
+
     try {
       // Check if email already exists in profiles table
       const { data: existingProfile, error: checkError } = await supabase
@@ -101,8 +108,9 @@ export default function Auth() {
         .eq("email", email)
         .single();
 
-      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "not found" error
-        console.error('Error checking existing email:', checkError);
+      if (checkError && checkError.code !== "PGRST116") {
+        // PGRST116 is "not found" error
+        console.error("Error checking existing email:", checkError);
         toast({
           title: "Error",
           description: "Failed to validate email. Please try again.",
@@ -115,7 +123,8 @@ export default function Auth() {
       if (existingProfile) {
         toast({
           title: "Email Already Exists",
-          description: "An account with this email already exists. Please use a different email or try signing in.",
+          description:
+            "An account with this email already exists. Please use a different email or try signing in.",
           variant: "destructive",
         });
         setLoading(false);
@@ -136,30 +145,34 @@ export default function Auth() {
       } else {
         // Send notification to admin about new pending user
         try {
-          const { error: emailError } = await supabase.functions.invoke('request-pending', {
-            body: {
-              firstName,
-              lastName,
-              email,
+          const { error: emailError } = await supabase.functions.invoke(
+            "request-pending",
+            {
+              body: {
+                firstName,
+                lastName,
+                email,
+              },
             }
-          });
+          );
 
           if (emailError) {
-            console.error('Error sending admin notification:', emailError);
+            console.error("Error sending admin notification:", emailError);
             // Don't fail the signup if email fails
           }
         } catch (emailError) {
-          console.error('Error sending admin notification:', emailError);
+          console.error("Error sending admin notification:", emailError);
           // Don't fail the signup if email fails
         }
 
         toast({
           title: "Success",
-          description: "Account created successfully! Please check your email to confirm your account.",
+          description:
+            "Account created successfully! Please check your email to confirm your account.",
         });
       }
     } catch (error) {
-      console.error('Sign up error:', error);
+      console.error("Sign up error:", error);
       toast({
         title: "Error",
         description: "An unexpected error occurred",
@@ -183,12 +196,11 @@ export default function Auth() {
           </div>
           <span>IIMA Healthcare SIG Members Portal</span>
         </button>
-      
       </div>
 
-      <Card className="w-full max-w-md shadow-md pb-10 pt-5 mt-20">
+      <Card className="w-full max-w-md shadow-md pb-10 pt-5 mt-10">
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">Welcome Back</CardTitle>
+          <CardTitle className="text-xl">Welcome</CardTitle>
           <CardDescription>
             Sign in to your account or create a new one
           </CardDescription>
@@ -215,14 +227,30 @@ export default function Auth() {
                 </div>
                 <div>
                   <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
-                    required
-                  />
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Enter your password"
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                      title={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? (
@@ -244,6 +272,7 @@ export default function Auth() {
                     <Label htmlFor="firstName">First Name</Label>
                     <Input
                       id="firstName"
+                      placeholder="Enter your first name"
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
                       required
@@ -253,6 +282,7 @@ export default function Auth() {
                     <Label htmlFor="lastName">Last Name</Label>
                     <Input
                       id="lastName"
+                      placeholder="Enter your last name"
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
                       required
@@ -272,14 +302,30 @@ export default function Auth() {
                 </div>
                 <div>
                   <Label htmlFor="signUpPassword">Password</Label>
-                  <Input
-                    id="signUpPassword"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password (min 6 characters)"
-                    required
-                  />
+                  <div className="relative">
+                    <Input
+                      id="signUpPassword"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Enter your password (min 6 characters)"
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                      title={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? (
