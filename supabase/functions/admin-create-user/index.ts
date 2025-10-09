@@ -1,3 +1,5 @@
+/* eslint-disable */
+// This file runs in Deno on Supabase Edge; type errors in local tooling are expected.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -11,6 +13,9 @@ interface CreateUserRequest {
   last_name: string;
   email: string;
   password: string;
+  role?: 'admin' | 'normal_user';
+  phone?: string;
+  country_code?: string;
 }
 
 serve(async (req) => {
@@ -68,7 +73,7 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { first_name, last_name, email, password }: CreateUserRequest = await req.json()
+    const { first_name, last_name, email, password, role, phone, country_code }: CreateUserRequest = await req.json()
 
     // Validate required fields
     if (!first_name || !last_name || !email || !password) {
@@ -105,6 +110,18 @@ serve(async (req) => {
     }
 
     if (authData.user) {
+      // Upsert selected role (default to normal_user)
+      const selectedRole = role === 'admin' ? 'admin' : 'normal_user'
+      const { error: roleUpsertError } = await supabaseAdmin
+        .from('user_roles')
+        .upsert({ user_id: authData.user.id, role: selectedRole }, { onConflict: 'user_id,role' })
+      if (roleUpsertError) {
+        console.error('Error assigning role:', roleUpsertError)
+        return new Response(
+          JSON.stringify({ error: 'User created but role assignment failed' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
       // Update the profile to approved status
       const { error: profileError } = await supabaseAdmin
         .from('profiles')
@@ -112,6 +129,8 @@ serve(async (req) => {
           approval_status: 'approved',
           approved_by: user.id,
           approved_at: new Date().toISOString(),
+          phone: phone || null,
+          country_code: country_code || null,
         })
         .eq('user_id', authData.user.id)
 
@@ -128,7 +147,8 @@ serve(async (req) => {
             email: authData.user.email,
             first_name,
             last_name
-          }
+          },
+          role: selectedRole
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
