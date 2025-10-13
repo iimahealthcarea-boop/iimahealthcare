@@ -120,6 +120,7 @@ export default function AdminDashboard() {
     password: "",
     phone: "",
     country_code: "+91",
+    role: "normal_user" as 'normal_user' | 'admin',
   });
   const { countries, loading: countriesLoading } = useCountries();
 
@@ -680,6 +681,9 @@ export default function AdminDashboard() {
             last_name: addMemberFormData.last_name,
             email: addMemberFormData.email,
             password: addMemberFormData.password,
+            role: addMemberFormData.role,
+            phone: addMemberFormData.phone,
+            country_code: addMemberFormData.country_code,
           },
         }
       );
@@ -700,6 +704,7 @@ export default function AdminDashboard() {
           password: "",
           phone: "",
           country_code: "+91",
+          role: 'normal_user',
         });
         setShowPassword(false);
         setIsAddMemberDialogOpen(false);
@@ -1884,6 +1889,25 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div>
+              <Label htmlFor="add-role">Role *</Label>
+              <div className="flex gap-2">
+                <select
+                  id="add-role"
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={addMemberFormData.role}
+                  onChange={(e) =>
+                    setAddMemberFormData({
+                      ...addMemberFormData,
+                      role: e.target.value as 'normal_user' | 'admin',
+                    })
+                  }
+                >
+                  <option value="normal_user">Normal User</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+            </div>
+            <div>
               <Label htmlFor="add-phone">Phone *</Label>
               <div className="flex gap-2">
                 <CountrySelector
@@ -1977,6 +2001,7 @@ export default function AdminDashboard() {
                   password: "",
                   phone: "",
                   country_code: "+91",
+                  role: 'normal_user',
                 });
                 setShowPassword(false);
               }}

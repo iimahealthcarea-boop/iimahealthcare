@@ -12,6 +12,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, GraduationCap, Eye, EyeOff } from "lucide-react";
@@ -19,7 +26,8 @@ import { Loader2, GraduationCap, Eye, EyeOff } from "lucide-react";
 export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, signIn, signUp, underRegistration } = useAuth();
+
+  const { user, signIn, signUp } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -223,9 +231,9 @@ export default function Auth() {
         </button>
       </div>
 
-      <Card className="w-full max-w-md shadow-md pb-10 pt-5 mt-20">
+      <Card className="w-full max-w-md shadow-md pb-10 pt-5 mt-10">
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">Welcome Back</CardTitle>
+          <CardTitle className="text-xl">Welcome</CardTitle>
           <CardDescription>
             Sign in to your account or create a new one
           </CardDescription>
