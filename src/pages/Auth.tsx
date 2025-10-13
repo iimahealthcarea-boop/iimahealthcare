@@ -12,13 +12,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, GraduationCap, Eye, EyeOff } from "lucide-react";
@@ -36,18 +29,6 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("signin");
   const [showPassword, setShowPassword] = useState(false);
-
-  useEffect(() => {
-    // Redirect if already authenticated
-    if (user) {
-      navigate("/");
-    }
-
-    // Redirect if under registration
-    if (underRegistration) {
-      navigate("/registration");
-    }
-  }, [user, navigate, underRegistration]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
