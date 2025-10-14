@@ -11,7 +11,7 @@ interface AuthUser extends User {
   role?: UserRole;
   profile?: Tables<'profiles'>;
   approvalStatus?: ApprovalStatus;
-  underRegistration?: boolean;
+  // underRegistration?: boolean;
 }
 
 interface AuthContextType {
@@ -20,7 +20,7 @@ interface AuthContextType {
   loading: boolean;
   isAdmin: boolean;
   isApproved: boolean;
-  underRegistration: boolean;
+  // underRegistration: boolean;
   signIn: (email: string, password: string) => Promise<{ error: unknown | null }>;
   signUp: (email: string, password: string, userData?: Record<string, unknown>) => Promise<{ error: unknown | null }>;
   signOut: () => Promise<void>;
@@ -64,10 +64,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error('Error fetching user profile:', profileError);
       }
 
-      return { role: roleData?.role, profile: profileData, underRegistration: profileData?.under_registration || false };
+      return { role: roleData?.role, profile: profileData };
     } catch (error) {
       console.error('Error in fetchUserRole:', error);
-      return { role: null, profile: null, underRegistration: false };
+      return { role: null, profile: null };
     }
   };
 
@@ -75,13 +75,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     if (!session?.user) return;
     
-    const { role, profile, underRegistration } = await fetchUserRole(session.user.id);
+    const { role, profile } = await fetchUserRole(session.user.id);
     setUser({
       ...session.user,
       role: role as UserRole,
       profile,
       approvalStatus: profile?.approval_status as ApprovalStatus,
-      underRegistration
     });
     setLoading(false);
     toast({
@@ -100,13 +99,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session?.user) {
           // Use setTimeout to avoid deadlock with onAuthStateChange
           setTimeout(() => {
-            fetchUserRole(session.user.id).then(({ role, profile, underRegistration }) => {
+            fetchUserRole(session.user.id).then(({ role, profile }) => {
               setUser({
                 ...session.user,
                 role: role as UserRole,
                 profile,
                 approvalStatus: profile?.approval_status as ApprovalStatus,
-                underRegistration
               });
               setLoading(false);
             }).catch((error) => {
@@ -116,7 +114,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 role: 'normal_user' as UserRole,
                 profile: null,
                 approvalStatus: 'pending' as ApprovalStatus,
-                underRegistration: false
               });
               setLoading(false);
             });
@@ -132,13 +129,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session?.user) {
-        fetchUserRole(session.user.id).then(({ role, profile, underRegistration }) => {
+        fetchUserRole(session.user.id).then(({ role, profile }) => {
           setUser({
             ...session.user,
             role: role as UserRole,
             profile,
             approvalStatus: profile?.approval_status as ApprovalStatus,
-            underRegistration
           });
           setLoading(false);
         }).catch((error) => {
@@ -148,7 +144,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             role: 'normal_user' as UserRole,
             profile: null,
             approvalStatus: 'pending' as ApprovalStatus,
-            underRegistration: false
           });
           setLoading(false);
         });
@@ -272,7 +267,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isAdmin = user?.role === 'admin';
   const isApproved = user?.approvalStatus === 'approved';
-  const underRegistration = user?.underRegistration || false;
+  // const underRegistration = user?.underRegistration || false;
 
   return (
     <AuthContext.Provider value={{
@@ -281,7 +276,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       isAdmin,
       isApproved,
-      underRegistration,
+      // underRegistration,
       signIn,
       signUp,
       signOut,

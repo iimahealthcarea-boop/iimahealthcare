@@ -56,7 +56,8 @@ export default function Auth() {
       if (error) {
         toast({
           title: "Error",
-          description: error instanceof Error ? error.message : "Sign in failed",
+          description:
+            error instanceof Error ? error.message : "Sign in failed",
           variant: "destructive",
         });
       } else {
@@ -139,26 +140,11 @@ export default function Auth() {
       if (error) {
         toast({
           title: "Error",
-          description: error instanceof Error ? error.message : "Sign up failed",
+          description:
+            error instanceof Error ? error.message : "Sign up failed",
           variant: "destructive",
         });
       } else {
-        // Set under_registration to true for the new user
-        try {
-          const { error: updateError } = await supabase
-            .from("profiles")
-            .update({ under_registration: true })
-            .eq("email", email);
-
-          if (updateError) {
-            console.error("Error setting under_registration:", updateError);
-            // Don't fail the signup if this fails
-          }
-        } catch (updateError) {
-          console.error("Error setting under_registration:", updateError);
-          // Don't fail the signup if this fails
-        }
-
         // Send notification to admin about new pending user
         try {
           const { error: emailError } = await supabase.functions.invoke(

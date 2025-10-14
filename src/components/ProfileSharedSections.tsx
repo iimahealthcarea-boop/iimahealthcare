@@ -1020,6 +1020,11 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
               ))}
             </div>
           )}
+          {fieldErrors.preferred_mode_of_communication && (
+            <p className="text-sm text-red-500 mt-1">
+              {fieldErrors.preferred_mode_of_communication}
+            </p>
+          )}
         </div>
       </div>
 
@@ -1139,7 +1144,11 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                   onFormDataChange({ ...formData, bio: e.target.value })
                 }
                 placeholder="Tell us about yourself..."
+                className={fieldErrors.bio ? "border-red-500" : ""}
               />
+              {fieldErrors.bio && (
+                <p className="text-sm text-red-500 mt-1">{fieldErrors.bio}</p>
+              )}
             </div>
             <div>
               <Label htmlFor="skills">Primary Areas of Expertise</Label>

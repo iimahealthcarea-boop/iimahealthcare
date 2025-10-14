@@ -399,6 +399,40 @@ export default function AdminDashboard() {
 
       if (error) throw error;
 
+      const dataToSave = {
+        id: profile.id,
+        user_id: profileUserId,
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        email: profile.email,
+        phone: profile.phone,
+        gender: profile.gender,
+        program: profile.program,
+        graduation_year: profile.graduation_year,
+        organization: profile.organization,
+        organization_type: profile.organization_type,
+        position: profile.position,
+        experience_level: profile.experience_level,
+        location: profile.location,
+        city: profile.city,
+        country: profile.country,
+        pincode: profile.pincode,
+        linkedin_url: profile.linkedin_url,
+        website_url: profile.website_url,
+        bio: profile.bio,
+        interests: profile.interests,
+        skills: profile.skills,
+        status: profile.status,
+        show_contact_info: profile.show_contact_info,
+        show_location: profile.show_location,
+        is_public: profile.is_public,
+        avatar_url: profile.avatar_url,
+        preferred_mode_of_communication: profile.preferred_mode_of_communication,
+        organizations: profile.organizations,
+        date_of_birth: profile.date_of_birth,
+        address: profile.address,
+      }
+
       // Send approval email
       try {
         const { error: emailError } = await supabase.functions.invoke(
@@ -408,6 +442,7 @@ export default function AdminDashboard() {
               email: profile.email,
               name: `${profile.first_name} ${profile.last_name}`,
               status: "approved",
+              profile: dataToSave,
             },
           }
         );

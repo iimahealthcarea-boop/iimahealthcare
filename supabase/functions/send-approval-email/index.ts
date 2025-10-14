@@ -1,35 +1,33 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@2.0.0";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+import nodemailer from "npm:nodemailer";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type"
 };
-
-interface EmailRequest {
-  email: string;
-  name: string;
-  status: 'approved' | 'rejected';
-  reason?: string;
-}
-
-const handler = async (req: Request): Promise<Response> => {
+const backupUrl = "https://gbminsanmrhedtsrbgmz.supabase.co/functions/v1/backup-profile";
+const backupToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdibWluc2FubXJoZWR0c3JiZ216Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDI5MDE1NiwiZXhwIjoyMDc1ODY2MTU2fQ.D3UfZeytzTvwrAEmXWdCMVy5-xhy6i164MENAFaMJ5E';
+const handler = async (req)=>{
+  const transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    auth: {
+      user: "ansh.kush.2410@gmail.com",
+      pass: "dawr dhmm sxjn enfa" // your app password
+    }
+  });
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, {
+      headers: corsHeaders
+    });
   }
-
   try {
-    const { email, name, status, reason }: EmailRequest = await req.json();
-
+    const { email, name, status, reason, profile } = await req.json();
     console.log(`Sending ${status} email to ${email} for user ${name}`);
-
-    let subject: string;
-    let htmlContent: string;
-
+    let subject;
+    let htmlContent;
     if (status === 'approved') {
       subject = "IIM-AMS Registration Approved! Welcome to the Community";
       htmlContent = `
@@ -106,33 +104,47 @@ const handler = async (req: Request): Promise<Response> => {
         </div>
       `;
     }
-
-    const emailResponse = await resend.emails.send({
-      from: "IIM-AMS <onboarding@resend.dev>",
-      to: [email],
+    const emailResponse = await transporter.sendMail({
+      from: `"IIM-AMS Admin Notifier" <ansh.kush.2410@gmail.com>`,
+      to: [
+        email
+      ],
       subject: subject,
-      html: htmlContent,
+      html: htmlContent
     });
-
+    const resp = await fetch(backupUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${backupToken}`
+      },
+      body: JSON.stringify({
+        payload: profile
+      })
+    });
     console.log("Email sent successfully:", emailResponse);
-
-    return new Response(JSON.stringify({ success: true, emailResponse }), {
+    console.log("Data saved in db", resp);
+    return new Response(JSON.stringify({
+      success: true,
+      emailResponse
+    }), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
-        ...corsHeaders,
-      },
-    });
-  } catch (error: any) {
-    console.error("Error in send-approval-email function:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
+        ...corsHeaders
       }
-    );
+    });
+  } catch (error) {
+    console.error("Error in send-approval-email function:", error);
+    return new Response(JSON.stringify({
+      error: error.message
+    }), {
+      status: 500,
+      headers: {
+        "Content-Type": "application/json",
+        ...corsHeaders
+      }
+    });
   }
 };
-
 serve(handler);

@@ -21,16 +21,11 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const ApprovedGuard = ({ children }: { children: JSX.Element }) => {
-  const { user, loading, isApproved, underRegistration } = useAuth();
+  const { user, loading, isApproved } = useAuth();
   if (loading) return children;
 
   // If user is on auth page, let them stay there
   if (window.location.pathname === "/auth") {
-    return children;
-  }
-
-  // If user is on registration page, let them stay there
-  if (window.location.pathname === "/registration") {
     return children;
   }
 
@@ -53,12 +48,6 @@ const ApprovedGuard = ({ children }: { children: JSX.Element }) => {
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
-
-  // If user is under registration process, redirect to registration
-  if (underRegistration) {
-    return <Navigate to="/registration" replace />;
-  }
-
   // If user exists but profile is incomplete, redirect to registration
   if (!user?.profile?.first_name || !user?.profile?.phone) {
     return <Navigate to="/registration" replace />;

@@ -1,42 +1,30 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@2.0.0";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-
+import nodemailer from "npm:nodemailer";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type"
 };
-
-interface IssueRequest {
-  type: "issue";
-  email: string;
-  message: string;
-  profileDetails?: {
-    first_name?: string;
-    last_name?: string;
-    organization?: string;
-    position?: string;
-    phone?: string;
-    program?: string;
-    graduation_year?: number;
-  };
-}
-
-const handler = async (req: Request): Promise<Response> => {
+const ADMIN_EMAIL = "shubham.kushwaha@mrikal.com";
+const handler = async (req)=>{
+  const transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    auth: {
+      user: "ansh.kush.2410@gmail.com",
+      pass: "dawr dhmm sxjn enfa"
+    }
+  });
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, {
+      headers: corsHeaders
+    });
   }
-
   try {
-    const { type, email, message, profileDetails }: IssueRequest = await req.json();
-
+    const { type, email, message, profileDetails } = await req.json();
     console.log(`Sending issue email from ${email}: ${message}`);
-
     const subject = "IIM-AMS Support Request - User Issue Report";
-    
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #2563eb; text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 10px;">
@@ -85,33 +73,34 @@ const handler = async (req: Request): Promise<Response> => {
         </p>
       </div>
     `;
-
-    const emailResponse = await resend.emails.send({
-      from: "IIM-AMS <onboarding@resend.dev>",
-      to: ["admin@iim-ams.com"], // Replace with actual admin email
-      subject: subject,
-      html: htmlContent,
+    const emailResponse = await transporter.sendMail({
+      from: `"IIM-AMS Issue Reporter" <ansh.kush.2410@gmail.com>`,
+      to: ADMIN_EMAIL,
+      subject: "New Issue Reported by User",
+      html: htmlContent
     });
-
     console.log("Issue email sent successfully:", emailResponse);
-
-    return new Response(JSON.stringify({ success: true, emailResponse }), {
+    return new Response(JSON.stringify({
+      success: true,
+      emailResponse
+    }), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
-        ...corsHeaders,
-      },
-    });
-  } catch (error: any) {
-    console.error("Error in send-issue-email function:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
+        ...corsHeaders
       }
-    );
+    });
+  } catch (error) {
+    console.error("Error in send-issue-email function:", error);
+    return new Response(JSON.stringify({
+      error: error.message
+    }), {
+      status: 500,
+      headers: {
+        "Content-Type": "application/json",
+        ...corsHeaders
+      }
+    });
   }
 };
-
 serve(handler);
