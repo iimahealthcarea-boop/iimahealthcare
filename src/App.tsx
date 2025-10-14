@@ -9,6 +9,8 @@ import BottomBanner from "@/components/BottomBanner";
 import Index from "./pages/Index";
 import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Registration from "./pages/Registration";
 import WaitingApproval from "./pages/WaitingApproval";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -34,6 +36,16 @@ const ApprovedGuard = ({ children }: { children: JSX.Element }) => {
 
   // If user is on waiting-approval page, let them stay there
   if (window.location.pathname === "/waiting-approval") {
+    return children;
+  }
+
+  // If user is on forgot-password page, let them stay there
+  if (window.location.pathname === "/forgot-password") {
+    return children;
+  }
+
+  // If user is on reset-password page, let them stay there
+  if (window.location.pathname === "/reset-password") {
     return children;
   }
 
@@ -72,6 +84,8 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/profile" element={<ApprovedGuard><Profile /></ApprovedGuard>} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/registration" element={<Registration />} />
               <Route path="/waiting-approval" element={<WaitingApproval />} />
               <Route path="/admin" element={<ApprovedGuard><AdminDashboard /></ApprovedGuard>} />

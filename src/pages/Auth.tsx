@@ -56,7 +56,7 @@ export default function Auth() {
       if (error) {
         toast({
           title: "Error",
-          description: error.message,
+          description: error instanceof Error ? error.message : "Sign in failed",
           variant: "destructive",
         });
       } else {
@@ -139,7 +139,7 @@ export default function Auth() {
       if (error) {
         toast({
           title: "Error",
-          description: error.message,
+          description: error instanceof Error ? error.message : "Sign up failed",
           variant: "destructive",
         });
       } else {
@@ -278,6 +278,15 @@ export default function Auth() {
                     "Sign In"
                   )}
                 </Button>
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => navigate("/forgot-password")}
+                    className="text-sm text-primary hover:text-primary/80 underline"
+                  >
+                    Forgot your password?
+                  </button>
+                </div>
               </form>
             </TabsContent>
 

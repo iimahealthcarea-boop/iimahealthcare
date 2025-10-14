@@ -1018,23 +1018,66 @@ export default function AdminDashboard() {
                         {selectedProfile.last_name}
                       </div>
                       <div>
-                        <strong>Email:</strong> {selectedProfile.email}
-                      </div>
-                      <div>
-                        <strong>Phone:</strong> {selectedProfile.phone}
+                        <strong>Gender:</strong> {selectedProfile.gender || "Not provided"}
                       </div>
                       <div>
                         <strong>Date of Birth:</strong>{" "}
                         {selectedProfile.date_of_birth || "Not provided"}
                       </div>
+                      <div>
+                        <strong>City:</strong> {selectedProfile.city || "Not provided"}
+                      </div>
+                      <div>
+                        <strong>Country:</strong> {selectedProfile.country || "Not provided"}
+                      </div>
+                      <div>
+                        <strong>Pincode/ZIP:</strong> {selectedProfile.pincode || "Not provided"}
+                      </div>
                       <div className="col-span-2">
-                        <strong>Address:</strong> {selectedProfile.address}
+                        <strong>Address:</strong> {selectedProfile.address || "Not provided"}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Contact Information */}
+                  <div>
+                    <h4 className="font-semibold mb-2">Contact Information</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <strong>Email:</strong> {selectedProfile.email}
                       </div>
                       <div>
-                        <strong>City:</strong> {selectedProfile.city}
+                        <strong>Alternate Email:</strong> {String((selectedProfile as Record<string, unknown>).altEmail || "Not provided")}
                       </div>
                       <div>
-                        <strong>Country:</strong> {selectedProfile.country}
+                        <strong>Phone:</strong> {selectedProfile.country_code} {selectedProfile.phone}
+                      </div>
+                      <div>
+                        <strong>LinkedIn:</strong> {selectedProfile.linkedin_url ? (
+                          <a
+                            href={selectedProfile.linkedin_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                          >
+                            {selectedProfile.linkedin_url}
+                          </a>
+                        ) : "Not provided"}
+                      </div>
+                      <div>
+                        <strong>Website:</strong> {selectedProfile.website_url ? (
+                          <a
+                            href={selectedProfile.website_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                          >
+                            {selectedProfile.website_url}
+                          </a>
+                        ) : "Not provided"}
+                      </div>
+                      <div>
+                        <strong>Other Social Media:</strong> {String((selectedProfile as Record<string, unknown>).other_social_media_handles || "Not provided")}
                       </div>
                     </div>
                   </div>
@@ -1060,44 +1103,63 @@ export default function AdminDashboard() {
                       Professional Information
                     </h4>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {Array.isArray(selectedProfile.organizations as unknown as Array<Record<string, unknown>>) ? (selectedProfile.organizations as unknown as Array<Record<string, unknown>>).map((org, index: number) => (
-                        <div
-                          key={String((org as Record<string, unknown>).id ?? index)}
-                          className="rounded-2xl border p-4 shadow-sm bg-white"
-                        >
-                          <h5 className="font-medium mb-2 text-primary">
-                            Organization {index + 1}: {String((org as Record<string, unknown>).currentOrg ?? '-')}
-                          </h5>
-
-                          <div className="space-y-1 text-sm text-muted-foreground">
-                            <p>
-                              <span className="font-semibold text-foreground">
-                                Type:
-                              </span>{" "}
-                              {String((org as Record<string, unknown>).orgType ?? '-')}
-                            </p>
-                            <p>
-                              <span className="font-semibold text-foreground">
-                                Experience:
-                              </span>{" "}
-                              {String((org as Record<string, unknown>).experience ?? '-')}
-                            </p>
-                            <p>
-                              <span className="font-semibold text-foreground">
-                                Role:
-                              </span>{" "}
-                              {String((org as Record<string, unknown>).role ?? '-')}
-                            </p>
-                            <p>
-                              <span className="font-semibold text-foreground">
-                                Description:
-                              </span>{" "}
-                              {String((org as Record<string, unknown>).description ?? '-')}
-                            </p>
-                          </div>
+                    {/* Education Details */}
+                    <div className="mb-4">
+                      <h5 className="font-medium mb-2">Education</h5>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <strong>Program:</strong> {selectedProfile.program || "Not provided"}
                         </div>
-                      )) : null}
+                        <div>
+                          <strong>Graduation Year:</strong> {selectedProfile.graduation_year || "Not provided"}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Organizations */}
+                    <div>
+                      <h5 className="font-medium mb-2">Organizations</h5>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {Array.isArray(selectedProfile.organizations as unknown as Array<Record<string, unknown>>) ? (selectedProfile.organizations as unknown as Array<Record<string, unknown>>).map((org, index: number) => (
+                          <div
+                            key={String((org as Record<string, unknown>).id ?? index)}
+                            className="rounded-2xl border p-4 shadow-sm bg-white"
+                          >
+                            <h5 className="font-medium mb-2 text-primary">
+                              Organization {index + 1}: {String((org as Record<string, unknown>).currentOrg ?? '-')}
+                            </h5>
+
+                            <div className="space-y-1 text-sm text-muted-foreground">
+                              <p>
+                                <span className="font-semibold text-foreground">
+                                  Type:
+                                </span>{" "}
+                                {String((org as Record<string, unknown>).orgType ?? '-')}
+                              </p>
+                              <p>
+                                <span className="font-semibold text-foreground">
+                                  Experience:
+                                </span>{" "}
+                                {String((org as Record<string, unknown>).experience ?? '-')}
+                              </p>
+                              <p>
+                                <span className="font-semibold text-foreground">
+                                  Role:
+                                </span>{" "}
+                                {String((org as Record<string, unknown>).role ?? '-')}
+                              </p>
+                              <p>
+                                <span className="font-semibold text-foreground">
+                                  Description:
+                                </span>{" "}
+                                {String((org as Record<string, unknown>).description ?? '-')}
+                              </p>
+                            </div>
+                          </div>
+                        )) : (
+                          <div className="text-sm text-muted-foreground">No organizations provided</div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -1116,55 +1178,40 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
+                  {/* Mentoring & Contributions */}
+                  <div>
+                    <h4 className="font-semibold mb-2">Mentoring & Contributions</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <strong>Willing to Mentor:</strong> {String((selectedProfile as Record<string, unknown>).willing_to_mentor || "Not provided")}
+                      </div>
+                      <div>
+                        <strong>Areas of Contribution:</strong> {(selectedProfile as Record<string, unknown>).areas_of_contribution && Array.isArray((selectedProfile as Record<string, unknown>).areas_of_contribution) && ((selectedProfile as Record<string, unknown>).areas_of_contribution as string[]).length > 0 ? (
+                          ((selectedProfile as Record<string, unknown>).areas_of_contribution as string[]).join(", ")
+                        ) : "Not provided"}
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Additional Information */}
                   <div>
                     <h4 className="font-semibold mb-2">
                       Additional Information
                     </h4>
                     <div className="space-y-2 text-sm">
-                      {selectedProfile.bio && (
-                        <div>
-                          <strong>Bio:</strong> {selectedProfile.bio}
-                        </div>
-                      )}
-                      {selectedProfile.skills && (
-                        <div>
-                          <strong>Skills:</strong>{" "}
-                          {selectedProfile.skills.join(", ")}
-                        </div>
-                      )}
-                      {selectedProfile.interests && (
-                        <div>
-                          <strong>Interests:</strong>{" "}
-                          {selectedProfile.interests.join(", ")}
-                        </div>
-                      )}
-                      {selectedProfile.linkedin_url && (
-                        <div>
-                          <strong>LinkedIn:</strong>{" "}
-                          <a
-                            href={selectedProfile.linkedin_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline"
-                          >
-                            {selectedProfile.linkedin_url}
-                          </a>
-                        </div>
-                      )}
-                      {selectedProfile.website_url && (
-                        <div>
-                          <strong>Website:</strong>{" "}
-                          <a
-                            href={selectedProfile.website_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline"
-                          >
-                            {selectedProfile.website_url}
-                          </a>
-                        </div>
-                      )}
+                      <div>
+                        <strong>Bio:</strong> {selectedProfile.bio || "Not provided"}
+                      </div>
+                      <div>
+                        <strong>Skills:</strong> {selectedProfile.skills && selectedProfile.skills.length > 0 ? (
+                          selectedProfile.skills.join(", ")
+                        ) : "Not provided"}
+                      </div>
+                      <div>
+                        <strong>Interests:</strong> {selectedProfile.interests && selectedProfile.interests.length > 0 ? (
+                          selectedProfile.interests.join(", ")
+                        ) : "Not provided"}
+                      </div>
                     </div>
                   </div>
 
