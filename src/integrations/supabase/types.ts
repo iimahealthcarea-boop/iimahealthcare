@@ -161,6 +161,7 @@ export type Database = {
           show_location: boolean | null
           skills: string[] | null
           status: Database["public"]["Enums"]["profile_status"] | null
+          // under_registration: boolean | null
           updated_at: string
           user_id: string
           website_url: string | null
@@ -210,6 +211,7 @@ export type Database = {
           show_location?: boolean | null
           skills?: string[] | null
           status?: Database["public"]["Enums"]["profile_status"] | null
+          // under_registration?: boolean | null
           updated_at?: string
           user_id: string
           website_url?: string | null
@@ -259,6 +261,7 @@ export type Database = {
           show_location?: boolean | null
           skills?: string[] | null
           status?: Database["public"]["Enums"]["profile_status"] | null
+          // under_registration?: boolean | null
           updated_at?: string
           user_id?: string
           website_url?: string | null

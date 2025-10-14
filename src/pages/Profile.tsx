@@ -535,6 +535,7 @@ const Profile = () => {
           showProfessional={true}
           showAdditional={true}
           showPrivacy={true}
+          lockDob={authUser?.approvalStatus === 'approved'}
         />
 
       

@@ -135,6 +135,9 @@ export default function Registration() {
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
     }
+    if (!formData.date_of_birth.trim()) {
+      newErrors.date_of_birth = "Date of birth is required";
+    }
     if (!formData.address.trim()) {
       newErrors.address = "Address is required";
     }
@@ -171,18 +174,25 @@ export default function Registration() {
       }
     });
 
-    // Email validation (user email from auth)
+    // Email validation (use entered email)
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (user?.email && !emailPattern.test(user.email)) {
+    if (formData.email && !emailPattern.test(formData.email)) {
       newErrors.email = "Please enter a valid email address";
     }
 
-    // Phone number validation (international format)
-    const phonePattern =
-      /^(\+\d{1,3})?[\s.-]?\(?\d{1,4}\)?[\s.-]?\d{1,4}[\s.-]?\d{1,9}$/;
-    if (formData.phone && !phonePattern.test(formData.phone.trim())) {
-      newErrors.phone =
-        "Please enter a valid phone number (e.g., +91XXXXXXXXXX)";
+    // Phone number validation
+    if (formData.country_code === "+91") {
+      const digits = (formData.phone || "").replace(/\D/g, "");
+      if (digits.length !== 10) {
+        newErrors.phone = "For India (+91), phone must be exactly 10 digits";
+      }
+    } else {
+      const phonePattern =
+        /^(\+\d{1,3})?[\s.-]?\(?\d{1,4}\)?[\s.-]?\d{1,4}[\s.-]?\d{1,9}$/;
+      if (formData.phone && !phonePattern.test(formData.phone.trim())) {
+        newErrors.phone =
+          "Please enter a valid phone number (e.g., +91XXXXXXXXXX)";
+      }
     }
 
     // Program must be from list
@@ -240,6 +250,22 @@ export default function Registration() {
       }
     }
 
+    // DOB validation: minimum age 15 years
+    if (formData.date_of_birth) {
+      const dob = new Date(formData.date_of_birth);
+      if (!isNaN(dob.getTime())) {
+        const today = new Date();
+        const cutoff = new Date(
+          today.getFullYear() - 15,
+          today.getMonth(),
+          today.getDate()
+        );
+        if (dob > cutoff) {
+          newErrors.date_of_birth = "You must be at least 15 years old";
+        }
+      }
+    }
+
     // Consent validations
     if (!consent.is_public) {
       newErrors.is_public = "Please consent to include your information in the directory";
@@ -267,6 +293,7 @@ export default function Registration() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    console.log("errors", errors);
     if (!validateForm()) {
       toast({
         title: "Validation Error",
@@ -275,6 +302,7 @@ export default function Registration() {
       });
       return;
     }
+    console.log("errors after validateForm", errors);
 
     setLoading(true);
 
@@ -535,6 +563,8 @@ export default function Registration() {
                   showProfessional={true}
                   showAdditional={true}
                   showPrivacy={true}
+                  lockDob={Boolean(user?.profile?.approval_status === 'approved')}
+                  fieldErrors={errors}
                 />
 
                 {/* Consents - shown at the end of the form */}

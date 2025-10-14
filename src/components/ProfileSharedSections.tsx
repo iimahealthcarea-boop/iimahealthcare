@@ -84,6 +84,10 @@ interface ProfileSharedSectionsProps {
   showProfessional?: boolean;
   showAdditional?: boolean;
   showPrivacy?: boolean;
+  /** When true, the DOB field is read-only/locked (e.g., after admin approval) */
+  lockDob?: boolean;
+  /** Parent-provided validation errors keyed by field name */
+  fieldErrors?: { [key: string]: string };
 }
 
 type PreferredCommunication = "Phone" | "Email" | "WhatsApp" | "LinkedIn";
@@ -147,6 +151,8 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
   showProfessional = true,
   showAdditional = true,
   showPrivacy = true,
+  lockDob = false,
+  fieldErrors = {},
 }) => {
   const { countries, loading: countriesLoading } = useCountries();
   const [organizations, setOrganizations] = useState<Organization[]>(
@@ -217,7 +223,11 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                 onChange={(e) =>
                   onFormDataChange({ ...formData, first_name: e.target.value })
                 }
+                className={fieldErrors.first_name ? "border-red-500" : ""}
               />
+              {fieldErrors.first_name && (
+                <p className="text-sm text-red-500 mt-1">{fieldErrors.first_name}</p>
+              )}
             </div>
             <div>
               <Label htmlFor="last_name">Last Name</Label>
@@ -227,7 +237,11 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                 onChange={(e) =>
                   onFormDataChange({ ...formData, last_name: e.target.value })
                 }
+                className={fieldErrors.last_name ? "border-red-500" : ""}
               />
+              {fieldErrors.last_name && (
+                <p className="text-sm text-red-500 mt-1">{fieldErrors.last_name}</p>
+              )}
             </div>
             <div>
               <Label htmlFor="date_of_birth">Date of Birth</Label>
@@ -235,13 +249,36 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                 id="date_of_birth"
                 type="date"
                 value={formData.date_of_birth || ""}
+                max={(() => {
+                  const today = new Date();
+                  // Set max to today minus 15 years to enforce minimum age 15
+                  const maxDate = new Date(
+                    today.getFullYear() - 15,
+                    today.getMonth(),
+                    today.getDate()
+                  );
+                  const y = maxDate.getFullYear();
+                  const m = String(maxDate.getMonth() + 1).padStart(2, "0");
+                  const d = String(maxDate.getDate()).padStart(2, "0");
+                  return `${y}-${m}-${d}`;
+                })()}
+                disabled={lockDob}
                 onChange={(e) =>
                   onFormDataChange({
                     ...formData,
                     date_of_birth: e.target.value,
                   })
                 }
+                className={fieldErrors.date_of_birth ? "border-red-500" : ""}
               />
+              {lockDob && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  Date of birth is locked after admin approval.
+                </p>
+              )}
+              {fieldErrors.date_of_birth && (
+                <p className="text-sm text-red-500 mt-1">{fieldErrors.date_of_birth}</p>
+              )}
             </div>
             <div>
               <Label htmlFor="gender">Gender</Label>
@@ -257,13 +294,12 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                 <SelectContent>
                   <SelectItem value="Male">Male</SelectItem>
                   <SelectItem value="Female">Female</SelectItem>
-                  <SelectItem value="Non-binary">Non-binary</SelectItem>
-                  <SelectItem value="Prefer not to say">
-                    Prefer not to say
-                  </SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
+                  
                 </SelectContent>
               </Select>
+              {fieldErrors.gender && (
+                <p className="text-sm text-red-500 mt-1">{fieldErrors.gender}</p>
+              )}
             </div>
           </div>
           <div>
@@ -276,8 +312,8 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
               placeholder="Select or add your city"
               country={formData.country}
             />
-            {errors.city && (
-              <p className="text-sm text-red-500 mt-1">{errors.city}</p>
+            {fieldErrors.city && (
+              <p className="text-sm text-red-500 mt-1">{fieldErrors.city}</p>
             )}
           </div>
 
@@ -305,8 +341,8 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                 ))}
               </SelectContent>
             </Select>
-            {errors.country && (
-              <p className="text-sm text-red-500 mt-1">{errors.country}</p>
+            {fieldErrors.country && (
+              <p className="text-sm text-red-500 mt-1">{fieldErrors.country}</p>
             )}
           </div>
 
@@ -319,10 +355,10 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                 onFormDataChange({ ...formData, address: e.target.value })
               }
               required
-              className={errors.address ? "border-red-500" : ""}
+              className={fieldErrors.address ? "border-red-500" : ""}
             />
-            {errors.address && (
-              <p className="text-sm text-red-500 mt-1">{errors.address}</p>
+            {fieldErrors.address && (
+              <p className="text-sm text-red-500 mt-1">{fieldErrors.address}</p>
             )}
           </div>
           <div>
@@ -334,10 +370,10 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                 onFormDataChange({ ...formData, pincode: e.target.value })
               }
               placeholder="Enter your pincode/ZIP code"
-              className={errors.pincode ? "border-red-500" : ""}
+              className={fieldErrors.pincode ? "border-red-500" : ""}
             />
-            {errors.pincode && (
-              <p className="text-sm text-red-500 mt-1">{errors.pincode}</p>
+            {fieldErrors.pincode && (
+              <p className="text-sm text-red-500 mt-1">{fieldErrors.pincode}</p>
             )}
           </div>
         </div>
@@ -368,11 +404,11 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                   ))}
                 </SelectContent>
               </Select>
-              {errors?.country_code && (
-                <p className="text-sm text-red-500 mt-1">
-                  {errors.country_code}
-                </p>
-              )}
+            {fieldErrors?.country_code && (
+              <p className="text-sm text-red-500 mt-1">
+                {fieldErrors.country_code}
+              </p>
+            )}
               <Input
                 placeholder="Phone number"
                 value={formData.phone}
@@ -380,12 +416,12 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                   onFormDataChange({ ...formData, phone: e.target.value })
                 }
                 required
-                className={`flex-1 ${errors.phone ? "border-red-500" : ""}`}
+              className={`flex-1 ${fieldErrors.phone ? "border-red-500" : ""}`}
               />
             </div>
-            {errors.phone && (
-              <p className="text-sm text-red-500 mt-1">{errors.phone}</p>
-            )}
+          {fieldErrors.phone && (
+            <p className="text-sm text-red-500 mt-1">{fieldErrors.phone}</p>
+          )}
           </div>
           <div>
             <Label htmlFor="email">Email *</Label>
@@ -399,7 +435,11 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                   email: e.target.value,
                 })
               }
+            className={fieldErrors.email ? "border-red-500" : ""}
             />
+          {fieldErrors.email && (
+            <p className="text-sm text-red-500 mt-1">{fieldErrors.email}</p>
+          )}
           </div>
           <div>
             <Label htmlFor="altEmail">Alternate Email</Label>
@@ -429,11 +469,11 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                 })
               }
               placeholder="https://linkedin.com/in/yourprofile"
-              className={errors.linkedin_url ? "border-red-500" : ""}
+            className={fieldErrors.linkedin_url ? "border-red-500" : ""}
             />
-            {errors.linkedin_url && (
-              <p className="text-sm text-red-500 mt-1">{errors.linkedin_url}</p>
-            )}
+          {fieldErrors.linkedin_url && (
+            <p className="text-sm text-red-500 mt-1">{fieldErrors.linkedin_url}</p>
+          )}
           </div>
           <div>
             <Label htmlFor="website_url">Website URL</Label>
@@ -448,11 +488,11 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                 })
               }
               placeholder="https://yourwebsite.com"
-              className={errors.website_url ? "border-red-500" : ""}
+            className={fieldErrors.website_url ? "border-red-500" : ""}
             />
-            {errors.website_url && (
-              <p className="text-sm text-red-500 mt-1">{errors.website_url}</p>
-            )}
+          {fieldErrors.website_url && (
+            <p className="text-sm text-red-500 mt-1">{fieldErrors.website_url}</p>
+          )}
           </div>
           <div>
             <Label htmlFor="other_social_media_handles">
@@ -488,7 +528,7 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
           <SectionDivider title="Professional Information" />
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="program">Program</Label>
+              <Label htmlFor="program">Program *</Label>
               <Select
                 value={formData.program}
                 onValueChange={(value) =>
@@ -514,9 +554,12 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
+              {fieldErrors.program && (
+                <p className="text-sm text-red-500 mt-1">{fieldErrors.program}</p>
+              )}
             </div>
             <div>
-              <Label htmlFor="graduation_year">Graduation Year</Label>
+              <Label htmlFor="graduation_year">Graduation Year *</Label>
               <Input
                 id="graduation_year"
                 type="number"
@@ -529,11 +572,11 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                     graduation_year: parseInt(e.target.value),
                   })
                 }
-                className={errors.graduation_year ? "border-red-500" : ""}
+                className={fieldErrors.graduation_year ? "border-red-500" : ""}
               />
-              {errors.graduation_year && (
+              {fieldErrors.graduation_year && (
                 <p className="text-sm text-red-500 mt-1">
-                  {errors.graduation_year}
+                  {fieldErrors.graduation_year}
                 </p>
               )}
             </div>
@@ -574,9 +617,9 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                     }
                   />
                 </div>
-                {errors[`organizations_0_currentOrg`] && (
+                {fieldErrors[`organizations_0_currentOrg`] && (
                   <p className="text-sm text-red-500 mt-1">
-                    {errors[`organizations_0_currentOrg`]}
+                    {fieldErrors[`organizations_0_currentOrg`]}
                   </p>
                 )}
                 <div>
@@ -641,9 +684,9 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                       <SelectItem value="Other">Other</SelectItem>
                     </SelectContent>
                   </Select>
-                  {errors[`organizations_0_orgType`] && (
+                  {fieldErrors[`organizations_0_orgType`] && (
                     <p className="text-sm text-red-500 mt-1">
-                      {errors[`organizations_0_orgType`]}
+                      {fieldErrors[`organizations_0_orgType`]}
                     </p>
                   )}
                 </div>
@@ -700,9 +743,9 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                     }
                     placeholder="e.g., Senior Manager"
                   />
-                  {errors[`organizations_0_role`] && (
+                  {fieldErrors[`organizations_0_role`] && (
                     <p className="text-sm text-red-500 mt-1">
-                      {errors[`organizations_0_role`]}
+                      {fieldErrors[`organizations_0_role`]}
                     </p>
                   )}
                 </div>
@@ -778,9 +821,9 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                       }
                     />
                   </div>
-                  {errors[`organizations_${index + 1}_currentOrg`] && (
+                  {fieldErrors[`organizations_${index + 1}_currentOrg`] && (
                     <p className="text-sm text-red-500 mt-1">
-                      {errors[`organizations_${index + 1}_currentOrg`]}
+                      {fieldErrors[`organizations_${index + 1}_currentOrg`]}
                     </p>
                   )}
                   <div>
@@ -826,9 +869,9 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                         <SelectItem value="Other">Other</SelectItem>
                       </SelectContent>
                     </Select>
-                    {errors[`organizations_${index + 1}_orgType`] && (
+                    {fieldErrors[`organizations_${index + 1}_orgType`] && (
                       <p className="text-sm text-red-500 mt-1">
-                        {errors[`organizations_${index + 1}_orgType`]}
+                        {fieldErrors[`organizations_${index + 1}_orgType`]}
                       </p>
                     )}
                   </div>
@@ -863,9 +906,9 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                       }
                       placeholder="e.g., Senior Manager"
                     />
-                    {errors[`organizations_${index + 1}_role`] && (
+                    {fieldErrors[`organizations_${index + 1}_role`] && (
                       <p className="text-sm text-red-500 mt-1">
-                        {errors[`organizations_${index + 1}_role`]}
+                        {fieldErrors[`organizations_${index + 1}_role`]}
                       </p>
                     )}
                   </div>
