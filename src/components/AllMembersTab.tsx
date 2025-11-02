@@ -36,6 +36,7 @@ export default function AllMembersTab({ onMemberDetails, userDirectoryIds, onDir
   const { isStarred, toggleStar, fetchStarredProfiles } = useStarredProfiles();
   const [addingInDirectory, setAddingInDirectory] = useState(false);
   const [memberId, setMemberId] = useState(null);
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
   const toggleCardExpansion = (memberId: string) => {
     setExpandedCards(prev => {
@@ -127,7 +128,7 @@ export default function AllMembersTab({ onMemberDetails, userDirectoryIds, onDir
         throw new Error('No access token');
       }
 
-      const response = await fetch(`https://ndytoqziowlraazwokgt.supabase.co/functions/v1/directory-remove/${memberId}`, {
+      const response = await fetch(`${supabaseUrl}/functions/v1/directory-remove/${memberId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,

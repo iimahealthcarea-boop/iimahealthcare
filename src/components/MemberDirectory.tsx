@@ -17,6 +17,7 @@ export default function MemberDirectory() {
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
   const fetchDirectoryMembers = useCallback(async () => {
     if (!user) return;
@@ -29,7 +30,7 @@ export default function MemberDirectory() {
         throw new Error('No access token');
       }
 
-      const response = await fetch(`https://ndytoqziowlraazwokgt.supabase.co/functions/v1/directory-get`, {
+      const response = await fetch(`${supabaseUrl}/functions/v1/directory-get`, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
