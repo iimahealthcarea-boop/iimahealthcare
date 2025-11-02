@@ -262,7 +262,7 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                   const d = String(maxDate.getDate()).padStart(2, "0");
                   return `${y}-${m}-${d}`;
                 })()}
-                disabled={lockDob}
+                disabled={false}
                 onChange={(e) =>
                   onFormDataChange({
                     ...formData,
