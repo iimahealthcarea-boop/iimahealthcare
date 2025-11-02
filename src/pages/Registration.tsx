@@ -72,6 +72,7 @@ export default function Registration() {
     last_name: user?.profile?.last_name || "",
     phone: user?.profile?.phone || "",
     altEmail:"",
+    avatar_url: avatarUrl || "",
     email: user?.email,
     country_code: "+91",
     address: "",
@@ -129,23 +130,23 @@ export default function Registration() {
     if (!formData.last_name.trim()) {
       newErrors.last_name = "Last name is required";
     }
+    if (!avatarUrl) {
+      newErrors.avatar_url = "Profile picture is required";
+    }
     if (!formData.phone.trim()) {
       newErrors.phone = "Phone number is required";
     }
-    if (!formData.email.trim()) {
+    if (!formData.email?.trim()) {
       newErrors.email = "Email is required";
     }
     if (!formData.date_of_birth.trim()) {
       newErrors.date_of_birth = "Date of birth is required";
     }
+    if (!formData.gender.trim()) {
+      newErrors.gender = "Gender is required";
+    }
     if (!formData.address.trim()) {
       newErrors.address = "Address is required";
-    }
-    if (!formData.country.trim()) {
-      newErrors.country = "Country is required";
-    }
-    if (!formData.country_code.trim()) {
-      newErrors.country_code = "Country code is required";
     }
     if (!formData.city.trim()) {
       newErrors.city = "City is required";
@@ -153,12 +154,46 @@ export default function Registration() {
     if (!formData.pincode.trim()) {
       newErrors.pincode = "Pincode is required";
     }
-    if (!formData.gender.trim()) {
-      newErrors.gender = "Gender is required";
+    if (!formData.country.trim()) {
+      newErrors.country = "Country is required";
     }
+    if (!formData.country_code.trim()) {
+      newErrors.country_code = "Country code is required";
+    }
+
+    // Program and graduation year required
     if (!formData.program) {
       newErrors.program = "Program is required";
     }
+    if (!formData.graduation_year) {
+      newErrors.graduation_year = "Graduation year is required";
+    }
+
+    // Bio required
+    if (!formData.bio.trim()) {
+      newErrors.bio = "Bio is required";
+    }
+
+    // LinkedIn required and must be a valid URL
+    if (!formData.linkedin_url?.trim()) {
+      newErrors.linkedin_url = "LinkedIn URL is required";
+    } else {
+      const urlPattern = /^https?:\/\/.+/;
+      if (!urlPattern.test(formData.linkedin_url)) {
+        newErrors.linkedin_url = "Please enter a valid URL starting with http:// or https://";
+      }
+    }
+
+    // Preferred mode of communication - at least one
+    if (!formData.preferred_mode_of_communication || formData.preferred_mode_of_communication.length === 0) {
+      newErrors.preferred_mode_of_communication = "Select at least one preferred mode of communication";
+    }
+
+    // Organizations: require first organization currentOrg
+    if (!formData.organizations || formData.organizations.length === 0 || !formData.organizations[0]?.currentOrg?.trim()) {
+      newErrors[`organizations_0_currentOrg`] = "Current organization is required";
+    }
+
     // If any organization rows exist, validate visible fields
     formData.organizations.forEach((org, idx) => {
       if (!org?.currentOrg.trim()) {
@@ -214,39 +249,28 @@ export default function Registration() {
       newErrors.program = "Please select a valid program";
     }
 
-    // Validate organizations entries minimally
-    formData.organizations.forEach((org, idx) => {
-      if (!org?.currentOrg.trim()) {
-        newErrors[`organizations_${idx}_currentOrg`] =
-          "Organization name is required";
-      }
-    });
-
-    // URL validations
-    if (formData.linkedin_url && formData.linkedin_url.trim()) {
-      const urlPattern = /^https?:\/\/.+/;
-      if (!urlPattern.test(formData.linkedin_url)) {
-        newErrors.linkedin_url =
-          "Please enter a valid URL starting with http:// or https://";
-      }
-    }
-
-    if (formData.website_url && formData.website_url.trim()) {
-      const urlPattern = /^https?:\/\/.+/;
-      if (!urlPattern.test(formData.website_url)) {
-        newErrors.website_url =
-          "Please enter a valid URL starting with http:// or https://";
-      }
-    }
-
-    // Graduation year validation
+    // Graduation year validation range
     if (formData.graduation_year) {
       const currentYear = new Date().getFullYear();
       const gradYear = parseInt(formData.graduation_year);
-      if (gradYear < 1950 || gradYear > currentYear + 10) {
-        newErrors.graduation_year = `Please enter a valid graduation year between 1950 and ${
-          currentYear + 10
-        }`;
+      if (isNaN(gradYear) || gradYear < 1950 || gradYear > currentYear + 10) {
+        newErrors.graduation_year = `Please enter a valid graduation year between 1950 and ${currentYear + 10}`;
+      }
+    }
+
+    // DOB validation: minimum age 15 years
+    if (formData.date_of_birth) {
+      const dob = new Date(formData.date_of_birth);
+      if (!isNaN(dob.getTime())) {
+        const today = new Date();
+        const cutoff = new Date(
+          today.getFullYear() - 15,
+          today.getMonth(),
+          today.getDate()
+        );
+        if (dob > cutoff) {
+          newErrors.date_of_birth = "You must be at least 15 years old";
+        }
       }
     }
 
@@ -438,6 +462,7 @@ export default function Registration() {
         first_name: user.profile.first_name,
         last_name: user.profile.last_name,
         email: user.profile.email,
+        avatar_url: user.profile.avatar_url || "",
       }));
       setAvatarUrl(user.profile.avatar_url || null);
     }
@@ -462,6 +487,7 @@ export default function Registration() {
       return;
     }
 
+    
     setUploading(true);
     try {
       const compressionResult = await compressImage(
@@ -546,6 +572,9 @@ export default function Registration() {
                     </Button>
                   </Label>
                   <Input id="avatar-upload" type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
+                  {errors.avatar_url && (
+                    <p className="text-sm text-red-500 mt-2">{errors.avatar_url}</p>
+                  )}
                 </div>
               </div>
 

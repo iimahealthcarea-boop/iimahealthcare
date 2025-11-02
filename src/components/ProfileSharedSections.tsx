@@ -249,20 +249,6 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                 id="date_of_birth"
                 type="date"
                 value={formData.date_of_birth || ""}
-                max={(() => {
-                  const today = new Date();
-                  // Set max to today minus 15 years to enforce minimum age 15
-                  const maxDate = new Date(
-                    today.getFullYear() - 15,
-                    today.getMonth(),
-                    today.getDate()
-                  );
-                  const y = maxDate.getFullYear();
-                  const m = String(maxDate.getMonth() + 1).padStart(2, "0");
-                  const d = String(maxDate.getDate()).padStart(2, "0");
-                  return `${y}-${m}-${d}`;
-                })()}
-                disabled={lockDob}
                 onChange={(e) =>
                   onFormDataChange({
                     ...formData,
@@ -1020,6 +1006,11 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
               ))}
             </div>
           )}
+          {fieldErrors.preferred_mode_of_communication && (
+            <p className="text-sm text-red-500 mt-1">
+              {fieldErrors.preferred_mode_of_communication}
+            </p>
+          )}
         </div>
       </div>
 
@@ -1139,7 +1130,11 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                   onFormDataChange({ ...formData, bio: e.target.value })
                 }
                 placeholder="Tell us about yourself..."
+                className={fieldErrors.bio ? "border-red-500" : ""}
               />
+              {fieldErrors.bio && (
+                <p className="text-sm text-red-500 mt-1">{fieldErrors.bio}</p>
+              )}
             </div>
             <div>
               <Label htmlFor="skills">Primary Areas of Expertise</Label>
