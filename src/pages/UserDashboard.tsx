@@ -1,24 +1,48 @@
-import { useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { User, Mail, Phone, MapPin, Building, Calendar, Edit, Users, AlertTriangle, Send } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import Header from '@/components/Header';
-import MemberDirectory from '@/components/MemberDirectory';
+import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Building,
+  Calendar,
+  Edit,
+  Users,
+  AlertTriangle,
+  Send,
+} from "lucide-react";
+import { Link } from "react-router-dom";
+import Header from "@/components/Header";
+import MemberDirectory from "@/components/MemberDirectory";
 
 export default function UserDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [issueMessage, setIssueMessage] = useState('');
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [issueMessage, setIssueMessage] = useState("");
   const [isSubmittingIssue, setIsSubmittingIssue] = useState(false);
   const [isIssueDialogOpen, setIsIssueDialogOpen] = useState(false);
 
@@ -36,9 +60,9 @@ export default function UserDashboard() {
 
     setIsSubmittingIssue(true);
     try {
-      const { error } = await supabase.functions.invoke('send-issue-email', {
+      const { error } = await supabase.functions.invoke("send-issue-email", {
         body: {
-          type: 'issue',
+          type: "issue",
           email: profile?.email || user?.email,
           message: issueMessage,
           profileDetails: {
@@ -49,21 +73,22 @@ export default function UserDashboard() {
             phone: profile?.phone,
             program: profile?.program,
             graduation_year: profile?.graduation_year,
-          }
-        }
+          },
+        },
       });
 
       if (error) throw error;
 
       toast({
         title: "Issue Submitted Successfully",
-        description: "Your issue has been reported to the admin team. We'll get back to you soon.",
+        description:
+          "Your issue has been reported to the admin team. We'll get back to you soon.",
       });
 
-      setIssueMessage('');
+      setIssueMessage("");
       setIsIssueDialogOpen(false);
     } catch (error) {
-      console.error('Error submitting issue:', error);
+      console.error("Error submitting issue:", error);
       toast({
         title: "Error",
         description: "Failed to submit issue. Please try again.",
@@ -83,8 +108,12 @@ export default function UserDashboard() {
         <div className="mb-6">
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-3xl font-bold">Welcome, {profile?.first_name}!</h1>
-              <p className="text-muted-foreground">Connect with fellow alumni and explore the directory</p>
+              <h1 className="text-3xl font-bold">
+                Welcome, {profile?.first_name}!
+              </h1>
+              <p className="text-muted-foreground">
+                Connect with fellow alumni and explore the directory
+              </p>
             </div>
             <div className="flex gap-2">
               <Link to="/profile">
@@ -93,7 +122,10 @@ export default function UserDashboard() {
                   Edit Profile
                 </Button>
               </Link>
-              <Dialog open={isIssueDialogOpen} onOpenChange={setIsIssueDialogOpen}>
+              <Dialog
+                open={isIssueDialogOpen}
+                onOpenChange={setIsIssueDialogOpen}
+              >
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm">
                     <AlertTriangle className="h-4 w-4 mr-2" />
@@ -104,7 +136,8 @@ export default function UserDashboard() {
                   <DialogHeader>
                     <DialogTitle>Report an Issue</DialogTitle>
                     <DialogDescription>
-                      Describe the issue you're experiencing and we'll get back to you as soon as possible.
+                      Describe the issue you're experiencing and we'll get back
+                      to you as soon as possible.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
@@ -124,7 +157,7 @@ export default function UserDashboard() {
                         variant="outline"
                         onClick={() => {
                           setIsIssueDialogOpen(false);
-                          setIssueMessage('');
+                          setIssueMessage("");
                         }}
                         disabled={isSubmittingIssue}
                       >
@@ -154,42 +187,7 @@ export default function UserDashboard() {
           </div>
         </div>
 
-        {/* <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="dashboard" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Directory
-            </TabsTrigger>
-            <TabsTrigger value="members" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              All Members
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="dashboard" className="space-y-6">
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-2xl font-bold mb-2">Member Directory</h2>
-                <p className="text-muted-foreground">
-                  Connect with fellow alumni and expand your professional network.
-                </p>
-              </div> */}
-              <MemberDirectory />
-            {/* </div>
-          </TabsContent> */}
-
-          {/* <TabsContent value="members">
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-2xl font-bold mb-2">IIM-AMS Members Directory</h2>
-                <p className="text-muted-foreground">
-                  Connect with fellow alumni and expand your professional network.
-                </p>
-              </div>
-              <MemberDirectory />
-            </div>
-          </TabsContent> */}
-        {/* </Tabs> */}
+        <MemberDirectory />
       </main>
     </div>
   );

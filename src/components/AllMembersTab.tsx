@@ -34,6 +34,8 @@ export default function AllMembersTab({ onMemberDetails, userDirectoryIds, onDir
   const { toast } = useToast();
   const { user, isAdmin } = useAuth();
   const { isStarred, toggleStar, fetchStarredProfiles } = useStarredProfiles();
+  const [addingInDirectory, setAddingInDirectory] = useState(false);
+  const [memberId, setMemberId] = useState(null);
 
   const toggleCardExpansion = (memberId: string) => {
     setExpandedCards(prev => {
@@ -75,6 +77,8 @@ export default function AllMembersTab({ onMemberDetails, userDirectoryIds, onDir
     if (!user) return;
     
     try {
+      setMemberId(memberId);
+      setAddingInDirectory(true);
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
       
@@ -105,6 +109,8 @@ export default function AllMembersTab({ onMemberDetails, userDirectoryIds, onDir
         description: "Failed to add member to directory",
         variant: "destructive",
       });
+    } finally {
+      setAddingInDirectory(false);
     }
   };
 
@@ -112,6 +118,8 @@ export default function AllMembersTab({ onMemberDetails, userDirectoryIds, onDir
     if (!user) return;
     
     try {
+      setMemberId(memberId);
+      setAddingInDirectory(true);
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
       
@@ -150,6 +158,8 @@ export default function AllMembersTab({ onMemberDetails, userDirectoryIds, onDir
         description: "Failed to remove member from directory",
         variant: "destructive",
       });
+    } finally {
+      setAddingInDirectory(false);
     }
   };
 
@@ -586,20 +596,22 @@ export default function AllMembersTab({ onMemberDetails, userDirectoryIds, onDir
                         variant="ghost"
                         size="sm"
                         onClick={() => addToDirectory(member.user_id)}
+                        disabled={addingInDirectory}
                         className="w-full h-9 text-sm text-green-600 hover:text-green-700 hover:bg-green-50"
                       >
                         <BookmarkPlus className="h-4 w-4 mr-2" />
-                        Add to My Directory
+                        {addingInDirectory && memberId === member.user_id ? 'Adding to Directory...' : 'Add to My Directory'}
                       </Button>
                     ) : (
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => removeFromDirectory(member.user_id)}
+                        disabled={addingInDirectory}
                         className="w-full h-9 text-sm text-orange-600 hover:text-orange-700 hover:bg-orange-50"
                       >
                         <BookmarkCheck className="h-4 w-4 mr-2" />
-                        Remove from Directory
+                        {addingInDirectory && memberId === member.user_id ? 'Removing from Directory...' : 'Remove from Directory'}
                       </Button>
                     )}
                   </div>

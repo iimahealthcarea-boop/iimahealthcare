@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type"
 };
 // Hardcoded admin email
-const ADMIN_EMAIL = "admin@yourdomain.com";
+const ADMIN_EMAIL = "shubham.kushwaha@mrikal.com";
 // Function to send signup email
 const sendSignupEmail = async (firstName, lastName, userEmail)=>{
   const transporter = nodemailer.createTransport({
