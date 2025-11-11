@@ -76,6 +76,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { UpdateRequestsTab } from "@/components/UpdateRequestsTab";
+import { ProfileTab } from "@/components/ProfileTab";
 
 type ProfileWithApproval = Tables<"profiles">;
 
@@ -97,11 +99,12 @@ export default function AdminDashboard() {
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const [profiles, setProfiles] = useState<ProfileWithApproval[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [selectedProfile, setSelectedProfile] =
     useState<ProfileWithApproval | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("pending");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingProfile, setEditingProfile] =
     useState<ProfileWithApproval | null>(null);
@@ -128,189 +131,58 @@ export default function AdminDashboard() {
   const [isTimelineOpen, setIsTimelineOpen] = useState(false);
   const [timelineProfile, setTimelineProfile] =
     useState<ProfileWithApproval | null>(null);
-  const [updateRequests, setUpdateRequests] = useState<
-    Tables<'profile_update_requests'>[]
-  >([]);
-  const [requestsLoading, setRequestsLoading] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<
-    Tables<'profile_update_requests'> | null
-  >(null);
-  const [requestEditPayload, setRequestEditPayload] = useState<Record<string, unknown> | null>(null);
 
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [experienceFilter, setExperienceFilter] = useState("all");
   const [organizationTypeFilter, setOrganizationTypeFilter] = useState("all");
-  const [filteredProfiles, setFilteredProfiles] = useState<
-    ProfileWithApproval[]
-  >([]);
+  
+  // Debounce search term - wait 500ms after user stops typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
 
-  const fetchProfiles = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .order("created_at", { ascending: false });
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+  
+  // Stats state - will be fetched separately
+  const [stats, setStats] = useState({
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    total: 0,
+  });
 
-      if (error) throw error;
-      setProfiles(data || []);
-    } catch (error) {
-      console.error("Error fetching profiles:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch profiles",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [toast]);
-
-  console.log("updateRequests", updateRequests);
-
-  const fetchUpdateRequests = useCallback(async () => {
+  // Fetch stats only (lightweight)
+  const fetchStats = useCallback(async () => {
     if (!isAdmin) return;
-    setRequestsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('profile_update_requests')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      setUpdateRequests(data || []);
+      // Fetch counts for each status
+      const [pendingRes, approvedRes, rejectedRes, totalRes] = await Promise.all([
+        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "pending"),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "approved"),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "rejected"),
+        supabase.from("profiles").select("id", { count: "exact", head: true }),
+      ]);
+
+      setStats({
+        pending: pendingRes.count || 0,
+        approved: approvedRes.count || 0,
+        rejected: rejectedRes.count || 0,
+        total: totalRes.count || 0,
+      });
     } catch (error) {
-      console.error('Error fetching update requests:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch update requests',
-        variant: 'destructive',
-      });
-    } finally {
-      setRequestsLoading(false);
+      console.error("Error fetching stats:", error);
     }
-  }, [isAdmin, toast]);
-
-  const filterProfiles = useCallback(() => {
-    let filtered = profiles;
-
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter((profile) => {
-        // Basic information
-        const nameMatch = `${profile.first_name || ""} ${
-          profile.last_name || ""
-        }`
-          .toLowerCase()
-          .includes(searchLower);
-        const organizationMatch =
-          profile.organization?.toLowerCase().includes(searchLower) || false;
-        const positionMatch =
-          profile.position?.toLowerCase().includes(searchLower) || false;
-        const programMatch =
-          profile.program?.toLowerCase().includes(searchLower) || false;
-
-        // Location information
-        const cityMatch =
-          profile.city?.toLowerCase().includes(searchLower) || false;
-        const countryMatch =
-          profile.country?.toLowerCase().includes(searchLower) || false;
-        const addressMatch =
-          profile.address?.toLowerCase().includes(searchLower) || false;
-
-        // Professional details
-        const experienceMatch =
-          profile.experience_level?.toLowerCase().includes(searchLower) ||
-          false;
-        const orgTypeMatch =
-          profile.organization_type?.toLowerCase().includes(searchLower) ||
-          false;
-        const graduationYearMatch =
-          profile.graduation_year?.toString().includes(searchLower) || false;
-
-        // Bio and description
-        const bioMatch =
-          profile.bio?.toLowerCase().includes(searchLower) || false;
-
-        // Skills array search
-        const skillsMatch =
-          profile.skills?.some((skill) =>
-            skill.toLowerCase().includes(searchLower)
-          ) || false;
-
-        // Interests array search
-        const interestsMatch =
-          profile.interests?.some((interest) =>
-            interest.toLowerCase().includes(searchLower)
-          ) || false;
-
-        // Social links
-        const linkedinMatch =
-          profile.linkedin_url?.toLowerCase().includes(searchLower) || false;
-        const websiteMatch =
-          profile.website_url?.toLowerCase().includes(searchLower) || false;
-
-        // Contact information
-        const emailMatch =
-          profile.email?.toLowerCase().includes(searchLower) || false;
-        const phoneMatch =
-          profile.phone?.toLowerCase().includes(searchLower) || false;
-
-        // Approval status
-        const statusMatch =
-          profile.approval_status?.toLowerCase().includes(searchLower) || false;
-
-        return (
-          nameMatch ||
-          organizationMatch ||
-          positionMatch ||
-          programMatch ||
-          cityMatch ||
-          countryMatch ||
-          addressMatch ||
-          experienceMatch ||
-          orgTypeMatch ||
-          graduationYearMatch ||
-          bioMatch ||
-          skillsMatch ||
-          interestsMatch ||
-          linkedinMatch ||
-          websiteMatch ||
-          emailMatch ||
-          phoneMatch ||
-          statusMatch
-        );
-      });
-    }
-
-    if (experienceFilter && experienceFilter !== "all") {
-      filtered = filtered.filter(
-        (profile) => profile.experience_level === experienceFilter
-      );
-    }
-
-    if (
-      organizationTypeFilter &&
-      organizationTypeFilter !== "all" &&
-      organizationTypeFilter !== "All organization types"
-    ) {
-      filtered = filtered.filter(
-        (profile) => profile.organization_type === organizationTypeFilter
-      );
-    }
-
-    setFilteredProfiles(filtered);
-  }, [profiles, searchTerm, experienceFilter, organizationTypeFilter]);
+  }, [isAdmin]);
 
   useEffect(() => {
     if (isAdmin) {
-      fetchProfiles();
-      fetchUpdateRequests();
+      fetchStats();
     }
-  }, [isAdmin, fetchProfiles, fetchUpdateRequests]);
-
-  useEffect(() => {
-    filterProfiles();
-  }, [filterProfiles]);
+  }, [isAdmin, fetchStats]);
 
   // Redirect if not admin
   if (!isAdmin && !loading) {
@@ -318,60 +190,29 @@ export default function AdminDashboard() {
   }
 
   const handleRefresh = async () => {
-    setLoading(true);
-    await fetchProfiles();
-    await fetchUpdateRequests();
+    await fetchStats();
     toast({
       title: "Refreshed",
-      description: "Profile list has been updated",
+      description: "Stats have been updated",
     });
   };
 
-  const handleApproveRequest = async (requestId: string, override?: Record<string, unknown>) => {
-    setActionLoading(true);
-    try {
-      const { error } = await supabase.rpc('approve_profile_update_request', {
-        request_id: requestId,
-        override_payload: (override as unknown as Json) || null,
-      });
-      if (error) throw error;
-      toast({ title: 'Request Approved', description: 'Profile updated successfully.' });
-      await fetchProfiles();
-      await fetchUpdateRequests();
-      setSelectedRequest(null);
-    } catch (error) {
-      console.error('Error approving request:', error);
-      toast({ title: 'Error', description: 'Failed to approve request', variant: 'destructive' });
-    } finally {
-      setActionLoading(false);
-    }
+  const handleProfileUpdate = async () => {
+    await fetchStats();
   };
 
-  const handleRejectRequest = async (requestId: string, reason?: string) => {
-    setActionLoading(true);
-    try {
-      const { error } = await supabase.rpc('reject_profile_update_request', {
-        request_id: requestId,
-        reason: reason || null,
-      });
-      if (error) throw error;
-      toast({ title: 'Request Rejected', description: 'The request has been rejected.' });
-      await fetchUpdateRequests();
-      setSelectedRequest(null);
-    } catch (error) {
-      console.error('Error rejecting request:', error);
-      toast({ title: 'Error', description: 'Failed to reject request', variant: 'destructive' });
-    } finally {
-      setActionLoading(false);
-    }
-  };
 
   const handleApprove = async (profileUserId: string) => {
     setActionLoading(true);
     try {
-      // Get user profile details before approval
-      const profile = profiles.find((p) => p.user_id === profileUserId);
-      if (!profile) {
+      // Fetch user profile details before approval
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", profileUserId)
+        .single();
+      
+      if (profileError || !profile) {
         throw new Error("Profile not found");
       }
 
@@ -462,7 +303,7 @@ export default function AdminDashboard() {
           "The user profile has been approved and notification email sent.",
       });
 
-      await fetchProfiles();
+      await fetchStats();
       setSelectedProfile(null);
     } catch (error) {
       console.error("Error approving profile:", error);
@@ -476,12 +317,17 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleReject = async (profileUserId: string) => {
+  const handleReject = async (profileUserId: string, reason?: string) => {
     setActionLoading(true);
     try {
-      // Get user profile details before rejection
-      const profile = profiles.find((p) => p.user_id === profileUserId);
-      if (!profile) {
+      // Fetch user profile details before rejection
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", profileUserId)
+        .single();
+      
+      if (profileError || !profile) {
         throw new Error("Profile not found");
       }
 
@@ -493,7 +339,7 @@ export default function AdminDashboard() {
         },
         rejection_reason: {
           oldValue: profile.rejection_reason,
-          newValue: rejectionReason,
+          newValue: reason || "",
         },
       };
 
@@ -509,7 +355,7 @@ export default function AdminDashboard() {
       // Reject the profile
       const { error } = await supabase.rpc("reject_user_profile", {
         profile_user_id: profileUserId,
-        reason: rejectionReason,
+        reason: reason || null,
       });
 
       if (error) throw error;
@@ -523,7 +369,7 @@ export default function AdminDashboard() {
               email: profile.email,
               name: `${profile.first_name} ${profile.last_name}`,
               status: "rejected",
-              reason: rejectionReason,
+              reason: reason || "",
             },
           }
         );
@@ -543,9 +389,7 @@ export default function AdminDashboard() {
           "The user profile has been rejected and notification email sent.",
       });
 
-      await fetchProfiles();
-      setSelectedProfile(null);
-      setRejectionReason("");
+      await fetchStats();
     } catch (error) {
       console.error("Error rejecting profile:", error);
       toast({
@@ -569,15 +413,6 @@ export default function AdminDashboard() {
         .eq("user_id", profileUserId);
 
       if (error) throw error;
-
-      // Update local state immediately for better UX
-      setProfiles((prev) =>
-        prev.map((profile) =>
-          profile.user_id === profileUserId
-            ? { ...profile, is_public: !currentStatus }
-            : profile
-        )
-      );
 
       toast({
         title: "Profile Visibility Updated",
@@ -653,19 +488,12 @@ export default function AdminDashboard() {
 
       if (error) throw error;
 
-      // Update local state
-      setProfiles((prev) =>
-        prev.map((profile) =>
-          profile.user_id === editingProfile.user_id
-            ? ({ ...profile, ...(updatedData as unknown as Partial<ProfileWithApproval>) } as ProfileWithApproval)
-            : profile
-        )
-      );
-
       toast({
         title: "Profile Updated",
         description: "Profile has been successfully updated",
       });
+      
+      await fetchStats();
 
       setIsEditDialogOpen(false);
       setEditingProfile(null);
@@ -744,8 +572,8 @@ export default function AdminDashboard() {
         setShowPassword(false);
         setIsAddMemberDialogOpen(false);
 
-        // Refresh profiles list
-        await fetchProfiles();
+        // Refresh stats
+        await fetchStats();
       } else {
         throw new Error(data?.error || "Failed to create user");
       }
@@ -797,41 +625,17 @@ export default function AdminDashboard() {
     }
   };
 
-  const getStats = () => {
-    const pending = profiles.filter(
-      (p) => p.approval_status === "pending"
-    ).length;
-    const approved = profiles.filter(
-      (p) => p.approval_status === "approved"
-    ).length;
-    const rejected = profiles.filter(
-      (p) => p.approval_status === "rejected"
-    ).length;
-    return { pending, approved, rejected, total: profiles.length };
-  };
 
-  const getFilteredStats = () => {
-    const pending = filteredProfiles.filter(
-      (p) => p.approval_status === "pending"
-    ).length;
-    const approved = filteredProfiles.filter(
-      (p) => p.approval_status === "approved"
-    ).length;
-    const rejected = filteredProfiles.filter(
-      (p) => p.approval_status === "rejected"
-    ).length;
-    return { pending, approved, rejected, total: filteredProfiles.length };
-  };
-
-  const stats = getStats();
-  const filteredStats = getFilteredStats();
-
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     try {
-      // Get all approved profiles for export
-      const approvedProfiles = profiles.filter(
-        (p) => p.approval_status === "approved"
-      );
+      // Fetch all approved profiles for export
+      const { data: approvedProfiles, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("approval_status", "approved");
+
+      if (error) throw error;
+      if (!approvedProfiles) throw new Error("No data returned");
 
       // Prepare data for Excel export
       const excelData = approvedProfiles.map((profile) => ({
@@ -927,481 +731,6 @@ export default function AdminDashboard() {
       });
     }
   };
-
-  const formatValue = (value: unknown): string => {
-    if (value === null || value === undefined) return "—";
-    if (Array.isArray(value)) return value.length ? value.join(", ") : "—";
-    if (typeof value === "object") return JSON.stringify(value);
-    return String(value);
-  };
-
-  const renderProfileCard = (profile: ProfileWithApproval) => (
-    <Card
-      key={profile.id}
-      className="hover:shadow-lg transition-all rounded-2xl border border-gray-200"
-    >
-      {/* Header */}
-      <CardHeader className="pb-3">
-        <div className="flex justify-between items-start">
-          <div className="flex items-center gap-3">
-            <Avatar className="w-14 h-14 ring-2 ring-primary/20 shadow-sm">
-              <AvatarImage
-                src={profile.avatar_url || ""}
-                alt={`${profile.first_name} ${profile.last_name}`}
-              />
-              <AvatarFallback className="bg-primary/10 text-primary font-bold">
-                {getInitials(profile.first_name, profile.last_name)}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <CardTitle className="text-base font-semibold">
-                {profile.first_name} {profile.last_name}
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                {profile.position || "—"}{" "}
-                {profile.organization && `@ ${profile.organization}`}
-              </p>
-              <CardDescription className="text-xs">
-                {profile.email}
-              </CardDescription>
-            </div>
-          </div>
-          {getStatusBadge(profile.approval_status || "pending")}
-        </div>
-      </CardHeader>
-
-      {/* Content */}
-      <CardContent className="space-y-2 text-sm">
-        {profile.phone && (
-          <div className="flex justify-between">
-            <span className="font-medium text-gray-600">Phone:</span>
-            <span className="text-gray-800">{profile.phone}</span>
-          </div>
-        )}
-        <div className="flex justify-between">
-          <span className="font-medium text-gray-600">Registered:</span>
-          <span>{new Date(profile.created_at).toLocaleDateString()}</span>
-        </div>
-
-        {/* Expandable Quick Info */}
-        <Collapsible>
-          <CollapsibleTrigger className="text-xs text-primary hover:underline mt-1">
-            Show more info
-          </CollapsibleTrigger>
-          <CollapsibleContent className="pt-2 space-y-1 text-xs text-gray-700">
-            {profile.city && (
-              <div>
-                <strong>City:</strong> {profile.city}
-              </div>
-            )}
-            {profile.country && (
-              <div>
-                <strong>Country:</strong> {profile.country}
-              </div>
-            )}
-          </CollapsibleContent>
-        </Collapsible>
-      </CardContent>
-
-      {/* Footer / Actions */}
-      <div className="p-4 space-y-2 border-t pt-2">
-        <div className="flex gap-2">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1"
-                onClick={() => setSelectedProfile(profile)}
-              >
-                <Eye className="w-4 h-4 mr-1" />
-                View Details
-              </Button>
-            </DialogTrigger>
-            {/* DialogContent as you already built */}
-            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <div className="flex items-center gap-3">
-                  <Avatar className="w-12 h-12 ring-2 ring-primary/10">
-                    <AvatarImage
-                      src={profile.avatar_url || ""}
-                      alt={`${profile.first_name} ${profile.last_name}`}
-                    />
-                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                      {getInitials(profile.first_name, profile.last_name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <DialogTitle>
-                      Profile Details - {profile.first_name} {profile.last_name}
-                    </DialogTitle>
-                    <DialogDescription>
-                      Complete profile information for review
-                    </DialogDescription>
-                  </div>
-                </div>
-              </DialogHeader>
-
-              {selectedProfile && (
-                <div className="space-y-6">
-                  {/* Personal Information */}
-                  <div>
-                    <h4 className="font-semibold mb-2">Personal Information</h4>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <strong>Name:</strong> {selectedProfile.first_name}{" "}
-                        {selectedProfile.last_name}
-                      </div>
-                      <div>
-                        <strong>Gender:</strong> {selectedProfile.gender || "Not provided"}
-                      </div>
-                      <div>
-                        <strong>Date of Birth:</strong>{" "}
-                        {selectedProfile.date_of_birth || "Not provided"}
-                      </div>
-                      <div>
-                        <strong>City:</strong> {selectedProfile.city || "Not provided"}
-                      </div>
-                      <div>
-                        <strong>Country:</strong> {selectedProfile.country || "Not provided"}
-                      </div>
-                      <div>
-                        <strong>Pincode/ZIP:</strong> {selectedProfile.pincode || "Not provided"}
-                      </div>
-                      <div className="col-span-2">
-                        <strong>Address:</strong> {selectedProfile.address || "Not provided"}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Contact Information */}
-                  <div>
-                    <h4 className="font-semibold mb-2">Contact Information</h4>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <strong>Email:</strong> {selectedProfile.email}
-                      </div>
-                      <div>
-                        <strong>Alternate Email:</strong> {String((selectedProfile as Record<string, unknown>).altEmail || "Not provided")}
-                      </div>
-                      <div>
-                        <strong>Phone:</strong> {selectedProfile.country_code} {selectedProfile.phone}
-                      </div>
-                      <div>
-                        <strong>LinkedIn:</strong> {selectedProfile.linkedin_url ? (
-                          <a
-                            href={selectedProfile.linkedin_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline"
-                          >
-                            {selectedProfile.linkedin_url}
-                          </a>
-                        ) : "Not provided"}
-                      </div>
-                      <div>
-                        <strong>Website:</strong> {selectedProfile.website_url ? (
-                          <a
-                            href={selectedProfile.website_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline"
-                          >
-                            {selectedProfile.website_url}
-                          </a>
-                        ) : "Not provided"}
-                      </div>
-                      <div>
-                        <strong>Other Social Media:</strong> {String((selectedProfile as Record<string, unknown>).other_social_media_handles || "Not provided")}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Emergency Contact */}
-                  <div>
-                    <h4 className="font-semibold mb-2">Emergency Contact</h4>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <strong>Name:</strong>{" "}
-                        {selectedProfile.emergency_contact_name}
-                      </div>
-                      <div>
-                        <strong>Phone:</strong>{" "}
-                        {selectedProfile.emergency_contact_phone}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Professional Information */}
-                  <div>
-                    <h4 className="font-semibold mb-3 text-lg">
-                      Professional Information
-                    </h4>
-
-                    {/* Education Details */}
-                    <div className="mb-4">
-                      <h5 className="font-medium mb-2">Education</h5>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <strong>Program:</strong> {selectedProfile.program || "Not provided"}
-                        </div>
-                        <div>
-                          <strong>Graduation Year:</strong> {selectedProfile.graduation_year || "Not provided"}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Organizations */}
-                    <div>
-                      <h5 className="font-medium mb-2">Organizations</h5>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {Array.isArray(selectedProfile.organizations as unknown as Array<Record<string, unknown>>) ? (selectedProfile.organizations as unknown as Array<Record<string, unknown>>).map((org, index: number) => (
-                          <div
-                            key={String((org as Record<string, unknown>).id ?? index)}
-                            className="rounded-2xl border p-4 shadow-sm bg-white"
-                          >
-                            <h5 className="font-medium mb-2 text-primary">
-                              Organization {index + 1}: {String((org as Record<string, unknown>).currentOrg ?? '-')}
-                            </h5>
-
-                            <div className="space-y-1 text-sm text-muted-foreground">
-                              <p>
-                                <span className="font-semibold text-foreground">
-                                  Type:
-                                </span>{" "}
-                                {String((org as Record<string, unknown>).orgType ?? '-')}
-                              </p>
-                              <p>
-                                <span className="font-semibold text-foreground">
-                                  Experience:
-                                </span>{" "}
-                                {String((org as Record<string, unknown>).experience ?? '-')}
-                              </p>
-                              <p>
-                                <span className="font-semibold text-foreground">
-                                  Role:
-                                </span>{" "}
-                                {String((org as Record<string, unknown>).role ?? '-')}
-                              </p>
-                              <p>
-                                <span className="font-semibold text-foreground">
-                                  Description:
-                                </span>{" "}
-                                {String((org as Record<string, unknown>).description ?? '-')}
-                              </p>
-                            </div>
-                          </div>
-                        )) : (
-                          <div className="text-sm text-muted-foreground">No organizations provided</div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Preferred mode of communication */}
-                  <div>
-                    <h4 className="font-semibold mb-2">Communication Preferences</h4>
-                    <div className="space-y-2 text-sm">
-                      {Array.isArray((selectedProfile as unknown as { preferred_mode_of_communication?: string[] }).preferred_mode_of_communication) && (
-                        <div>
-                          <strong>Preferred Mode of Communication:</strong>{" "}
-                          {((selectedProfile as unknown as { preferred_mode_of_communication?: string[] }).preferred_mode_of_communication || []).join(
-                            ", "
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Mentoring & Contributions */}
-                  <div>
-                    <h4 className="font-semibold mb-2">Mentoring & Contributions</h4>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <strong>Willing to Mentor:</strong> {String((selectedProfile as Record<string, unknown>).willing_to_mentor || "Not provided")}
-                      </div>
-                      <div>
-                        <strong>Areas of Contribution:</strong> {(selectedProfile as Record<string, unknown>).areas_of_contribution && Array.isArray((selectedProfile as Record<string, unknown>).areas_of_contribution) && ((selectedProfile as Record<string, unknown>).areas_of_contribution as string[]).length > 0 ? (
-                          ((selectedProfile as Record<string, unknown>).areas_of_contribution as string[]).join(", ")
-                        ) : "Not provided"}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Additional Information */}
-                  <div>
-                    <h4 className="font-semibold mb-2">
-                      Additional Information
-                    </h4>
-                    <div className="space-y-2 text-sm">
-                      <div>
-                        <strong>Bio:</strong> {selectedProfile.bio || "Not provided"}
-                      </div>
-                      <div>
-                        <strong>Skills:</strong> {selectedProfile.skills && selectedProfile.skills.length > 0 ? (
-                          selectedProfile.skills.join(", ")
-                        ) : "Not provided"}
-                      </div>
-                      <div>
-                        <strong>Interests:</strong> {selectedProfile.interests && selectedProfile.interests.length > 0 ? (
-                          selectedProfile.interests.join(", ")
-                        ) : "Not provided"}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Privacy Settings - Only show for approved profiles */}
-                  {selectedProfile.approval_status === "approved" && (
-                    <div>
-                      <h4 className="font-semibold mb-2">Privacy Settings</h4>
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <Label htmlFor="is_public">Public Profile</Label>
-                            <p className="text-sm text-muted-foreground">
-                              Allow others to see this profile in the directory
-                            </p>
-                          </div>
-                          <Switch
-                            id="is_public"
-                            checked={selectedProfile.is_public || false}
-                            onCheckedChange={() =>
-                              handleTogglePublicStatus(
-                                selectedProfile.user_id,
-                                selectedProfile.is_public || false
-                              )
-                            }
-                          />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <Label htmlFor="show_contact_info">
-                              Show Contact Information
-                            </Label>
-                            <p className="text-sm text-muted-foreground">
-                              Display email, phone, and LinkedIn to other users
-                            </p>
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {selectedProfile.show_contact_info ? "Yes" : "No"}
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <Label htmlFor="show_location">Show Location</Label>
-                            <p className="text-sm text-muted-foreground">
-                              Display location information to other users
-                            </p>
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {selectedProfile.show_location ? "Yes" : "No"}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Actions for pending profiles */}
-                  {selectedProfile.approval_status === "pending" && (
-                    <div className="space-y-4">
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={() => handleApprove(selectedProfile.user_id)}
-                          disabled={actionLoading}
-                          className="flex-1"
-                        >
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          Approve
-                        </Button>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="rejection-reason">
-                          Rejection Reason (optional)
-                        </Label>
-                        <Textarea
-                          id="rejection-reason"
-                          value={rejectionReason}
-                          onChange={(e) => setRejectionReason(e.target.value)}
-                          placeholder="Provide a reason for rejection (optional)..."
-                        />
-                        <Button
-                          variant="destructive"
-                          onClick={() => handleReject(selectedProfile.user_id)}
-                          disabled={actionLoading}
-                          className="w-full"
-                        >
-                          <XCircle className="w-4 h-4 mr-1" />
-                          Reject
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Show rejection reason if rejected */}
-                  {selectedProfile.approval_status === "rejected" &&
-                    selectedProfile.rejection_reason && (
-                      <div>
-                        <h4 className="font-semibold mb-2 text-red-600">
-                          Rejection Reason
-                        </h4>
-                        <p className="text-sm">
-                          {selectedProfile.rejection_reason}
-                        </p>
-                      </div>
-                    )}
-                </div>
-              )}
-            </DialogContent>
-          </Dialog>
-
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1"
-            onClick={() => openTimeline(profile)}
-          >
-            <History className="w-4 h-4 mr-1" />
-            Timeline
-          </Button>
-        </div>
-
-        <Button
-          variant="secondary"
-          size="sm"
-          className="w-full"
-          onClick={() => openEditDialog(profile)}
-        >
-          <Edit className="w-4 h-4 mr-1" />
-          Edit Profile
-        </Button>
-
-        {profile.approval_status === "pending" && (
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              className="flex-1"
-              onClick={() => handleApprove(profile.user_id)}
-              disabled={actionLoading}
-            >
-              <CheckCircle className="w-4 h-4 mr-1" />
-              Approve
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              className="flex-1"
-              onClick={() => handleReject(profile.user_id)}
-              disabled={actionLoading}
-            >
-              <XCircle className="w-4 h-4 mr-1" />
-              Reject
-            </Button>
-          </div>
-        )}
-      </div>
-    </Card>
-  );
 
   if (loading) {
     return (
@@ -1590,28 +919,20 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Results Count */}
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-4 mb-4">
-          <Users className="h-4 w-4" />
-          <span>
-            Showing {filteredProfiles.length} of {profiles.length} profiles
-          </span>
-        </div>
-
         {/* Profiles List */}
-        <Tabs defaultValue="pending" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 mt-6">
           <div className="flex items-center justify-between">
             <TabsList>
               <TabsTrigger value="pending">
-                Pending ({filteredStats.pending})
+                Pending ({stats.pending})
               </TabsTrigger>
               <TabsTrigger value="approved">
-                Approved ({filteredStats.approved})
+                Approved ({stats.approved})
               </TabsTrigger>
               <TabsTrigger value="rejected">
-                Rejected ({filteredStats.rejected})
+                Rejected ({stats.rejected})
               </TabsTrigger>
-              <TabsTrigger value="all">All ({filteredStats.total})</TabsTrigger>
+              <TabsTrigger value="all">All ({stats.total})</TabsTrigger>
               <TabsTrigger value="requests">Update Requests</TabsTrigger>
             </TabsList>
             <Button
@@ -1622,188 +943,80 @@ export default function AdminDashboard() {
               className="ml-2"
             >
               <RefreshCw className="w-4 h-4 mr-1" />
-              Refresh
+              Refresh Stats
             </Button>
           </div>
 
+          {/* Pending Tab - Lazy loaded */}
           <TabsContent value="pending" className="space-y-4">
-            {filteredProfiles.filter((p) => p.approval_status === "pending")
-              .length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredProfiles
-                  .filter((p) => p.approval_status === "pending")
-                  .map(renderProfileCard)}
-              </div>
-            ) : (
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">
-                    No pending profiles found
-                  </h3>
-                  <p className="text-muted-foreground">
-                    {profiles.filter((p) => p.approval_status === "pending")
-                      .length === 0
-                      ? "There are no pending profiles to review."
-                      : "Try adjusting your search criteria or filters to see more results."}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
+            <ProfileTab
+              status="pending"
+              searchTerm={debouncedSearchTerm}
+              experienceFilter={experienceFilter}
+              organizationTypeFilter={organizationTypeFilter}
+              onProfileUpdate={handleProfileUpdate}
+              onApprove={handleApprove}
+              onReject={handleReject}
+              onTogglePublic={handleTogglePublicStatus}
+              onEdit={openEditDialog}
+              actionLoading={actionLoading}
+            />
           </TabsContent>
 
+          {/* Approved Tab - Lazy loaded */}
           <TabsContent value="approved" className="space-y-4">
-            {filteredProfiles.filter((p) => p.approval_status === "approved")
-              .length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredProfiles
-                  .filter((p) => p.approval_status === "approved")
-                  .map(renderProfileCard)}
-              </div>
-            ) : (
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <CheckCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">
-                    No approved profiles found
-                  </h3>
-                  <p className="text-muted-foreground">
-                    {profiles.filter((p) => p.approval_status === "approved")
-                      .length === 0
-                      ? "There are no approved profiles yet."
-                      : "Try adjusting your search criteria or filters to see more results."}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
+            <ProfileTab
+              status="approved"
+              searchTerm={debouncedSearchTerm}
+              experienceFilter={experienceFilter}
+              organizationTypeFilter={organizationTypeFilter}
+              onProfileUpdate={handleProfileUpdate}
+              onApprove={handleApprove}
+              onReject={handleReject}
+              onTogglePublic={handleTogglePublicStatus}
+              onEdit={openEditDialog}
+              actionLoading={actionLoading}
+            />
           </TabsContent>
 
+          {/* Rejected Tab - Lazy loaded */}
           <TabsContent value="rejected" className="space-y-4">
-            {filteredProfiles.filter((p) => p.approval_status === "rejected")
-              .length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredProfiles
-                  .filter((p) => p.approval_status === "rejected")
-                  .map(renderProfileCard)}
-              </div>
-            ) : (
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <XCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">
-                    No rejected profiles found
-                  </h3>
-                  <p className="text-muted-foreground">
-                    {profiles.filter((p) => p.approval_status === "rejected")
-                      .length === 0
-                      ? "There are no rejected profiles."
-                      : "Try adjusting your search criteria or filters to see more results."}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
+            <ProfileTab
+              status="rejected"
+              searchTerm={debouncedSearchTerm}
+              experienceFilter={experienceFilter}
+              organizationTypeFilter={organizationTypeFilter}
+              onProfileUpdate={handleProfileUpdate}
+              onApprove={handleApprove}
+              onReject={handleReject}
+              onTogglePublic={handleTogglePublicStatus}
+              onEdit={openEditDialog}
+              actionLoading={actionLoading}
+            />
           </TabsContent>
 
+          {/* All Tab - Lazy loaded */}
           <TabsContent value="all" className="space-y-4">
-            {filteredProfiles.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredProfiles.map(renderProfileCard)}
-              </div>
-            ) : (
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">
-                    No profiles found
-                  </h3>
-                  <p className="text-muted-foreground">
-                    {profiles.length === 0
-                      ? "There are no profiles in the system yet."
-                      : "Try adjusting your search criteria or filters to see more results."}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
+            <ProfileTab
+              status="all"
+              searchTerm={debouncedSearchTerm}
+              experienceFilter={experienceFilter}
+              organizationTypeFilter={organizationTypeFilter}
+              onProfileUpdate={handleProfileUpdate}
+              onApprove={handleApprove}
+              onReject={handleReject}
+              onTogglePublic={handleTogglePublicStatus}
+              onEdit={openEditDialog}
+              actionLoading={actionLoading}
+            />
           </TabsContent>
 
-          {/* Update Requests Tab */}
+          {/* Update Requests Tab - Lazy loaded */}
           <TabsContent value="requests" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Profile Update Requests</CardTitle>
-                <CardDescription>
-                  Review and manage user-submitted profile changes
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {requestsLoading ? (
-                  <div className="py-6 text-center text-sm">Loading requests...</div>
-                ) : updateRequests.length === 0 ? (
-                  <div className="py-6 text-center text-sm text-muted-foreground">No update requests</div>
-                ) : (
-                  <div className="space-y-3">
-                    {updateRequests.filter((r) => r.status === "pending").map((req) => {
-                      const proposed = (req.submitted_payload as unknown as Record<string, unknown>) || {};
-                      const profile = profiles.find((p) => p.user_id === req.profile_user_id);
-                      const fields = Object.keys(proposed);
-                      return (
-                        <Card key={req.id} className="border rounded-xl">
-                          <CardContent className="p-4 space-y-3">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <div className="text-sm font-medium">Request ID: {req.id}</div>
-                                <div className="text-sm font-muted-foreground">Name: {profile?.first_name} {profile?.last_name}</div>
-                                <div className="text-sm font-muted-foreground">Email: {profile?.email}</div>
-                                <div className="text-xs text-muted-foreground">
-                                  Submitted: {new Date(req.created_at).toLocaleString()} | Status: {req.status}
-                                </div>
-                              </div>
-                              <div className="flex gap-2">
-                                <Button variant="outline" size="sm" onClick={() => { setSelectedRequest(req); setRequestEditPayload(proposed); }}>
-                                  <Edit className="w-4 h-4 mr-1" /> Edit
-                                </Button>
-                                <Button size="sm" onClick={() => handleApproveRequest(req.id)} disabled={actionLoading}>
-                                  <CheckCircle className="w-4 h-4 mr-1" /> Approve
-                                </Button>
-                                <Button variant="destructive" size="sm" onClick={() => handleRejectRequest(req.id)} disabled={actionLoading}>
-                                  <XCircle className="w-4 h-4 mr-1" /> Reject
-                                </Button>
-                              </div>
-                            </div>
-
-                            {/* Diff table */}
-                            <div className="overflow-x-auto">
-                              <table className="w-full text-xs">
-                                <thead>
-                                  <tr className="text-left text-muted-foreground">
-                                    <th className="py-2 pr-4">Field</th>
-                                    <th className="py-2 pr-4">Current</th>
-                                    <th className="py-2 pr-4">Proposed</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {fields.map((key) => (
-                                    <tr key={key} className="border-t">
-                                      <td className="py-2 pr-4 align-top font-medium">{key}</td>
-                                      <td className="py-2 pr-4 align-top text-muted-foreground">{formatValue((profile as unknown as Record<string, unknown>)?.[key])}</td>
-                                      <td className="py-2 pr-4 align-top">{formatValue((proposed as Record<string, unknown>)[key])}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-
-                            {req.admin_notes && (
-                              <div className="text-xs text-muted-foreground">Notes: {req.admin_notes}</div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <UpdateRequestsTab 
+              profiles={[]} 
+              onRequestUpdate={handleProfileUpdate}
+            />
           </TabsContent>
         </Tabs>
       </main>
@@ -1884,41 +1097,6 @@ export default function AdminDashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Request Payload Dialog */}
-      <Dialog open={!!selectedRequest} onOpenChange={(open) => { if (!open) { setSelectedRequest(null); setRequestEditPayload(null); } }}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Edit Request Payload</DialogTitle>
-            <DialogDescription>
-              Adjust fields before approval. Approving applies these changes to the user profile.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Textarea
-              value={(() => {
-                try { return JSON.stringify(requestEditPayload ?? {}, null, 2); } catch { return '{}'; }
-              })()}
-              onChange={(e) => {
-                try {
-                  const parsed = JSON.parse(e.target.value || '{}') as Record<string, unknown>;
-                  setRequestEditPayload(parsed);
-                } catch {
-                  // ignore parse errors while typing
-                }
-              }}
-              className="min-h-[300px] font-mono text-xs"
-            />
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => { setSelectedRequest(null); setRequestEditPayload(null); }}>
-                <X className="h-4 w-4 mr-2" /> Cancel
-              </Button>
-              <Button onClick={() => selectedRequest && handleApproveRequest(selectedRequest.id, requestEditPayload || undefined)} disabled={actionLoading}>
-                <Save className="h-4 w-4 mr-2" /> Approve with Edits
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Add Member Dialog */}
       <Dialog
