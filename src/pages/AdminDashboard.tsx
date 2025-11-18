@@ -137,6 +137,7 @@ export default function AdminDashboard() {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [experienceFilter, setExperienceFilter] = useState("all");
   const [organizationTypeFilter, setOrganizationTypeFilter] = useState("all");
+  const [profileRefreshSignal, setProfileRefreshSignal] = useState(0);
   
   // Debounce search term - wait 500ms after user stops typing
   useEffect(() => {
@@ -190,6 +191,7 @@ export default function AdminDashboard() {
   }
 
   const handleRefresh = async () => {
+    setProfileRefreshSignal((prev) => prev + 1);
     await fetchStats();
     toast({
       title: "Refreshed",
@@ -960,6 +962,7 @@ export default function AdminDashboard() {
               onTogglePublic={handleTogglePublicStatus}
               onEdit={openEditDialog}
               actionLoading={actionLoading}
+              refreshSignal={profileRefreshSignal}
             />
           </TabsContent>
 
@@ -976,6 +979,7 @@ export default function AdminDashboard() {
               onTogglePublic={handleTogglePublicStatus}
               onEdit={openEditDialog}
               actionLoading={actionLoading}
+              refreshSignal={profileRefreshSignal}
             />
           </TabsContent>
 
@@ -992,6 +996,7 @@ export default function AdminDashboard() {
               onTogglePublic={handleTogglePublicStatus}
               onEdit={openEditDialog}
               actionLoading={actionLoading}
+              refreshSignal={profileRefreshSignal}
             />
           </TabsContent>
 
@@ -1008,6 +1013,7 @@ export default function AdminDashboard() {
               onTogglePublic={handleTogglePublicStatus}
               onEdit={openEditDialog}
               actionLoading={actionLoading}
+              refreshSignal={profileRefreshSignal}
             />
           </TabsContent>
 

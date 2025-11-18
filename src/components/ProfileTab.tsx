@@ -63,6 +63,7 @@ interface ProfileTabProps {
   searchTerm: string;
   experienceFilter: string;
   organizationTypeFilter: string;
+  refreshSignal: number;
   onProfileUpdate: () => void;
   onApprove: (profileUserId: string) => Promise<void>;
   onReject: (profileUserId: string, reason?: string) => Promise<void>;
@@ -76,6 +77,7 @@ export function ProfileTab({
   searchTerm,
   experienceFilter,
   organizationTypeFilter,
+  refreshSignal,
   onProfileUpdate,
   onApprove,
   onReject,
@@ -167,7 +169,7 @@ export function ProfileTab({
   // Fetch when component mounts or filters change
   useEffect(() => {
     fetchProfiles(1);
-  }, [status, searchTerm, experienceFilter, organizationTypeFilter]); // Only re-fetch when these change
+  }, [status, searchTerm, experienceFilter, organizationTypeFilter, refreshSignal]); // Re-fetch on tab/filter changes or manual refresh
 
   const handlePageChange = useCallback((newPage: number) => {
     if (newPage >= 1 && newPage <= pagination.totalPages) {
@@ -216,6 +218,29 @@ export function ProfileTab({
   const openTimeline = (profile: ProfileWithApproval) => {
     setTimelineProfile(profile);
     setIsTimelineOpen(true);
+  };
+
+  const handleApproveAction = async (profileUserId: string) => {
+    try {
+      await onApprove(profileUserId);
+      await fetchProfiles(pagination.page);
+      onProfileUpdate();
+      setSelectedProfile(null);
+    } catch (error) {
+      console.error('Error during approve action:', error);
+    }
+  };
+
+  const handleRejectAction = async (profileUserId: string, reason?: string) => {
+    try {
+      await onReject(profileUserId, reason);
+      await fetchProfiles(pagination.page);
+      onProfileUpdate();
+      setSelectedProfile(null);
+      setRejectionReason("");
+    } catch (error) {
+      console.error('Error during reject action:', error);
+    }
   };
 
   const renderProfileCard = (profile: ProfileWithApproval) => (
@@ -285,7 +310,14 @@ export function ProfileTab({
 
       <div className="p-4 space-y-2 border-t pt-2">
         <div className="flex gap-2">
-          <Dialog>
+          <Dialog
+            onOpenChange={(open) => {
+              if (!open) {
+                setSelectedProfile(null);
+                setRejectionReason("");
+              }
+            }}
+          >
             <DialogTrigger asChild>
               <Button
                 variant="outline"
@@ -336,10 +368,167 @@ export function ProfileTab({
                         <strong>Phone:</strong> {selectedProfile.phone || "Not provided"}
                       </div>
                       <div>
+                        <strong>Gender:</strong> {selectedProfile.gender || "Not provided"}
+                      </div>
+                      <div>
+                        <strong>Date of Birth:</strong>{" "}
+                        {selectedProfile.date_of_birth || "Not provided"}
+                      </div>
+                      <div>
                         <strong>City:</strong> {selectedProfile.city || "Not provided"}
                       </div>
                       <div>
                         <strong>Country:</strong> {selectedProfile.country || "Not provided"}
+                      </div>
+                      <div>
+                        <strong>Pincode / ZIP:</strong> {selectedProfile.pincode || "Not provided"}
+                      </div>
+                      <div className="col-span-2">
+                        <strong>Address:</strong> {selectedProfile.address || "Not provided"}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2">Contact Information</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <strong>Alternate Email:</strong>{" "}
+                        {String((selectedProfile as Record<string, unknown>).altEmail || "Not provided")}
+                      </div>
+                      <div>
+                        <strong>Country Code:</strong>{" "}
+                        {selectedProfile.country_code || "Not provided"}
+                      </div>
+                      <div>
+                        <strong>LinkedIn:</strong>{" "}
+                        {selectedProfile.linkedin_url ? (
+                          <a
+                            href={selectedProfile.linkedin_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary underline"
+                          >
+                            {selectedProfile.linkedin_url}
+                          </a>
+                        ) : "Not provided"}
+                      </div>
+                      <div>
+                        <strong>Website:</strong>{" "}
+                        {selectedProfile.website_url ? (
+                          <a
+                            href={selectedProfile.website_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary underline"
+                          >
+                            {selectedProfile.website_url}
+                          </a>
+                        ) : "Not provided"}
+                      </div>
+                      <div className="col-span-2">
+                        <strong>Other Social Handles:</strong>{" "}
+                        {String((selectedProfile as Record<string, unknown>).other_social_media_handles || "Not provided")}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2">Emergency Contact</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <strong>Name:</strong>{" "}
+                        {selectedProfile.emergency_contact_name || "Not provided"}
+                      </div>
+                      <div>
+                        <strong>Phone:</strong>{" "}
+                        {selectedProfile.emergency_contact_phone || "Not provided"}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-3">Professional Information</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+                      <div>
+                        <strong>Program:</strong> {selectedProfile.program || "Not provided"}
+                      </div>
+                      <div>
+                        <strong>Graduation Year:</strong>{" "}
+                        {selectedProfile.graduation_year || "Not provided"}
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <h5 className="font-medium">Organizations</h5>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {Array.isArray(selectedProfile.organizations as unknown as Array<Record<string, unknown>>) &&
+                        (selectedProfile.organizations as unknown as Array<Record<string, unknown>>).length > 0 ? (
+                          (selectedProfile.organizations as unknown as Array<Record<string, unknown>>).map((org, index) => (
+                            <div key={index} className="rounded-2xl border p-4 shadow-sm bg-muted/30">
+                              <h6 className="font-semibold mb-2 text-primary">
+                                {String((org as Record<string, unknown>).currentOrg || `Organization ${index + 1}`)}
+                              </h6>
+                              <div className="space-y-1 text-sm text-muted-foreground">
+                                <p><strong>Type:</strong> {String((org as Record<string, unknown>).orgType || "—")}</p>
+                                <p><strong>Role:</strong> {String((org as Record<string, unknown>).role || "—")}</p>
+                                <p><strong>Experience:</strong> {String((org as Record<string, unknown>).experience || "—")}</p>
+                                <p><strong>Description:</strong> {String((org as Record<string, unknown>).description || "—")}</p>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-sm text-muted-foreground">No organizations provided</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2">Communication Preferences</h4>
+                    <div className="text-sm">
+                      <strong>Preferred Modes:</strong>{" "}
+                      {Array.isArray((selectedProfile as unknown as { preferred_mode_of_communication?: string[] }).preferred_mode_of_communication) &&
+                      ((selectedProfile as unknown as { preferred_mode_of_communication?: string[] }).preferred_mode_of_communication || []).length > 0
+                        ? ((selectedProfile as unknown as { preferred_mode_of_communication?: string[] }).preferred_mode_of_communication || []).join(", ")
+                        : "Not provided"}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2">Mentoring & Contributions</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <strong>Willing to Mentor:</strong>{" "}
+                        {String((selectedProfile as Record<string, unknown>).willing_to_mentor || "Not provided")}
+                      </div>
+                      <div>
+                        <strong>Areas of Contribution:</strong>{" "}
+                        {Array.isArray((selectedProfile as Record<string, unknown>).areas_of_contribution) &&
+                        ((selectedProfile as Record<string, unknown>).areas_of_contribution as string[]).length > 0
+                          ? ((selectedProfile as Record<string, unknown>).areas_of_contribution as string[]).join(", ")
+                          : "Not provided"}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2">Additional Information</h4>
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <strong>Bio:</strong> {selectedProfile.bio || "Not provided"}
+                      </div>
+                      <div>
+                        <strong>Skills:</strong>{" "}
+                        {selectedProfile.skills && selectedProfile.skills.length > 0
+                          ? selectedProfile.skills.join(", ")
+                          : "Not provided"}
+                      </div>
+                      <div>
+                        <strong>Interests:</strong>{" "}
+                        {selectedProfile.interests && selectedProfile.interests.length > 0
+                          ? selectedProfile.interests.join(", ")
+                          : "Not provided"}
                       </div>
                     </div>
                   </div>
@@ -348,7 +537,7 @@ export function ProfileTab({
                     <div className="space-y-4">
                       <div className="flex gap-2">
                         <Button
-                          onClick={() => onApprove(selectedProfile.user_id)}
+                          onClick={() => handleApproveAction(selectedProfile.user_id)}
                           disabled={actionLoading}
                           className="flex-1"
                         >
@@ -369,11 +558,7 @@ export function ProfileTab({
                         />
                         <Button
                           variant="destructive"
-                          onClick={async () => {
-                            await onReject(selectedProfile.user_id, rejectionReason);
-                            setRejectionReason("");
-                            setSelectedProfile(null);
-                          }}
+                          onClick={() => handleRejectAction(selectedProfile.user_id, rejectionReason)}
                           disabled={actionLoading}
                           className="w-full"
                         >
@@ -404,6 +589,13 @@ export function ProfileTab({
                           }
                         />
                       </div>
+                    </div>
+                  )}
+
+                  {selectedProfile.approval_status === "rejected" && selectedProfile.rejection_reason && (
+                    <div>
+                      <h4 className="font-semibold mb-2 text-red-600">Rejection Reason</h4>
+                      <p className="text-sm text-muted-foreground">{selectedProfile.rejection_reason}</p>
                     </div>
                   )}
                 </div>
@@ -437,7 +629,7 @@ export function ProfileTab({
             <Button
               size="sm"
               className="flex-1"
-              onClick={() => onApprove(profile.user_id)}
+              onClick={() => handleApproveAction(profile.user_id)}
               disabled={actionLoading}
             >
               <CheckCircle className="w-4 h-4 mr-1" />
@@ -447,7 +639,7 @@ export function ProfileTab({
               variant="destructive"
               size="sm"
               className="flex-1"
-              onClick={() => onReject(profile.user_id)}
+              onClick={() => handleRejectAction(profile.user_id)}
               disabled={actionLoading}
             >
               <XCircle className="w-4 h-4 mr-1" />

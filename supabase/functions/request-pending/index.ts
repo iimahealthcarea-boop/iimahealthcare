@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type"
 };
 // Hardcoded admin email
-const ADMIN_EMAIL = "shubham.kushwaha@mrikal.com";
+const ADMIN_EMAIL = "iimahealthcarea@gmail.com";
 // Function to send signup email
 const sendSignupEmail = async (firstName, lastName, userEmail)=>{
   const transporter = nodemailer.createTransport({
@@ -40,7 +40,7 @@ const sendSignupEmail = async (firstName, lastName, userEmail)=>{
     </div>
   `;
   return await transporter.sendMail({
-    from: `"IIM-AMS Admin Notifier" <ansh.kush.2410@gmail.com>`,
+    from: `"IIM-AMS Admin Notifier" <iimahealthcarea@gmail.com>`,
     to: ADMIN_EMAIL,
     subject: "New User Signup Pending Approval",
     html: htmlContent

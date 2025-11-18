@@ -4,15 +4,15 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type"
 };
-const ADMIN_EMAIL = "shubham.kushwaha@mrikal.com";
+const ADMIN_EMAIL = "vikash.patwari@gmail.com";
 const handler = async (req)=>{
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 587,
     secure: false,
     auth: {
-      user: "ansh.kush.2410@gmail.com",
-      pass: "dawr dhmm sxjn enfa"
+      user: "iimahealthcarea@gmail.com",
+      pass: "dbnl ykcv mygi miel"
     }
   });
   // Handle CORS preflight requests
