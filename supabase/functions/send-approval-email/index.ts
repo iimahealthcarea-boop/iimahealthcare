@@ -5,16 +5,14 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type"
 };
-const backupUrl = "https://gbminsanmrhedtsrbgmz.supabase.co/functions/v1/backup-profile";
-const backupToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdibWluc2FubXJoZWR0c3JiZ216Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDI5MDE1NiwiZXhwIjoyMDc1ODY2MTU2fQ.D3UfZeytzTvwrAEmXWdCMVy5-xhy6i164MENAFaMJ5E';
 const handler = async (req)=>{
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 587,
     secure: false,
     auth: {
-      user: "ansh.kush.2410@gmail.com",
-      pass: "dawr dhmm sxjn enfa" // your app password
+      user: "iimahealthcarea@gmail.com",
+      pass: "dbnl ykcv mygi miel"
     }
   });
   // Handle CORS preflight requests
@@ -105,25 +103,15 @@ const handler = async (req)=>{
       `;
     }
     const emailResponse = await transporter.sendMail({
-      from: `"IIM-AMS Admin Notifier" <ansh.kush.2410@gmail.com>`,
+      from: `"IIM-AMS Admin Notifier" <aiimahealthcarea@gmail.com>`,
       to: [
         email
       ],
       subject: subject,
       html: htmlContent
     });
-    const resp = await fetch(backupUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${backupToken}`
-      },
-      body: JSON.stringify({
-        payload: profile
-      })
-    });
+  
     console.log("Email sent successfully:", emailResponse);
-    console.log("Data saved in db", resp);
     return new Response(JSON.stringify({
       success: true,
       emailResponse

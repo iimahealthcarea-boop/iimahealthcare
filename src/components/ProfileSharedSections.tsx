@@ -165,7 +165,23 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
   const removeOrganization = (id: string) => {
     setOrganizations((prev) => prev.filter((org) => org.id !== id));
   };
-  
+
+  const handlePhoneNumberChange = (value: string) => {
+    if (value === null || value === undefined) {
+      onFormDataChange({ ...formData, phone: "" });
+      return;
+    }
+
+    const digitsOnly = value.replace(/\D/g, "").slice(0, 10);
+    onFormDataChange({ ...formData, phone: digitsOnly });
+  };
+
+  const phoneValue = formData.phone ?? "";
+  const phoneDerivedError =
+    fieldErrors.phone ||
+    (phoneValue.length > 0 && phoneValue.length !== 10
+      ? "Phone number must be exactly 10 digits."
+      : "");
 
   const addOrganization = () => {
     setOrganizations((prev) => [
@@ -397,16 +413,19 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
             )}
               <Input
                 placeholder="Phone number"
-                value={formData.phone}
-                onChange={(e) =>
-                  onFormDataChange({ ...formData, phone: e.target.value })
-                }
+                value={phoneValue}
+                onChange={(e) => handlePhoneNumberChange(e.target.value)}
+                maxLength={10}
+                inputMode="numeric"
+                pattern="\\d{10}"
+                title="Please enter a valid 10-digit phone number."
+                autoComplete="tel"
                 required
-              className={`flex-1 ${fieldErrors.phone ? "border-red-500" : ""}`}
+                className={`flex-1 ${phoneDerivedError ? "border-red-500" : ""}`}
               />
             </div>
-          {fieldErrors.phone && (
-            <p className="text-sm text-red-500 mt-1">{fieldErrors.phone}</p>
+          {phoneDerivedError && (
+            <p className="text-sm text-red-500 mt-1">{phoneDerivedError}</p>
           )}
           </div>
           <div>
