@@ -417,7 +417,7 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                 onChange={(e) => handlePhoneNumberChange(e.target.value)}
                 maxLength={10}
                 inputMode="numeric"
-                pattern="\\d{10}"
+                pattern="[0-9]{10}"
                 title="Please enter a valid 10-digit phone number."
                 autoComplete="tel"
                 required
@@ -462,7 +462,7 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
             />
           </div>
           <div>
-            <Label htmlFor="linkedin_url">LinkedIn URL</Label>
+            <Label htmlFor="linkedin_url">LinkedIn URL *</Label>
             <Input
               id="linkedin_url"
               type="url"

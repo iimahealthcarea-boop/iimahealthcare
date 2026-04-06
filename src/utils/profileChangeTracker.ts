@@ -134,7 +134,7 @@ export async function getProfileChangeHistory(profileUserId: string): Promise<Pr
     }
 
     // Transform the data to match our ProfileChange interface
-    return data?.map((change: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
+    const changes = data?.map((change: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
       id: change.id,
       updatedBy: change.changed_by,
       updatedByName: change.changed_by_name,
@@ -142,6 +142,35 @@ export async function getProfileChangeHistory(profileUserId: string): Promise<Pr
       changeType: change.change_type as 'create' | 'update' | 'approve' | 'reject' | 'admin_edit',
       changedFields: change.changed_fields as Record<string, { oldValue: unknown; newValue: unknown }>
     })) || [];
+
+    // Enrich with Name + Email for "Changed by" display
+    const uniqueUserIds = [...new Set(changes.map(c => c.updatedBy).filter(Boolean))];
+    if (uniqueUserIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, first_name, last_name, email')
+        .in('user_id', uniqueUserIds);
+
+      if (profiles) {
+        const profileMap = new Map(profiles.map(p => [p.user_id, p]));
+        for (const change of changes) {
+          const profile = profileMap.get(change.updatedBy);
+          if (profile) {
+            const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(' ');
+            const email = profile.email || '';
+            if (fullName && email) {
+              change.updatedByName = `${fullName} (${email})`;
+            } else if (fullName) {
+              change.updatedByName = fullName;
+            } else if (email) {
+              change.updatedByName = email;
+            }
+          }
+        }
+      }
+    }
+
+    return changes;
   } catch (error) {
     console.error('Failed to fetch change history:', error);
     return [];
@@ -224,9 +253,24 @@ export function formatFieldValue(value: unknown, fieldName: string): string {
     if (value.every(v => typeof v !== 'object')) {
       return value.length > 0 ? (value as unknown[]).join(', ') as string : 'None';
     }
-    // Array of objects (e.g., organizations)
+    // Array of objects (e.g., organizations) - format as readable text
     try {
-      return JSON.stringify(value);
+      if (fieldName === 'organizations') {
+        return (value as Record<string, unknown>[]).map((org, i) => {
+          const parts: string[] = [];
+          if (org.currentOrg) parts.push(String(org.currentOrg));
+          if (org.currentPosition) parts.push(`Position: ${org.currentPosition}`);
+          if (org.organizationType) parts.push(`Type: ${org.organizationType}`);
+          if (org.experienceLevel) parts.push(`Experience: ${org.experienceLevel}`);
+          return parts.length > 0 ? `${i + 1}. ${parts.join(' | ')}` : `${i + 1}. (empty)`;
+        }).join('; ');
+      }
+      return (value as Record<string, unknown>[]).map((item, i) => {
+        const entries = Object.entries(item)
+          .filter(([, v]) => v !== null && v !== undefined && v !== '')
+          .map(([k, v]) => `${k.replace(/_/g, ' ')}: ${v}`);
+        return entries.length > 0 ? `${i + 1}. ${entries.join(' | ')}` : `${i + 1}. (empty)`;
+      }).join('; ');
     } catch {
       return '—';
     }

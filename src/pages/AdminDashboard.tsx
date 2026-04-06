@@ -226,7 +226,8 @@ export default function AdminDashboard() {
         },
       };
 
-      const adminName = user?.email || "Admin";
+      const profileName = [user?.profile?.first_name, user?.profile?.last_name].filter(Boolean).join(' ');
+      const adminName = profileName ? `${profileName} (${user?.email})` : (user?.email || "Admin");
       await addProfileChange(
         profileUserId,
         user?.id || "",
@@ -345,7 +346,8 @@ export default function AdminDashboard() {
         },
       };
 
-      const adminName = user?.email || "Admin";
+      const profileName = [user?.profile?.first_name, user?.profile?.last_name].filter(Boolean).join(' ');
+      const adminName = profileName ? `${profileName} (${user?.email})` : (user?.email || "Admin");
       await addProfileChange(
         profileUserId,
         user?.id || "",
@@ -473,7 +475,8 @@ export default function AdminDashboard() {
       const changedFields = getChangedFields(editingProfile, updatedData);
 
       if (Object.keys(changedFields).length > 0) {
-        const adminName = user?.email || "Admin";
+        const profileName = [user?.profile?.first_name, user?.profile?.last_name].filter(Boolean).join(' ');
+        const adminName = profileName ? `${profileName} (${user?.email})` : (user?.email || "Admin");
         await addProfileChange(
           editingProfile.user_id,
           user?.id || "",
@@ -1107,7 +1110,21 @@ export default function AdminDashboard() {
       {/* Add Member Dialog */}
       <Dialog
         open={isAddMemberDialogOpen}
-        onOpenChange={setIsAddMemberDialogOpen}
+        onOpenChange={(open) => {
+          setIsAddMemberDialogOpen(open);
+          if (open) {
+            setAddMemberFormData({
+              first_name: "",
+              last_name: "",
+              email: "",
+              password: "",
+              phone: "",
+              country_code: "+91",
+              role: "normal_user",
+            });
+            setShowPassword(false);
+          }
+        }}
       >
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -1217,6 +1234,7 @@ export default function AdminDashboard() {
                 }
                 placeholder="Enter email address"
                 required
+                autoComplete="new-email"
               />
             </div>
 
@@ -1236,6 +1254,7 @@ export default function AdminDashboard() {
                   placeholder="Enter password (min 6 characters)"
                   required
                   className="pr-10"
+                  autoComplete="new-password"
                 />
                 <Button
                   type="button"

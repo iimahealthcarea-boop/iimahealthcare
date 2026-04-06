@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -696,6 +697,22 @@ export default function OrganizationMaster() {
                 }
                 placeholder="https://example.com"
                 type="url"
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="edit-verified">Verified Organization</Label>
+                <p className="text-xs text-muted-foreground">
+                  Mark this organization as verified
+                </p>
+              </div>
+              <Switch
+                id="edit-verified"
+                checked={formData.is_verified}
+                onCheckedChange={(checked) =>
+                  setFormData({ ...formData, is_verified: checked })
+                }
               />
             </div>
           </div>

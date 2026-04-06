@@ -27,7 +27,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Json } from "@/integrations/supabase/types";
 import {
@@ -471,26 +473,117 @@ export function UpdateRequestsTab({ profiles, onRequestUpdate }: UpdateRequestsT
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="payload">Request Payload (JSON)</Label>
-              <Textarea
-                id="payload"
-                className="font-mono text-xs"
-                rows={15}
-                value={
-                  requestEditPayload
-                    ? JSON.stringify(requestEditPayload, null, 2)
-                    : '{}'
+            {requestEditPayload && Object.entries(requestEditPayload).map(([key, value]) => {
+              const fieldLabel = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+              if (typeof value === 'boolean') {
+                return (
+                  <div key={key} className="flex items-center justify-between">
+                    <Label htmlFor={`edit-${key}`}>{fieldLabel}</Label>
+                    <Switch
+                      id={`edit-${key}`}
+                      checked={value}
+                      onCheckedChange={(checked) =>
+                        setRequestEditPayload({ ...requestEditPayload, [key]: checked })
+                      }
+                    />
+                  </div>
+                );
+              }
+
+              if (Array.isArray(value)) {
+                if (value.length > 0 && typeof value[0] === 'object') {
+                  // Array of objects (e.g., organizations) - show as editable cards
+                  return (
+                    <div key={key}>
+                      <Label>{fieldLabel}</Label>
+                      <div className="space-y-2 mt-1">
+                        {(value as Record<string, unknown>[]).map((item, idx) => (
+                          <div key={idx} className="border rounded-md p-3 space-y-2 bg-muted/30">
+                            <div className="text-xs font-medium text-muted-foreground">Item {idx + 1}</div>
+                            {Object.entries(item).map(([subKey, subVal]) => (
+                              <div key={subKey}>
+                                <Label htmlFor={`edit-${key}-${idx}-${subKey}`} className="text-xs">
+                                  {subKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                </Label>
+                                {typeof subVal === 'boolean' ? (
+                                  <Switch
+                                    id={`edit-${key}-${idx}-${subKey}`}
+                                    checked={subVal}
+                                    onCheckedChange={(checked) => {
+                                      const newArr = [...value as Record<string, unknown>[]];
+                                      newArr[idx] = { ...newArr[idx], [subKey]: checked };
+                                      setRequestEditPayload({ ...requestEditPayload, [key]: newArr });
+                                    }}
+                                  />
+                                ) : (
+                                  <Input
+                                    id={`edit-${key}-${idx}-${subKey}`}
+                                    value={String(subVal ?? '')}
+                                    onChange={(e) => {
+                                      const newArr = [...value as Record<string, unknown>[]];
+                                      newArr[idx] = { ...newArr[idx], [subKey]: e.target.value };
+                                      setRequestEditPayload({ ...requestEditPayload, [key]: newArr });
+                                    }}
+                                    className="text-sm"
+                                  />
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
                 }
-                onChange={(e) => {
-                  try {
-                    setRequestEditPayload(JSON.parse(e.target.value));
-                  } catch {
-                    // Invalid JSON, keep as is
-                  }
-                }}
-              />
-            </div>
+                // Array of primitives (e.g., interests, skills)
+                return (
+                  <div key={key}>
+                    <Label htmlFor={`edit-${key}`}>{fieldLabel}</Label>
+                    <Input
+                      id={`edit-${key}`}
+                      value={(value as unknown[]).join(', ')}
+                      onChange={(e) =>
+                        setRequestEditPayload({
+                          ...requestEditPayload,
+                          [key]: e.target.value.split(',').map(s => s.trim()).filter(Boolean),
+                        })
+                      }
+                      placeholder="Comma-separated values"
+                      className="text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Separate multiple values with commas</p>
+                  </div>
+                );
+              }
+
+              // String / number / default
+              return (
+                <div key={key}>
+                  <Label htmlFor={`edit-${key}`}>{fieldLabel}</Label>
+                  {typeof value === 'string' && value.length > 100 ? (
+                    <Textarea
+                      id={`edit-${key}`}
+                      value={String(value ?? '')}
+                      onChange={(e) =>
+                        setRequestEditPayload({ ...requestEditPayload, [key]: e.target.value })
+                      }
+                      rows={3}
+                      className="text-sm"
+                    />
+                  ) : (
+                    <Input
+                      id={`edit-${key}`}
+                      value={String(value ?? '')}
+                      onChange={(e) =>
+                        setRequestEditPayload({ ...requestEditPayload, [key]: e.target.value })
+                      }
+                      className="text-sm"
+                    />
+                  )}
+                </div>
+              );
+            })}
             <div className="flex justify-end gap-2">
               <Button 
                 variant="outline" 

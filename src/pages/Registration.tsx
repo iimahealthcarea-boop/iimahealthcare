@@ -174,13 +174,13 @@ export default function Registration() {
       newErrors.bio = "Bio is required";
     }
 
-    // LinkedIn required and must be a valid URL
+    // LinkedIn required and must contain linkedin.com
     if (!formData.linkedin_url?.trim()) {
       newErrors.linkedin_url = "LinkedIn URL is required";
     } else {
-      const urlPattern = /^https?:\/\/.+/;
-      if (!urlPattern.test(formData.linkedin_url)) {
-        newErrors.linkedin_url = "Please enter a valid URL starting with http:// or https://";
+      const linkedinPattern = /linkedin\.com/i;
+      if (!linkedinPattern.test(formData.linkedin_url)) {
+        newErrors.linkedin_url = "Please enter a valid LinkedIn URL (e.g. linkedin.com/in/yourprofile)";
       }
     }
 

@@ -278,7 +278,8 @@ const Profile = () => {
         );
 
         if (Object.keys(changedFields).length > 0) {
-          const adminName = authUser?.email || "Admin";
+          const profileName = [authUser?.profile?.first_name, authUser?.profile?.last_name].filter(Boolean).join(' ');
+          const adminName = profileName ? `${profileName} (${authUser?.email})` : (authUser?.email || "Admin");
           await addProfileChange(
             user.id,
             user.id,

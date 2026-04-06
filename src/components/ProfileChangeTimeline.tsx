@@ -228,25 +228,31 @@ export function ProfileChangeTimeline({
                                   {isExpanded && (
                                     <div className="mt-3 space-y-2">
                                       <Separator />
-                                      {Object.entries(change.changedFields).map(([field, values]) => (
-                                        <div key={field} className="text-sm">
-                                          <div className="font-medium text-foreground mb-1">
-                                            {formatFieldName(field)}
-                                          </div>
-                                          <div className="space-y-1 text-muted-foreground">
-                                            <div className="flex items-center gap-2">
-                                              <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">
-                                                From: {formatFieldValue(values.oldValue, field)}
-                                              </span>
+                                      {Object.entries(change.changedFields).map(([field, values]) => {
+                                        const isComplexField = field === 'organizations' ||
+                                          (Array.isArray(values.oldValue) && values.oldValue.some(v => typeof v === 'object')) ||
+                                          (Array.isArray(values.newValue) && values.newValue.some(v => typeof v === 'object'));
+
+                                        return (
+                                          <div key={field} className="text-sm">
+                                            <div className="font-medium text-foreground mb-1">
+                                              {formatFieldName(field)}
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
-                                                To: {formatFieldValue(values.newValue, field)}
-                                              </span>
+                                            <div className="space-y-1 text-muted-foreground">
+                                              <div>
+                                                <span className={`text-xs bg-red-100 text-red-700 px-2 py-1 rounded ${isComplexField ? 'block' : 'inline'}`}>
+                                                  From: {formatFieldValue(values.oldValue, field)}
+                                                </span>
+                                              </div>
+                                              <div>
+                                                <span className={`text-xs bg-green-100 text-green-700 px-2 py-1 rounded ${isComplexField ? 'block' : 'inline'}`}>
+                                                  To: {formatFieldValue(values.newValue, field)}
+                                                </span>
+                                              </div>
                                             </div>
                                           </div>
-                                        </div>
-                                      ))}
+                                        );
+                                      })}
                                     </div>
                                   )}
                                 </div>
