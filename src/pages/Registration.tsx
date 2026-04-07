@@ -406,15 +406,10 @@ export default function Registration() {
         organizations: { oldValue: null, newValue: formData.organizations },
         willing_to_mentor: { oldValue: null, newValue: formData.willing_to_mentor },
         areas_of_contribution: { oldValue: null, newValue: formData.areas_of_contribution },
-        privacy: {
-          oldValue: null,
-          newValue: {
-            is_public: formData.is_public,
-            show_contact_info: formData.show_contact_info,
-            show_location: formData.show_location,
-            status: formData.status,
-          },
-        },
+        is_public: { oldValue: null, newValue: formData.is_public },
+        show_contact_info: { oldValue: null, newValue: formData.show_contact_info },
+        show_location: { oldValue: null, newValue: formData.show_location },
+        status: { oldValue: null, newValue: formData.status },
       };
 
       try {

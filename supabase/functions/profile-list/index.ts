@@ -92,13 +92,24 @@ Deno.serve(async (req) => {
 
     // Apply search filter - search across multiple fields
     if (searchTerm && searchTerm.trim() !== '') {
-      const searchLower = searchTerm.toLowerCase().trim();
-      // Escape special characters for PostgreSQL ILIKE
-      const escapedSearch = searchLower.replace(/%/g, '\\%').replace(/_/g, '\\_');
-      // PostgREST OR syntax requires single line, comma-separated, no spaces after commas
-      // Note: approval_status is excluded from search as it's an enum and already filtered by status parameter
-      const orQuery = `first_name.ilike.%${escapedSearch}%,last_name.ilike.%${escapedSearch}%,email.ilike.%${escapedSearch}%,phone.ilike.%${escapedSearch}%,organization.ilike.%${escapedSearch}%,position.ilike.%${escapedSearch}%,program.ilike.%${escapedSearch}%,city.ilike.%${escapedSearch}%,country.ilike.%${escapedSearch}%,address.ilike.%${escapedSearch}%,bio.ilike.%${escapedSearch}%,linkedin_url.ilike.%${escapedSearch}%,website_url.ilike.%${escapedSearch}%`;
-      query = query.or(orQuery);
+      const searchableColumns = [
+        'first_name', 'last_name', 'email', 'phone',
+        'organization', 'position', 'program', 'city',
+        'country', 'address', 'bio', 'linkedin_url', 'website_url'
+      ];
+
+      // Split the search term into individual words so that
+      // "Donald Trump" matches profiles where one column contains
+      // "Donald" and another contains "Trump"
+      const words = searchTerm.trim().split(/\s+/).filter(Boolean);
+
+      for (const word of words) {
+        const escapedWord = word.toLowerCase().replace(/%/g, '\\%').replace(/_/g, '\\_');
+        const orQuery = searchableColumns
+          .map(col => `${col}.ilike.%${escapedWord}%`)
+          .join(',');
+        query = query.or(orQuery);
+      }
     }
 
     // Apply pagination

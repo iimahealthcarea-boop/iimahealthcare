@@ -234,7 +234,9 @@ export function formatFieldName(fieldName: string): string {
     willing_to_mentor: 'Willing to Mentor',
     areas_of_contribution: 'Areas of Contribution',
     approval_status: 'Approval Status',
-    rejection_reason: 'Rejection Reason'
+    rejection_reason: 'Rejection Reason',
+    privacy: 'Privacy Settings',
+    status: 'Status'
   };
 
   return fieldMap[fieldName] || fieldName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
@@ -282,6 +284,23 @@ export function formatFieldValue(value: unknown, fieldName: string): string {
 
   if (typeof value === 'boolean') {
     return value ? 'Yes' : 'No';
+  }
+
+  // Plain object (e.g., legacy privacy field stored as an object)
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    try {
+      const obj = value as Record<string, unknown>;
+      const entries = Object.entries(obj)
+        .filter(([, v]) => v !== null && v !== undefined && v !== '')
+        .map(([k, v]) => {
+          const label = k.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+          if (typeof v === 'boolean') return `${label}: ${v ? 'Yes' : 'No'}`;
+          return `${label}: ${String(v)}`;
+        });
+      return entries.length > 0 ? entries.join(', ') : 'None';
+    } catch {
+      return JSON.stringify(value);
+    }
   }
 
   return String(value);
