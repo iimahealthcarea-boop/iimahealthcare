@@ -54,6 +54,28 @@ const handler = async (req)=>{
     });
   }
   try {
+    // Verify the user is authenticated
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "No authorization header" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json", ...corsHeaders }
+      });
+    }
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json", ...corsHeaders }
+      });
+    }
+
     const { firstName, lastName, email } = await req.json();
     console.log(`New signup: ${firstName} ${lastName}, ${email}`);
     const info = await sendSignupEmail(firstName, lastName, email);

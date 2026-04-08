@@ -91,65 +91,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // Set up auth state listener
+    // Track whether initial session has already been handled to prevent double-fetch
+    let initialFetchDone = false;
+
+    const handleSession = (session: Session | null, source: string) => {
+      setSession(session);
+      if (session?.user) {
+        // Use setTimeout to avoid deadlock with Supabase auth internals
+        setTimeout(() => {
+          fetchUserRole(session.user.id).then(({ role, profile }) => {
+            setUser({
+              ...session.user,
+              role: role as UserRole,
+              profile,
+              approvalStatus: profile?.approval_status as ApprovalStatus,
+            });
+            setLoading(false);
+          }).catch((error) => {
+            console.error(`Error fetching user data (${source}):`, error);
+            setUser({
+              ...session.user,
+              role: 'normal_user' as UserRole,
+              profile: null,
+              approvalStatus: 'pending' as ApprovalStatus,
+            });
+            setLoading(false);
+          });
+        }, 0);
+      } else {
+        setUser(null);
+        setLoading(false);
+      }
+    };
+
+    // Set up auth state listener — only react to SUBSEQUENT auth changes after init
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        setSession(session);
-        
-        if (session?.user) {
-          // Use setTimeout to avoid deadlock with onAuthStateChange
-          setTimeout(() => {
-            fetchUserRole(session.user.id).then(({ role, profile }) => {
-              setUser({
-                ...session.user,
-                role: role as UserRole,
-                profile,
-                approvalStatus: profile?.approval_status as ApprovalStatus,
-              });
-              setLoading(false);
-            }).catch((error) => {
-              console.error('Error fetching user data:', error);
-              setUser({
-                ...session.user,
-                role: 'normal_user' as UserRole,
-                profile: null,
-                approvalStatus: 'pending' as ApprovalStatus,
-              });
-              setLoading(false);
-            });
-          }, 0);
-        } else {
-          setUser(null);
-          setLoading(false);
+        if (!initialFetchDone) {
+          // Skip — getSession below will handle the initial load
+          return;
         }
+        // Handle sign-in, sign-out, token refresh, etc.
+        handleSession(session, 'onAuthStateChange');
       }
     );
 
-    // Get initial session
+    // Get initial session (single fetch on mount)
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) {
-        fetchUserRole(session.user.id).then(({ role, profile }) => {
-          setUser({
-            ...session.user,
-            role: role as UserRole,
-            profile,
-            approvalStatus: profile?.approval_status as ApprovalStatus,
-          });
-          setLoading(false);
-        }).catch((error) => {
-          console.error('Error fetching initial user data:', error);
-          setUser({
-            ...session.user,
-            role: 'normal_user' as UserRole,
-            profile: null,
-            approvalStatus: 'pending' as ApprovalStatus,
-          });
-          setLoading(false);
-        });
-      } else {
-        setLoading(false);
-      }
+      initialFetchDone = true;
+      handleSession(session, 'getSession');
     });
 
     return () => subscription.unsubscribe();

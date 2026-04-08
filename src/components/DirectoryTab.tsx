@@ -7,12 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { useStarredProfiles } from '@/hooks/useStarredProfiles';
 import { StarButton } from '@/components/StarButton';
-import { Search, Users, Mail, Phone, MapPin, Building, Calendar, Linkedin, Globe, ChevronDown, ChevronUp, Eye, UserMinus, BookmarkMinus, Star } from 'lucide-react';
+import { Search, Users, Mail, Phone, MapPin, Building, Calendar, Linkedin, Globe, ChevronDown, ChevronUp, Eye, BookmarkMinus, Star } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 
 type Profile = Tables<'profiles'>;
@@ -22,14 +20,21 @@ interface DirectoryItem {
   member_id: string;
 }
 
-interface DirectoryTabProps {
-  onMemberDetails: (member: Profile) => void;
+interface StarredProfilesHook {
+  isStarred: (profileUserId: string) => boolean;
+  toggleStar: (profileUserId: string) => Promise<void>;
 }
 
-export default function DirectoryTab({ onMemberDetails }: DirectoryTabProps) {
-  const [directoryMembers, setDirectoryMembers] = useState<DirectoryItem[]>([]);
+interface DirectoryTabProps {
+  onMemberDetails: (member: Profile) => void;
+  directoryMembers: DirectoryItem[];
+  loading: boolean;
+  onRemoveFromDirectory: () => void;
+  starredProfiles: StarredProfilesHook;
+}
+
+export default function DirectoryTab({ onMemberDetails, directoryMembers, loading, onRemoveFromDirectory, starredProfiles }: DirectoryTabProps) {
   const [filteredMembers, setFilteredMembers] = useState<Profile[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [experienceFilter, setExperienceFilter] = useState('all');
   const [organizationTypeFilter, setOrganizationTypeFilter] = useState('all');
@@ -37,8 +42,9 @@ export default function DirectoryTab({ onMemberDetails }: DirectoryTabProps) {
   const [showStarredOnly, setShowStarredOnly] = useState(false);
   const { toast } = useToast();
   const { user, isAdmin } = useAuth();
-  const { isStarred, toggleStar, fetchStarredProfiles } = useStarredProfiles();
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+
+  const { isStarred, toggleStar } = starredProfiles;
 
   const toggleCardExpansion = (memberId: string) => {
     setExpandedCards(prev => {
@@ -52,55 +58,13 @@ export default function DirectoryTab({ onMemberDetails }: DirectoryTabProps) {
     });
   };
 
-  const fetchDirectoryMembers = useCallback(async () => {
-    if (!user) return;
-    
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-      
-      if (!token) {
-        throw new Error('No access token');
-      }
-
-      const response = await fetch(`${supabaseUrl}/functions/v1/directory-get`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-
-      if (result.error) throw new Error(result.error);
-
-      const directoryData = result.data || [];
-      setDirectoryMembers(directoryData);
-      
-    } catch (error) {
-      console.error('Error fetching directory:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch your directory",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [user, toast]);
-
   const removeFromDirectory = async (memberId: string) => {
     if (!user) return;
-    
+
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
-      
+
       if (!token) {
         throw new Error('No access token');
       }
@@ -121,14 +85,14 @@ export default function DirectoryTab({ onMemberDetails }: DirectoryTabProps) {
       if (result.error) throw new Error(result.error);
 
       if (!result.success && result.error) throw new Error(result.error);
-      
+
       toast({
         title: "Success",
         description: "Member removed from your directory",
       });
-      
-      fetchDirectoryMembers();
-      
+
+      onRemoveFromDirectory();
+
     } catch (error) {
       console.error('Error removing from directory:', error);
       toast({
@@ -168,10 +132,10 @@ export default function DirectoryTab({ onMemberDetails }: DirectoryTabProps) {
         const websiteMatch = member.website_url?.toLowerCase().includes(searchLower) || false;
         const emailMatch = member.show_contact_info && member.email?.toLowerCase().includes(searchLower) || false;
         const phoneMatch = member.show_contact_info && member.phone?.toLowerCase().includes(searchLower) || false;
-        
-        return nameMatch || organizationMatch || positionMatch || programMatch || 
-               cityMatch || countryMatch || addressMatch || experienceMatch || 
-               orgTypeMatch || graduationYearMatch || bioMatch || skillsMatch || 
+
+        return nameMatch || organizationMatch || positionMatch || programMatch ||
+               cityMatch || countryMatch || addressMatch || experienceMatch ||
+               orgTypeMatch || graduationYearMatch || bioMatch || skillsMatch ||
                interestsMatch || linkedinMatch || websiteMatch || emailMatch || phoneMatch;
       });
     }
@@ -186,13 +150,6 @@ export default function DirectoryTab({ onMemberDetails }: DirectoryTabProps) {
 
     setFilteredMembers(filtered);
   }, [directoryMembers, searchTerm, experienceFilter, organizationTypeFilter, showStarredOnly, isStarred]);
-
-  useEffect(() => {
-    if (user) {
-      fetchDirectoryMembers();
-      fetchStarredProfiles();
-    }
-  }, [fetchDirectoryMembers, fetchStarredProfiles, user]);
 
   useEffect(() => {
     filterMembers();
@@ -237,9 +194,9 @@ export default function DirectoryTab({ onMemberDetails }: DirectoryTabProps) {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            
-          
-            
+
+
+
             <div>
               <Label htmlFor="experience-directory">Experience Level</Label>
               <Select value={experienceFilter} onValueChange={setExperienceFilter}>
@@ -257,7 +214,7 @@ export default function DirectoryTab({ onMemberDetails }: DirectoryTabProps) {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div>
               <Label htmlFor="orgType-directory">Organization Type</Label>
               <Select value={organizationTypeFilter} onValueChange={setOrganizationTypeFilter}>
@@ -328,7 +285,7 @@ export default function DirectoryTab({ onMemberDetails }: DirectoryTabProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredMembers.map((member) => {
           const isExpanded = expandedCards.has(member.id);
-          
+
           return (
             <Card key={member.id} className="hover:shadow-lg transition-all duration-200 border-0 shadow-md flex flex-col overflow-hidden">
               <CardContent className="p-0 flex flex-col h-full">
@@ -344,7 +301,7 @@ export default function DirectoryTab({ onMemberDetails }: DirectoryTabProps) {
                       />
                     </div>
                   )}
-                  
+
                   <div className="flex items-start gap-4 pr-8">
                     <Avatar className="w-16 h-16 ring-2 ring-primary/20 flex-shrink-0">
                       <AvatarImage src={member.avatar_url || ''} alt={`${member.first_name} ${member.last_name}`} />
@@ -352,18 +309,18 @@ export default function DirectoryTab({ onMemberDetails }: DirectoryTabProps) {
                         {getInitials(member.first_name, member.last_name)}
                       </AvatarFallback>
                     </Avatar>
-                    
+
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-lg text-foreground leading-tight mb-1">
                         {member.first_name} {member.last_name}
                       </h3>
-                      
+
                       {member.position && (
                         <p className="text-sm font-medium text-foreground/80 line-clamp-1 mb-1">
                           {member.position}
                         </p>
                       )}
-                      
+
                       {member.organization && (
                         <div className="flex items-center gap-1.5">
                           <Building className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
@@ -406,7 +363,7 @@ export default function DirectoryTab({ onMemberDetails }: DirectoryTabProps) {
                         {member.experience_level}
                       </Badge>
                     )}
-                    
+
                     {member.organization_type && (
                       <Badge variant="outline" className="text-xs px-2.5 py-0.5">
                         {member.organization_type}
@@ -483,7 +440,7 @@ export default function DirectoryTab({ onMemberDetails }: DirectoryTabProps) {
                               </a>
                             </div>
                           )}
-                          
+
                           {member.phone && (
                             <div className="flex items-center gap-2">
                               <Phone className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
@@ -502,9 +459,9 @@ export default function DirectoryTab({ onMemberDetails }: DirectoryTabProps) {
                         <h4 className="text-xs font-semibold text-foreground/70 mb-2 uppercase tracking-wide">Links</h4>
                         <div className="flex gap-2">
                           {member.linkedin_url && (
-                            <a 
-                              href={member.linkedin_url} 
-                              target="_blank" 
+                            <a
+                              href={member.linkedin_url}
+                              target="_blank"
                               rel="noopener noreferrer"
                               className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 transition-colors px-3 py-1.5 rounded-md hover:bg-blue-50 border border-blue-200"
                             >
@@ -512,11 +469,11 @@ export default function DirectoryTab({ onMemberDetails }: DirectoryTabProps) {
                               <span>LinkedIn</span>
                             </a>
                           )}
-                          
+
                           {member.website_url && (
-                            <a 
-                              href={member.website_url} 
-                              target="_blank" 
+                            <a
+                              href={member.website_url}
+                              target="_blank"
                               rel="noopener noreferrer"
                               className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-800 transition-colors px-3 py-1.5 rounded-md hover:bg-gray-50 border border-gray-200"
                             >
@@ -553,7 +510,7 @@ export default function DirectoryTab({ onMemberDetails }: DirectoryTabProps) {
                           </>
                         )}
                       </Button>
-                      
+
                       <Button
                         variant="default"
                         size="sm"
@@ -592,7 +549,7 @@ export default function DirectoryTab({ onMemberDetails }: DirectoryTabProps) {
               {showStarredOnly ? 'No starred members found' : 'No directory members found'}
             </h3>
             <p className="text-muted-foreground max-w-md mx-auto">
-              {directoryMembers.length === 0 
+              {directoryMembers.length === 0
                 ? "You haven't added any members to your directory yet. Go to 'All Members' to add some."
                 : showStarredOnly
                 ? "You haven't starred any members yet. Star some members to see them here."

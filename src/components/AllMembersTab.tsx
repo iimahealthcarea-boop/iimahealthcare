@@ -9,20 +9,25 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { useStarredProfiles } from '@/hooks/useStarredProfiles';
 import { StarButton } from '@/components/StarButton';
 import { Search, Users, Mail, Phone, MapPin, Building, Calendar, Linkedin, Globe, ChevronDown, ChevronUp, Eye, BookmarkPlus, BookmarkCheck, Star } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 
 type Profile = Tables<'profiles'>;
 
+interface StarredProfilesHook {
+  isStarred: (profileUserId: string) => boolean;
+  toggleStar: (profileUserId: string) => Promise<void>;
+}
+
 interface AllMembersTabProps {
   onMemberDetails: (member: Profile) => void;
   userDirectoryIds: Set<string>;
   onDirectoryUpdate: () => void;
+  starredProfiles: StarredProfilesHook;
 }
 
-export default function AllMembersTab({ onMemberDetails, userDirectoryIds, onDirectoryUpdate }: AllMembersTabProps) {
+export default function AllMembersTab({ onMemberDetails, userDirectoryIds, onDirectoryUpdate, starredProfiles }: AllMembersTabProps) {
   const [allMembers, setAllMembers] = useState<Profile[]>([]);
   const [filteredMembers, setFilteredMembers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +38,7 @@ export default function AllMembersTab({ onMemberDetails, userDirectoryIds, onDir
   const [showStarredOnly, setShowStarredOnly] = useState(false);
   const { toast } = useToast();
   const { user, isAdmin } = useAuth();
-  const { isStarred, toggleStar, fetchStarredProfiles } = useStarredProfiles();
+  const { isStarred, toggleStar } = starredProfiles;
   const [addingInDirectory, setAddingInDirectory] = useState(false);
   const [memberId, setMemberId] = useState(null);
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -213,10 +218,7 @@ export default function AllMembersTab({ onMemberDetails, userDirectoryIds, onDir
 
   useEffect(() => {
     fetchAllMembers();
-    if (user) {
-      fetchStarredProfiles();
-    }
-  }, [fetchAllMembers, fetchStarredProfiles, user]);
+  }, [fetchAllMembers]);
 
   useEffect(() => {
     filterMembers();

@@ -147,21 +147,20 @@ export default function Auth() {
       } else {
         // Send notification to admin about new pending user
         try {
-          const { error: emailError } = await supabase.functions.invoke(
-            "request-pending",
-            {
-              body: {
-                firstName,
-                lastName,
-                email,
-              },
-            }
-          );
-
-          if (emailError) {
-            console.error("Error sending admin notification:", emailError);
-            // Don't fail the signup if email fails
-          }
+          // const { error: emailError } = await supabase.functions.invoke(
+          //   "request-pending",
+          //   {
+          //     body: {
+          //       firstName,
+          //       lastName,
+          //       email,
+          //     },
+          //   }
+          // );
+          // if (emailError) {
+          //   console.error("Error sending admin notification:", emailError);
+          //   // Don't fail the signup if email fails
+          // }
         } catch (emailError) {
           console.error("Error sending admin notification:", emailError);
           // Don't fail the signup if email fails
