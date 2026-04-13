@@ -120,7 +120,7 @@ export default function Registration() {
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  const validateForm = () => {
+  const validateForm = (): { [key: string]: string } => {
     const newErrors: { [key: string]: string } = {};
 
     // Required fields validation
@@ -215,18 +215,20 @@ export default function Registration() {
       newErrors.email = "Please enter a valid email address";
     }
 
-    // Phone number validation
-    if (formData.country_code === "+91") {
-      const digits = (formData.phone || "").replace(/\D/g, "");
-      if (digits.length !== 10) {
-        newErrors.phone = "For India (+91), phone must be exactly 10 digits";
-      }
-    } else {
-      const phonePattern =
-        /^(\+\d{1,3})?[\s.-]?\(?\d{1,4}\)?[\s.-]?\d{1,4}[\s.-]?\d{1,9}$/;
-      if (formData.phone && !phonePattern.test(formData.phone.trim())) {
-        newErrors.phone =
-          "Please enter a valid phone number (e.g., +91XXXXXXXXXX)";
+    // Phone number format validation (only if phone is present — required check handled above)
+    if (formData.phone?.trim() && !newErrors.phone) {
+      if (formData.country_code === "+91") {
+        const digits = formData.phone.replace(/\D/g, "");
+        if (digits.length !== 10) {
+          newErrors.phone = "For India (+91), phone must be exactly 10 digits";
+        }
+      } else {
+        const phonePattern =
+          /^(\+\d{1,3})?[\s.-]?\(?\d{1,4}\)?[\s.-]?\d{1,4}[\s.-]?\d{1,9}$/;
+        if (!phonePattern.test(formData.phone.trim())) {
+          newErrors.phone =
+            "Please enter a valid phone number (e.g., +91XXXXXXXXXX)";
+        }
       }
     }
 
@@ -261,23 +263,9 @@ export default function Registration() {
     // DOB validation: minimum age 15 years
     if (formData.date_of_birth) {
       const dob = new Date(formData.date_of_birth);
-      if (!isNaN(dob.getTime())) {
-        const today = new Date();
-        const cutoff = new Date(
-          today.getFullYear() - 15,
-          today.getMonth(),
-          today.getDate()
-        );
-        if (dob > cutoff) {
-          newErrors.date_of_birth = "You must be at least 15 years old";
-        }
-      }
-    }
-
-    // DOB validation: minimum age 15 years
-    if (formData.date_of_birth) {
-      const dob = new Date(formData.date_of_birth);
-      if (!isNaN(dob.getTime())) {
+      if (isNaN(dob.getTime())) {
+        newErrors.date_of_birth = "Please enter a valid date of birth";
+      } else {
         const today = new Date();
         const cutoff = new Date(
           today.getFullYear() - 15,
@@ -299,7 +287,7 @@ export default function Registration() {
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return newErrors;
   };
 
   const handlePreferredCommunicationChange = (
@@ -317,16 +305,18 @@ export default function Registration() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    console.log("errors", errors);
-    if (!validateForm()) {
+    const validationErrors = validateForm();
+    if (Object.keys(validationErrors).length > 0) {
+      const messages = Object.values(validationErrors);
+      const preview = messages.slice(0, 3).join(" • ");
+      const more = messages.length > 3 ? ` (+${messages.length - 3} more)` : "";
       toast({
-        title: "Validation Error",
-        description: `Please fill all the details. ${Object.values(errors).join(", ")}`,
+        title: "Please fix the highlighted fields",
+        description: `${preview}${more}`,
         variant: "destructive",
       });
       return;
     }
-    console.log("errors after validateForm", errors);
 
     setLoading(true);
 
@@ -372,8 +362,8 @@ export default function Registration() {
           preferred_mode_of_communication:
             formData.preferred_mode_of_communication,
           organizations: formData.organizations,
-          is_public: formData.is_public,
-          show_contact_info: formData.show_contact_info,
+          is_public: consent.is_public,
+          show_contact_info: consent.show_contact_info,
           show_location: formData.show_location,
           status: formData.status || null,
           approval_status: "pending",
@@ -406,8 +396,8 @@ export default function Registration() {
         organizations: { oldValue: null, newValue: formData.organizations },
         willing_to_mentor: { oldValue: null, newValue: formData.willing_to_mentor },
         areas_of_contribution: { oldValue: null, newValue: formData.areas_of_contribution },
-        is_public: { oldValue: null, newValue: formData.is_public },
-        show_contact_info: { oldValue: null, newValue: formData.show_contact_info },
+        is_public: { oldValue: null, newValue: consent.is_public },
+        show_contact_info: { oldValue: null, newValue: consent.show_contact_info },
         show_location: { oldValue: null, newValue: formData.show_location },
         status: { oldValue: null, newValue: formData.status },
       };
@@ -469,8 +459,12 @@ export default function Registration() {
   const handleAvatarUpload = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    const file = event.target.files?.[0];
-    if (!file || !user) return;
+    const input = event.target;
+    const file = input.files?.[0];
+    if (!file || !user) {
+      input.value = "";
+      return;
+    }
 
     const validation = validateImageFile(file);
     if (!validation.valid) {
@@ -479,6 +473,7 @@ export default function Registration() {
         description: validation.error,
         variant: "destructive",
       });
+      input.value = "";
       return;
     }
 
@@ -523,6 +518,7 @@ export default function Registration() {
       });
     } finally {
       setUploading(false);
+      input.value = "";
     }
   };
 
@@ -566,7 +562,10 @@ export default function Registration() {
                       </span>
                     </Button>
                   </Label>
-                  <Input id="avatar-upload" type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
+                  <Input id="avatar-upload" type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatarUpload} className="hidden" />
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
+                    Supported formats: JPG, PNG, WebP (max 20MB)
+                  </p>
                   {errors.avatar_url && (
                     <p className="text-sm text-red-500 mt-2">{errors.avatar_url}</p>
                   )}

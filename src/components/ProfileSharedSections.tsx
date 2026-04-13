@@ -283,7 +283,7 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
               )}
             </div>
             <div>
-              <Label htmlFor="gender">Gender</Label>
+              <Label htmlFor="gender">Gender *</Label>
               <Select
                 value={formData.gender || ""}
                 onValueChange={(value) =>
