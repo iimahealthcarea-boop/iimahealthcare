@@ -5,7 +5,7 @@ export interface ProfileChange {
   updatedBy: string;
   updatedByName: string;
   updatedAt: string;
-  changeType: 'create' | 'update' | 'approve' | 'reject' | 'admin_edit';
+  changeType: 'create' | 'update' | 'approve' | 'reject' | 'admin_edit' | 'resubmit';
   changedFields: Record<string, { oldValue: unknown; newValue: unknown }>;
 }
 
@@ -88,7 +88,7 @@ export async function addProfileChange(
   changedBy: string,
   changedByName: string,
   changedFields: Record<string, { oldValue: unknown; newValue: unknown }>,
-  changeType: 'create' | 'update' | 'approve' | 'reject' | 'admin_edit' = 'update'
+  changeType: 'create' | 'update' | 'approve' | 'reject' | 'admin_edit' | 'resubmit' = 'update'
 ): Promise<void> {
   try {
     console.log('Adding profile change:', {
@@ -139,7 +139,7 @@ export async function getProfileChangeHistory(profileUserId: string): Promise<Pr
       updatedBy: change.changed_by,
       updatedByName: change.changed_by_name,
       updatedAt: change.changed_at,
-      changeType: change.change_type as 'create' | 'update' | 'approve' | 'reject' | 'admin_edit',
+      changeType: change.change_type as 'create' | 'update' | 'approve' | 'reject' | 'admin_edit' | 'resubmit',
       changedFields: change.changed_fields as Record<string, { oldValue: unknown; newValue: unknown }>
     })) || [];
 

@@ -4,16 +4,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { 
-  Clock, 
-  User, 
-  Edit, 
-  CheckCircle, 
-  XCircle, 
-  Plus, 
-  ChevronDown, 
+import {
+  Clock,
+  User,
+  Edit,
+  CheckCircle,
+  XCircle,
+  Plus,
+  ChevronDown,
   ChevronUp,
-  History
+  History,
+  RotateCw
 } from "lucide-react";
 import { ProfileChange, getProfileChangeHistory, formatFieldName, formatFieldValue } from "@/utils/profileChangeTracker";
 
@@ -74,6 +75,8 @@ export function ProfileChangeTimeline({
         return <XCircle className="w-4 h-4" />;
       case 'admin_edit':
         return <User className="w-4 h-4" />;
+      case 'resubmit':
+        return <RotateCw className="w-4 h-4" />;
       default:
         return <Clock className="w-4 h-4" />;
     }
@@ -91,6 +94,8 @@ export function ProfileChangeTimeline({
         return 'bg-red-100 text-red-800 border-red-200';
       case 'admin_edit':
         return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'resubmit':
+        return 'bg-amber-100 text-amber-800 border-amber-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -108,6 +113,8 @@ export function ProfileChangeTimeline({
         return 'Profile Rejected';
       case 'admin_edit':
         return 'Admin Edit';
+      case 'resubmit':
+        return 'Application Resubmitted';
       default:
         return 'Profile Changed';
     }

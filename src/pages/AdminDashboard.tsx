@@ -374,6 +374,7 @@ export default function AdminDashboard() {
               name: `${profile.first_name} ${profile.last_name}`,
               status: "rejected",
               reason: reason || "",
+              appUrl: window.location.origin,
             },
           }
         );

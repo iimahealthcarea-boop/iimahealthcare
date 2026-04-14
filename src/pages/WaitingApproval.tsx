@@ -1,14 +1,12 @@
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock, CheckCircle, XCircle, RefreshCw, Loader2 } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, RefreshCw, Loader2, Pencil } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
 
 export default function WaitingApproval() {
   const { user, refreshUserData, signOut, loading } = useAuth();
-
-console.log({loading})
 
   const getStatusIcon = () => {
     switch (user?.approvalStatus) {
@@ -37,8 +35,8 @@ console.log({loading})
         };
       case 'rejected':
         return {
-          title: "Registration Rejected",
-          description: user?.profile?.rejection_reason || "Your registration was not approved. Please contact support for more information."
+          title: "Action Required: Update Your Application",
+          description: "The review team has asked you to revise and resubmit your application. See the feedback below, update your details, and resubmit for review."
         };
       default:
         return {
@@ -93,9 +91,33 @@ console.log({loading})
           )}
 
           {user?.approvalStatus === 'rejected' && (
-            <div className="space-y-2">
-              <p className="text-sm text-center text-muted-foreground">
-                Please contact our support team for further assistance.
+            <div className="space-y-4">
+              {user?.profile?.rejection_reason ? (
+                <div className="rounded-md border-l-4 border-red-500 bg-red-50 p-4 text-left">
+                  <p className="text-sm font-semibold text-red-700 mb-1">
+                    Feedback from the review team
+                  </p>
+                  <p className="text-sm text-red-900 whitespace-pre-wrap">
+                    {user.profile.rejection_reason}
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-md border-l-4 border-red-500 bg-red-50 p-4 text-left">
+                  <p className="text-sm text-red-900">
+                    The review team did not include specific feedback. Please double-check every required field before resubmitting.
+                  </p>
+                </div>
+              )}
+
+              <Link to="/registration" className="block">
+                <Button className="w-full">
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Update &amp; Resubmit Application
+                </Button>
+              </Link>
+
+              <p className="text-xs text-center text-muted-foreground">
+                Still need help? Reply to the email we sent you, or contact the support team.
               </p>
             </div>
           )}

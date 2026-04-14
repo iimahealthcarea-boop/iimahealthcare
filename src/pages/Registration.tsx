@@ -50,9 +50,10 @@ export default function Registration() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(
     user?.profile?.avatar_url || null
   );
+  const isResubmit = user?.profile?.approval_status === "rejected";
   const [consent, setConsent] = useState({
-    is_public: false,
-    show_contact_info: false,
+    is_public: Boolean(user?.profile?.is_public) || false,
+    show_contact_info: Boolean(user?.profile?.show_contact_info) || false,
   });
 
 
@@ -349,8 +350,6 @@ export default function Registration() {
           organization: formData.organization,
           position: formData.position,
           program: formData.program || null,
-          // experience_level: formData.experience_level as "Entry Level" | "Mid Level" | "Senior Level" | "Executive" | "Student" | "Recent Graduate",
-          // organization_type: formData.organization_type as "Corporate" | "Startup" | "Non-Profit" | "Government" | "Consulting" | "Education" | "Healthcare" | "Technology" | "Finance" | "Other",
           graduation_year: formData.graduation_year
             ? parseInt(formData.graduation_year)
             : null,
@@ -367,6 +366,9 @@ export default function Registration() {
           show_location: formData.show_location,
           status: formData.status || null,
           approval_status: "pending",
+          rejection_reason: null,
+          approved_by: null,
+          approved_at: null,
           other_social_media_handles: formData.other_social_media_handles,
           willing_to_mentor: formData.willing_to_mentor,
           areas_of_contribution: formData.areas_of_contribution,
@@ -380,27 +382,35 @@ export default function Registration() {
         `${formData.first_name} ${formData.last_name}`.trim() ||
         user?.email ||
         "User";
-      const creationFields = {
-        approval_status: { oldValue: null, newValue: "pending" },
-        first_name: { oldValue: null, newValue: formData.first_name },
-        last_name: { oldValue: null, newValue: formData.last_name },
-        gender: { oldValue: null, newValue: formData.gender },
-        pincode: { oldValue: null, newValue: formData.pincode },
-        organization: { oldValue: null, newValue: formData.organization },
-        position: { oldValue: null, newValue: formData.position },
-        program: { oldValue: null, newValue: formData.program },
-        preferred_mode_of_communication: {
-          oldValue: null,
-          newValue: formData.preferred_mode_of_communication,
-        },
-        organizations: { oldValue: null, newValue: formData.organizations },
-        willing_to_mentor: { oldValue: null, newValue: formData.willing_to_mentor },
-        areas_of_contribution: { oldValue: null, newValue: formData.areas_of_contribution },
-        is_public: { oldValue: null, newValue: consent.is_public },
-        show_contact_info: { oldValue: null, newValue: consent.show_contact_info },
-        show_location: { oldValue: null, newValue: formData.show_location },
-        status: { oldValue: null, newValue: formData.status },
-      };
+      const creationFields = isResubmit
+        ? {
+            approval_status: { oldValue: "rejected", newValue: "pending" },
+            rejection_reason: {
+              oldValue: user?.profile?.rejection_reason ?? null,
+              newValue: null,
+            },
+          }
+        : {
+            approval_status: { oldValue: null, newValue: "pending" },
+            first_name: { oldValue: null, newValue: formData.first_name },
+            last_name: { oldValue: null, newValue: formData.last_name },
+            gender: { oldValue: null, newValue: formData.gender },
+            pincode: { oldValue: null, newValue: formData.pincode },
+            organization: { oldValue: null, newValue: formData.organization },
+            position: { oldValue: null, newValue: formData.position },
+            program: { oldValue: null, newValue: formData.program },
+            preferred_mode_of_communication: {
+              oldValue: null,
+              newValue: formData.preferred_mode_of_communication,
+            },
+            organizations: { oldValue: null, newValue: formData.organizations },
+            willing_to_mentor: { oldValue: null, newValue: formData.willing_to_mentor },
+            areas_of_contribution: { oldValue: null, newValue: formData.areas_of_contribution },
+            is_public: { oldValue: null, newValue: consent.is_public },
+            show_contact_info: { oldValue: null, newValue: consent.show_contact_info },
+            show_location: { oldValue: null, newValue: formData.show_location },
+            status: { oldValue: null, newValue: formData.status },
+          };
 
       try {
         await addProfileChange(
@@ -408,7 +418,7 @@ export default function Registration() {
           user?.id || "",
           userName,
           creationFields,
-          "create"
+          isResubmit ? "resubmit" : "create"
         );
       } catch (changeError) {
         console.error("Failed to track profile creation:", changeError);
@@ -418,9 +428,10 @@ export default function Registration() {
       await refreshUserData();
 
       toast({
-        title: "Registration Submitted",
-        description:
-          "Your profile has been submitted for admin approval. You'll be notified once it's reviewed.",
+        title: isResubmit ? "Application Resubmitted" : "Registration Submitted",
+        description: isResubmit
+          ? "Thanks — your updated application has been sent back to the review team. You'll get an email once it's reviewed."
+          : "Your profile has been submitted for admin approval. You'll be notified once it's reviewed.",
       });
 
       navigate("/waiting-approval");
@@ -442,14 +453,53 @@ export default function Registration() {
 
   useEffect(() => {
     if (user?.profile) {
+      const p = user.profile as unknown as Record<string, unknown>;
+      const asString = (v: unknown) => (v == null ? "" : String(v));
       setFormData((prev) => ({
         ...prev,
-        first_name: user.profile.first_name,
-        last_name: user.profile.last_name,
-        email: user.profile.email,
-        avatar_url: user.profile.avatar_url || "",
+        first_name: asString(p.first_name),
+        last_name: asString(p.last_name),
+        phone: asString(p.phone),
+        altEmail: asString(p.altEmail),
+        avatar_url: asString(p.avatar_url),
+        email: (p.email as string | undefined) ?? user.email,
+        country_code: asString(p.country_code) || "+91",
+        address: asString(p.address),
+        date_of_birth: asString(p.date_of_birth),
+        city: asString(p.city),
+        country: asString(p.country) || "India",
+        pincode: asString(p.pincode),
+        gender: asString(p.gender),
+        organization: asString(p.organization),
+        position: asString(p.position),
+        program: (asString(p.program) as typeof prev.program) || "",
+        graduation_year: asString(p.graduation_year),
+        bio: asString(p.bio),
+        skills: Array.isArray(p.skills) ? (p.skills as string[]).join(", ") : "",
+        interests: Array.isArray(p.interests) ? (p.interests as string[]).join(", ") : "",
+        linkedin_url: asString(p.linkedin_url),
+        website_url: asString(p.website_url),
+        preferred_mode_of_communication: Array.isArray(p.preferred_mode_of_communication)
+          ? (p.preferred_mode_of_communication as typeof prev.preferred_mode_of_communication)
+          : [],
+        organizations: Array.isArray(p.organizations)
+          ? (p.organizations as typeof prev.organizations)
+          : [],
+        is_public: Boolean(p.is_public),
+        show_contact_info: Boolean(p.show_contact_info),
+        show_location: p.show_location == null ? true : Boolean(p.show_location),
+        status: (asString(p.status) as typeof prev.status) || "",
+        other_social_media_handles: asString(p.other_social_media_handles),
+        willing_to_mentor: (p.willing_to_mentor as typeof prev.willing_to_mentor) ?? null,
+        areas_of_contribution: Array.isArray(p.areas_of_contribution)
+          ? (p.areas_of_contribution as string[])
+          : [],
       }));
-      setAvatarUrl(user.profile.avatar_url || null);
+      setAvatarUrl(asString(p.avatar_url) || null);
+      setConsent({
+        is_public: Boolean(p.is_public),
+        show_contact_info: Boolean(p.show_contact_info),
+      });
     }
   }, [user]);
 
@@ -530,13 +580,27 @@ export default function Registration() {
         <div className="max-w-2xl mx-auto">
           <Card>
             <CardHeader>
-              <CardTitle>Complete Your Registration</CardTitle>
+              <CardTitle>
+                {isResubmit ? "Update &amp; Resubmit Your Application" : "Complete Your Registration"}
+              </CardTitle>
               <CardDescription>
-                Please fill in your complete profile details. Your registration
-                will be reviewed by an administrator.
+                {isResubmit
+                  ? "Review the feedback below, update the relevant sections, and submit. Your application will return to the review queue."
+                  : "Please fill in your complete profile details. Your registration will be reviewed by an administrator."}
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {isResubmit && (
+                <div className="mb-6 rounded-md border-l-4 border-red-500 bg-red-50 p-4">
+                  <p className="text-sm font-semibold text-red-700 mb-1">
+                    Feedback from the review team
+                  </p>
+                  <p className="text-sm text-red-900 whitespace-pre-wrap">
+                    {user?.profile?.rejection_reason ||
+                      "No specific feedback was provided. Please double-check every required field before resubmitting."}
+                  </p>
+                </div>
+              )}
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Profile Picture */}
                 <div className="flex flex-col items-center space-y-4">
@@ -631,7 +695,7 @@ export default function Registration() {
 
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Submit Registration
+                  {isResubmit ? "Resubmit for Review" : "Submit Registration"}
                 </Button>
               </form>
             </CardContent>
