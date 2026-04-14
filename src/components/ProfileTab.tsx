@@ -24,6 +24,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -90,6 +91,7 @@ export function ProfileTab({
   const [loading, setLoading] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<ProfileWithApproval | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [rejectTarget, setRejectTarget] = useState<ProfileWithApproval | null>(null);
   const [isTimelineOpen, setIsTimelineOpen] = useState(false);
   const [timelineProfile, setTimelineProfile] = useState<ProfileWithApproval | null>(null);
   const [pagination, setPagination] = useState<PaginationInfo>({
@@ -231,13 +233,32 @@ export function ProfileTab({
     }
   };
 
-  const handleRejectAction = async (profileUserId: string, reason?: string) => {
+  const openRejectModal = (profile: ProfileWithApproval) => {
+    setRejectTarget(profile);
+    setRejectionReason("");
+  };
+
+  const closeRejectModal = () => {
+    setRejectTarget(null);
+    setRejectionReason("");
+  };
+
+  const confirmReject = async () => {
+    const trimmed = rejectionReason.trim();
+    if (!rejectTarget || !trimmed) {
+      toast({
+        title: "Rejection reason required",
+        description: "Please provide feedback so the member knows what to update.",
+        variant: "destructive",
+      });
+      return;
+    }
     try {
-      await onReject(profileUserId, reason);
+      await onReject(rejectTarget.user_id, trimmed);
       await fetchProfiles(pagination.page);
       onProfileUpdate();
       setSelectedProfile(null);
-      setRejectionReason("");
+      closeRejectModal();
     } catch (error) {
       console.error('Error during reject action:', error);
     }
@@ -534,38 +555,24 @@ export function ProfileTab({
                   </div>
 
                   {selectedProfile.approval_status === "pending" && (
-                    <div className="space-y-4">
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={() => handleApproveAction(selectedProfile.user_id)}
-                          disabled={actionLoading}
-                          className="flex-1"
-                        >
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          Approve
-                        </Button>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="rejection-reason">
-                          Rejection Reason (optional)
-                        </Label>
-                        <Textarea
-                          id="rejection-reason"
-                          value={rejectionReason}
-                          onChange={(e) => setRejectionReason(e.target.value)}
-                          placeholder="Provide a reason for rejection (optional)..."
-                        />
-                        <Button
-                          variant="destructive"
-                          onClick={() => handleRejectAction(selectedProfile.user_id, rejectionReason)}
-                          disabled={actionLoading}
-                          className="w-full"
-                        >
-                          <XCircle className="w-4 h-4 mr-1" />
-                          Reject
-                        </Button>
-                      </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => handleApproveAction(selectedProfile.user_id)}
+                        disabled={actionLoading}
+                        className="flex-1"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-1" />
+                        Approve
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={() => openRejectModal(selectedProfile)}
+                        disabled={actionLoading}
+                        className="flex-1"
+                      >
+                        <XCircle className="w-4 h-4 mr-1" />
+                        Reject
+                      </Button>
                     </div>
                   )}
 
@@ -639,7 +646,7 @@ export function ProfileTab({
               variant="destructive"
               size="sm"
               className="flex-1"
-              onClick={() => handleRejectAction(profile.user_id)}
+              onClick={() => openRejectModal(profile)}
               disabled={actionLoading}
             >
               <XCircle className="w-4 h-4 mr-1" />
@@ -662,6 +669,57 @@ export function ProfileTab({
 
   return (
     <div className="space-y-4">
+      <Dialog
+        open={rejectTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) closeRejectModal();
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reject Application</DialogTitle>
+            <DialogDescription>
+              {rejectTarget
+                ? `This will send ${rejectTarget.first_name ?? ""} ${rejectTarget.last_name ?? ""} an email with your feedback and ask them to update & resubmit their profile.`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="reject-reason-modal">
+              Reason for rejection <span className="text-red-600">*</span>
+            </Label>
+            <Textarea
+              id="reject-reason-modal"
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder="e.g. Please upload a clearer profile photo and add your current organization."
+              rows={5}
+              autoFocus
+            />
+            <p className="text-xs text-muted-foreground">
+              This message is shown to the member in their email and on the resubmit screen.
+            </p>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button
+              variant="outline"
+              onClick={closeRejectModal}
+              disabled={actionLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmReject}
+              disabled={actionLoading || rejectionReason.trim().length === 0}
+            >
+              <XCircle className="w-4 h-4 mr-1" />
+              {actionLoading ? "Rejecting..." : "Send & Reject"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {profiles.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center">
