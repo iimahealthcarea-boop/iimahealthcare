@@ -12,50 +12,40 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { useCountries } from "@/hooks/useCountries";
-import { Loader2, X, Upload } from "lucide-react";
+import { Loader2, Upload } from "lucide-react";
 import Header from "@/components/Header";
-import { OrganizationSelector } from "@/components/OrganizationSelector";
-import { CitySelector } from "@/components/CitySelector";
 import { addProfileChange } from "@/utils/profileChangeTracker";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import {
   compressImage,
   validateImageFile,
   AVATAR_COMPRESSION_OPTIONS,
 } from "@/utils/imageCompression";
-import { SectionDivider } from "@/components/SectionDivider";
+import {
+  createAvatarPath,
+  getAvatarStoragePath,
+  PROFILE_PICTURES_BUCKET,
+} from "@/utils/avatarStorage";
 import { ProfileSharedSections } from "@/components/ProfileSharedSections";
 import type { ProfileSharedFormData } from "@/components/ProfileSharedSections";
 
 export default function Registration() {
-  const { user, refreshUserData } = useAuth();
+  const { user, loading: authLoading, refreshUserData } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { countries, loading: countriesLoading } = useCountries();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(
-    user?.profile?.avatar_url || null
+    user?.profile?.avatar_url || null,
   );
+  const [stagedAvatarPath, setStagedAvatarPath] = useState<string | null>(null);
   const isResubmit = user?.profile?.approval_status === "rejected";
   const [consent, setConsent] = useState({
     is_public: Boolean(user?.profile?.is_public) || false,
     show_contact_info: Boolean(user?.profile?.show_contact_info) || false,
   });
-
 
   type Organization = {
     id: string;
@@ -72,7 +62,7 @@ export default function Registration() {
     first_name: user?.profile?.first_name || "",
     last_name: user?.profile?.last_name || "",
     phone: user?.profile?.phone || "",
-    altEmail:"",
+    altEmail: "",
     avatar_url: avatarUrl || "",
     email: user?.email,
     country_code: "+91",
@@ -117,9 +107,13 @@ export default function Registration() {
     areas_of_contribution: [] as string[],
   });
 
-  console.log("formData", formData);
-
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate("/auth", { replace: true });
+    }
+  }, [authLoading, navigate, user]);
 
   const validateForm = (): { [key: string]: string } => {
     const newErrors: { [key: string]: string } = {};
@@ -181,18 +175,28 @@ export default function Registration() {
     } else {
       const linkedinPattern = /linkedin\.com/i;
       if (!linkedinPattern.test(formData.linkedin_url)) {
-        newErrors.linkedin_url = "Please enter a valid LinkedIn URL (e.g. linkedin.com/in/yourprofile)";
+        newErrors.linkedin_url =
+          "Please enter a valid LinkedIn URL (e.g. linkedin.com/in/yourprofile)";
       }
     }
 
     // Preferred mode of communication - at least one
-    if (!formData.preferred_mode_of_communication || formData.preferred_mode_of_communication.length === 0) {
-      newErrors.preferred_mode_of_communication = "Select at least one preferred mode of communication";
+    if (
+      !formData.preferred_mode_of_communication ||
+      formData.preferred_mode_of_communication.length === 0
+    ) {
+      newErrors.preferred_mode_of_communication =
+        "Select at least one preferred mode of communication";
     }
 
     // Organizations: require first organization currentOrg
-    if (!formData.organizations || formData.organizations.length === 0 || !formData.organizations[0]?.currentOrg?.trim()) {
-      newErrors[`organizations_0_currentOrg`] = "Current organization is required";
+    if (
+      !formData.organizations ||
+      formData.organizations.length === 0 ||
+      !formData.organizations[0]?.currentOrg?.trim()
+    ) {
+      newErrors[`organizations_0_currentOrg`] =
+        "Current organization is required";
     }
 
     // If any organization rows exist, validate visible fields
@@ -271,7 +275,7 @@ export default function Registration() {
         const cutoff = new Date(
           today.getFullYear() - 15,
           today.getMonth(),
-          today.getDate()
+          today.getDate(),
         );
         if (dob > cutoff) {
           newErrors.date_of_birth = "You must be at least 15 years old";
@@ -281,10 +285,12 @@ export default function Registration() {
 
     // Consent validations
     if (!consent.is_public) {
-      newErrors.is_public = "Please consent to include your information in the directory";
+      newErrors.is_public =
+        "Please consent to include your information in the directory";
     }
     if (!consent.show_contact_info) {
-      newErrors.show_contact_info = "Please consent to share your contact information with other alumni";
+      newErrors.show_contact_info =
+        "Please consent to share your contact information with other alumni";
     }
 
     setErrors(newErrors);
@@ -293,7 +299,7 @@ export default function Registration() {
 
   const handlePreferredCommunicationChange = (
     value: PreferredCommunication,
-    checked: boolean
+    checked: boolean,
   ) => {
     setFormData((prev) => ({
       ...prev,
@@ -305,6 +311,24 @@ export default function Registration() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!user) {
+      toast({
+        title: "Please sign in",
+        description: "You need to be signed in to complete registration.",
+        variant: "destructive",
+      });
+      navigate("/auth", { replace: true });
+      return;
+    }
+
+    if (uploading) {
+      toast({
+        title: "Photo upload in progress",
+        description: "Please wait for the photo upload to finish before submitting.",
+      });
+      return;
+    }
 
     const validationErrors = validateForm();
     if (Object.keys(validationErrors).length > 0) {
@@ -330,6 +354,9 @@ export default function Registration() {
         .split(",")
         .map((s) => s.trim())
         .filter((s) => s);
+
+      const previousAvatarPath = getAvatarStoragePath(user.profile?.avatar_url);
+      const submittedAvatarPath = getAvatarStoragePath(avatarUrl);
 
       const { error } = await supabase
         .from("profiles")
@@ -373,9 +400,21 @@ export default function Registration() {
           willing_to_mentor: formData.willing_to_mentor,
           areas_of_contribution: formData.areas_of_contribution,
         })
-        .eq("user_id", user?.id);
+        .eq("user_id", user.id)
+        .select("user_id")
+        .single();
 
       if (error) throw error;
+
+      if (
+        previousAvatarPath &&
+        submittedAvatarPath &&
+        previousAvatarPath !== submittedAvatarPath
+      ) {
+        await supabase.storage
+          .from(PROFILE_PICTURES_BUCKET)
+          .remove([previousAvatarPath]);
+      }
 
       // Track profile creation
       const userName =
@@ -404,21 +443,30 @@ export default function Registration() {
               newValue: formData.preferred_mode_of_communication,
             },
             organizations: { oldValue: null, newValue: formData.organizations },
-            willing_to_mentor: { oldValue: null, newValue: formData.willing_to_mentor },
-            areas_of_contribution: { oldValue: null, newValue: formData.areas_of_contribution },
+            willing_to_mentor: {
+              oldValue: null,
+              newValue: formData.willing_to_mentor,
+            },
+            areas_of_contribution: {
+              oldValue: null,
+              newValue: formData.areas_of_contribution,
+            },
             is_public: { oldValue: null, newValue: consent.is_public },
-            show_contact_info: { oldValue: null, newValue: consent.show_contact_info },
+            show_contact_info: {
+              oldValue: null,
+              newValue: consent.show_contact_info,
+            },
             show_location: { oldValue: null, newValue: formData.show_location },
             status: { oldValue: null, newValue: formData.status },
           };
 
       try {
         await addProfileChange(
-          user?.id || "",
-          user?.id || "",
+          user.id,
+          user.id,
           userName,
           creationFields,
-          isResubmit ? "resubmit" : "create"
+          isResubmit ? "resubmit" : "create",
         );
       } catch (changeError) {
         console.error("Failed to track profile creation:", changeError);
@@ -428,7 +476,9 @@ export default function Registration() {
       await refreshUserData();
 
       toast({
-        title: isResubmit ? "Application Resubmitted" : "Registration Submitted",
+        title: isResubmit
+          ? "Application Resubmitted"
+          : "Registration Submitted",
         description: isResubmit
           ? "Thanks — your updated application has been sent back to the review team. You'll get an email once it's reviewed."
           : "Your profile has been submitted for admin approval. You'll be notified once it's reviewed.",
@@ -448,8 +498,6 @@ export default function Registration() {
       setLoading(false);
     }
   };
-
-  console.log("countries", countries);
 
   useEffect(() => {
     if (user?.profile) {
@@ -475,11 +523,17 @@ export default function Registration() {
         program: (asString(p.program) as typeof prev.program) || "",
         graduation_year: asString(p.graduation_year),
         bio: asString(p.bio),
-        skills: Array.isArray(p.skills) ? (p.skills as string[]).join(", ") : "",
-        interests: Array.isArray(p.interests) ? (p.interests as string[]).join(", ") : "",
+        skills: Array.isArray(p.skills)
+          ? (p.skills as string[]).join(", ")
+          : "",
+        interests: Array.isArray(p.interests)
+          ? (p.interests as string[]).join(", ")
+          : "",
         linkedin_url: asString(p.linkedin_url),
         website_url: asString(p.website_url),
-        preferred_mode_of_communication: Array.isArray(p.preferred_mode_of_communication)
+        preferred_mode_of_communication: Array.isArray(
+          p.preferred_mode_of_communication,
+        )
           ? (p.preferred_mode_of_communication as typeof prev.preferred_mode_of_communication)
           : [],
         organizations: Array.isArray(p.organizations)
@@ -487,10 +541,12 @@ export default function Registration() {
           : [],
         is_public: Boolean(p.is_public),
         show_contact_info: Boolean(p.show_contact_info),
-        show_location: p.show_location == null ? true : Boolean(p.show_location),
+        show_location:
+          p.show_location == null ? true : Boolean(p.show_location),
         status: (asString(p.status) as typeof prev.status) || "",
         other_social_media_handles: asString(p.other_social_media_handles),
-        willing_to_mentor: (p.willing_to_mentor as typeof prev.willing_to_mentor) ?? null,
+        willing_to_mentor:
+          (p.willing_to_mentor as typeof prev.willing_to_mentor) ?? null,
         areas_of_contribution: Array.isArray(p.areas_of_contribution)
           ? (p.areas_of_contribution as string[])
           : [],
@@ -507,7 +563,7 @@ export default function Registration() {
     `${(first || "").charAt(0)}${(last || "").charAt(0)}`.toUpperCase();
 
   const handleAvatarUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const input = event.target;
     const file = input.files?.[0];
@@ -527,40 +583,39 @@ export default function Registration() {
       return;
     }
 
-    
     setUploading(true);
     try {
       const compressionResult = await compressImage(
         file,
-        AVATAR_COMPRESSION_OPTIONS
+        AVATAR_COMPRESSION_OPTIONS,
       );
-      const fileExt = "jpg";
-      const fileName = `${user.id}/avatar.${fileExt}`;
-
-      // Remove previous
-      if (avatarUrl) {
-        const existingPath = avatarUrl.split("/").pop();
-        if (existingPath) {
-          await supabase.storage
-            .from("profile-pictures")
-            .remove([`${user.id}/${existingPath}`]);
-        }
-      }
+      const fileName = createAvatarPath(user.id);
 
       const { error: uploadError } = await supabase.storage
-        .from("profile-pictures")
-        .upload(fileName, compressionResult.file, { upsert: true });
+        .from(PROFILE_PICTURES_BUCKET)
+        .upload(fileName, compressionResult.file, {
+          cacheControl: "31536000",
+          upsert: false,
+        });
       if (uploadError) throw uploadError;
 
       const { data } = supabase.storage
-        .from("profile-pictures")
+        .from(PROFILE_PICTURES_BUCKET)
         .getPublicUrl(fileName);
+
+      if (stagedAvatarPath && stagedAvatarPath !== fileName) {
+        await supabase.storage
+          .from(PROFILE_PICTURES_BUCKET)
+          .remove([stagedAvatarPath]);
+      }
+
+      setStagedAvatarPath(fileName);
       setAvatarUrl(data.publicUrl);
       toast({
         title: "Photo ready",
         description: "Your profile picture will be saved with the form.",
       });
-    } catch (err) {
+    } catch {
       toast({
         title: "Upload failed",
         description: "Please try again.",
@@ -581,7 +636,9 @@ export default function Registration() {
           <Card>
             <CardHeader>
               <CardTitle>
-                {isResubmit ? "Update &amp; Resubmit Your Application" : "Complete Your Registration"}
+                {isResubmit
+                  ? "Update &amp; Resubmit Your Application"
+                  : "Complete Your Registration"}
               </CardTitle>
               <CardDescription>
                 {isResubmit
@@ -604,53 +661,80 @@ export default function Registration() {
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Profile Picture */}
                 <div className="flex flex-col items-center space-y-4">
-                <div className="relative">
-                  <Avatar className="w-24 h-24">
-                    <AvatarImage src={avatarUrl || ''} alt="Profile picture" />
-                    <AvatarFallback className="text-lg">
-                      {getInitials(formData.first_name, formData.last_name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  {uploading && (
-                    <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
-                      <Loader2 className="h-6 w-6 text-white animate-spin" />
-                    </div>
-                  )}
+                  <div className="relative">
+                    <Avatar className="w-24 h-24">
+                      <AvatarImage
+                        src={avatarUrl || ""}
+                        alt="Profile picture"
+                      />
+                      <AvatarFallback className="text-lg">
+                        {getInitials(formData.first_name, formData.last_name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    {uploading && (
+                      <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                        <Loader2 className="h-6 w-6 text-white animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <Label htmlFor="avatar-upload" className="cursor-pointer">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={uploading}
+                        asChild
+                      >
+                        <span>
+                          <Upload className="h-4 w-4 mr-2" />
+                          {uploading ? "Uploading..." : "Upload Photo"}
+                        </span>
+                      </Button>
+                    </Label>
+                    <Input
+                      id="avatar-upload"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleAvatarUpload}
+                      className="hidden"
+                    />
+                    <p className="text-xs text-muted-foreground mt-2 text-center">
+                      Supported formats: JPG, PNG, WebP (max 20MB)
+                    </p>
+                    {errors.avatar_url && (
+                      <p className="text-sm text-red-500 mt-2">
+                        {errors.avatar_url}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="avatar-upload" className="cursor-pointer">
-                    <Button variant="outline" size="sm" disabled={uploading} asChild>
-                      <span>
-                        <Upload className="h-4 w-4 mr-2" />
-                        {uploading ? 'Uploading...' : 'Upload Photo'}
-                      </span>
-                    </Button>
-                  </Label>
-                  <Input id="avatar-upload" type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatarUpload} className="hidden" />
-                  <p className="text-xs text-muted-foreground mt-2 text-center">
-                    Supported formats: JPG, PNG, WebP (max 20MB)
-                  </p>
-                  {errors.avatar_url && (
-                    <p className="text-sm text-red-500 mt-2">{errors.avatar_url}</p>
-                  )}
-                </div>
-              </div>
 
                 <ProfileSharedSections
                   formData={formData as unknown as ProfileSharedFormData}
                   onFormDataChange={(newData: Partial<ProfileSharedFormData>) =>
-                    setFormData((prev) => ({ ...prev, ...(newData as unknown as typeof formData) }))
+                    setFormData((prev) => ({
+                      ...prev,
+                      ...(newData as unknown as typeof formData),
+                    }))
                   }
-                  handlePreferredCommunicationChange={handlePreferredCommunicationChange}
+                  handlePreferredCommunicationChange={
+                    handlePreferredCommunicationChange
+                  }
                   skillsInput={formData.skills}
-                  onSkillsInputChange={(v) => setFormData({ ...formData, skills: v })}
+                  onSkillsInputChange={(v) =>
+                    setFormData({ ...formData, skills: v })
+                  }
                   interestsInput={formData.interests}
-                  onInterestsInputChange={(v) => setFormData({ ...formData, interests: v })}
+                  onInterestsInputChange={(v) =>
+                    setFormData({ ...formData, interests: v })
+                  }
                   showPersonal={true}
                   showProfessional={true}
                   showAdditional={true}
                   showPrivacy={true}
-                  lockDob={Boolean(user?.profile?.approval_status === 'approved')}
+                  lockDob={Boolean(
+                    user?.profile?.approval_status === "approved",
+                  )}
                   fieldErrors={errors}
                 />
 
@@ -661,15 +745,21 @@ export default function Registration() {
                       id="consent-directory"
                       checked={consent.is_public}
                       onCheckedChange={(checked) =>
-                        setConsent((prev) => ({ ...prev, is_public: Boolean(checked) }))
+                        setConsent((prev) => ({
+                          ...prev,
+                          is_public: Boolean(checked),
+                        }))
                       }
                     />
                     <div>
                       <Label htmlFor="consent-directory" className="leading-6">
-                        Consent to Include Information in the IIMA Healthcare Directory
+                        Consent to Include Information in the IIMA Healthcare
+                        Directory
                       </Label>
                       {errors.is_public && (
-                        <p className="text-sm text-red-500 mt-1">{errors.is_public}</p>
+                        <p className="text-sm text-red-500 mt-1">
+                          {errors.is_public}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -679,23 +769,39 @@ export default function Registration() {
                       id="consent-share-contact"
                       checked={consent.show_contact_info}
                       onCheckedChange={(checked) =>
-                          setConsent((prev) => ({ ...prev, show_contact_info: Boolean(checked) }))
-                        }
+                        setConsent((prev) => ({
+                          ...prev,
+                          show_contact_info: Boolean(checked),
+                        }))
+                      }
                     />
                     <div>
-                      <Label htmlFor="consent-share-contact" className="leading-6">
+                      <Label
+                        htmlFor="consent-share-contact"
+                        className="leading-6"
+                      >
                         Consent to Share Contact Information with Other Alumni
                       </Label>
                       {errors.show_contact_info && (
-                        <p className="text-sm text-red-500 mt-1">{errors.show_contact_info}</p>
+                        <p className="text-sm text-red-500 mt-1">
+                          {errors.show_contact_info}
+                        </p>
                       )}
                     </div>
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={loading || uploading || !user}
+                >
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isResubmit ? "Resubmit for Review" : "Submit Registration"}
+                  {uploading
+                    ? "Uploading Photo..."
+                    : isResubmit
+                      ? "Resubmit for Review"
+                      : "Submit Registration"}
                 </Button>
               </form>
             </CardContent>

@@ -40,9 +40,13 @@ import CountrySelector from "@/components/CountrySelector";
 import { 
   compressImage, 
   validateImageFile, 
-  formatFileSize, 
   AVATAR_COMPRESSION_OPTIONS 
 } from "@/utils/imageCompression";
+import {
+  createAvatarPath,
+  getAvatarStoragePath,
+  PROFILE_PICTURES_BUCKET,
+} from "@/utils/avatarStorage";
 import { Json } from "@/integrations/supabase/types";
 
 type OrganizationType =
@@ -341,8 +345,12 @@ const Profile = () => {
   const handleAvatarUpload = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    const file = event.target.files?.[0];
-    if (!file || !user) return;
+    const input = event.target;
+    const file = input.files?.[0];
+    if (!file || !user) {
+      input.value = "";
+      return;
+    }
 
     // Validate image file
     const validation = validateImageFile(file);
@@ -352,6 +360,7 @@ const Profile = () => {
         description: validation.error,
         variant: "destructive",
       });
+      input.value = "";
       return;
     }
 
@@ -361,29 +370,22 @@ const Profile = () => {
       const compressionResult = await compressImage(file, AVATAR_COMPRESSION_OPTIONS);
 
       // Create file path with user ID
-      const fileExt = 'jpg'; // Always use jpg for compressed images
-      const fileName = `${user.id}/avatar.${fileExt}`;
-
-      // Delete existing avatar if it exists
-      if (profile?.avatar_url) {
-        const existingPath = profile.avatar_url.split("/").pop();
-        if (existingPath) {
-          await supabase.storage
-            .from("profile-pictures")
-            .remove([`${user.id}/${existingPath}`]);
-        }
-      }
+      const fileName = createAvatarPath(user.id);
+      const previousPath = getAvatarStoragePath(profile?.avatar_url);
 
       // Upload compressed file
       const { error: uploadError } = await supabase.storage
-        .from("profile-pictures")
-        .upload(fileName, compressionResult.file, { upsert: true });
+        .from(PROFILE_PICTURES_BUCKET)
+        .upload(fileName, compressionResult.file, {
+          cacheControl: "31536000",
+          upsert: false,
+        });
 
       if (uploadError) throw uploadError;
 
       // Get public URL
       const { data } = supabase.storage
-        .from("profile-pictures")
+        .from(PROFILE_PICTURES_BUCKET)
         .getPublicUrl(fileName);
 
       // Update profile with new avatar URL
@@ -393,6 +395,12 @@ const Profile = () => {
         .eq("user_id", user.id);
 
       if (updateError) throw updateError;
+
+      if (previousPath && previousPath !== fileName) {
+        await supabase.storage
+          .from(PROFILE_PICTURES_BUCKET)
+          .remove([previousPath]);
+      }
 
       // Update local state
       setProfile((prev) =>
@@ -414,6 +422,7 @@ const Profile = () => {
       });
     } finally {
       setUploading(false);
+      input.value = "";
     }
   };
 
