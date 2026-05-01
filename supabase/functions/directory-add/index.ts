@@ -68,6 +68,30 @@ Deno.serve(async (req) => {
       );
     }
 
+    const { data: memberProfile, error: memberError } = await supabase
+      .from('profiles')
+      .select('user_id, approval_status, is_public, deleted_at')
+      .eq('user_id', member_id)
+      .single();
+
+    if (memberError || !memberProfile) {
+      return new Response(
+        JSON.stringify({ error: 'Member profile not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (
+      memberProfile.deleted_at ||
+      memberProfile.approval_status !== 'approved' ||
+      !memberProfile.is_public
+    ) {
+      return new Response(
+        JSON.stringify({ error: 'Member profile is not available for directory add' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Add member to user's directory
     const { data, error } = await supabase
       .from('user_directory')

@@ -44,6 +44,7 @@ import {
   Eye,
   History,
   Edit,
+  Trash2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProfileChangeTimeline } from "@/components/ProfileChangeTimeline";
@@ -65,11 +66,11 @@ interface ProfileTabProps {
   experienceFilter: string;
   organizationTypeFilter: string;
   refreshSignal: number;
-  onProfileUpdate: () => void;
   onApprove: (profileUserId: string) => Promise<void>;
   onReject: (profileUserId: string, reason?: string) => Promise<void>;
   onTogglePublic: (profileUserId: string, currentStatus: boolean) => Promise<void>;
   onEdit: (profile: ProfileWithApproval) => void;
+  onDelete: (profile: ProfileWithApproval) => Promise<void>;
   actionLoading: boolean;
 }
 
@@ -79,11 +80,11 @@ export function ProfileTab({
   experienceFilter,
   organizationTypeFilter,
   refreshSignal,
-  onProfileUpdate,
   onApprove,
   onReject,
   onTogglePublic,
   onEdit,
+  onDelete,
   actionLoading,
 }: ProfileTabProps) {
   const { toast } = useToast();
@@ -92,6 +93,7 @@ export function ProfileTab({
   const [selectedProfile, setSelectedProfile] = useState<ProfileWithApproval | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [rejectTarget, setRejectTarget] = useState<ProfileWithApproval | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ProfileWithApproval | null>(null);
   const [isTimelineOpen, setIsTimelineOpen] = useState(false);
   const [timelineProfile, setTimelineProfile] = useState<ProfileWithApproval | null>(null);
   const [pagination, setPagination] = useState<PaginationInfo>({
@@ -152,7 +154,9 @@ export function ProfileTab({
       
       if (result.success) {
         setProfiles(result.data || []);
-        setPagination(result.pagination || pagination);
+        if (result.pagination) {
+          setPagination(result.pagination);
+        }
       } else {
         throw new Error(result.error || 'Failed to fetch profiles');
       }
@@ -171,7 +175,7 @@ export function ProfileTab({
   // Fetch when component mounts or filters change
   useEffect(() => {
     fetchProfiles(1);
-  }, [status, searchTerm, experienceFilter, organizationTypeFilter, refreshSignal]); // Re-fetch on tab/filter changes or manual refresh
+  }, [fetchProfiles, refreshSignal]); // Re-fetch on tab/filter changes or manual refresh
 
   const handlePageChange = useCallback((newPage: number) => {
     if (newPage >= 1 && newPage <= pagination.totalPages) {
@@ -226,7 +230,6 @@ export function ProfileTab({
     try {
       await onApprove(profileUserId);
       await fetchProfiles(pagination.page);
-      onProfileUpdate();
       setSelectedProfile(null);
     } catch (error) {
       console.error('Error during approve action:', error);
@@ -256,11 +259,27 @@ export function ProfileTab({
     try {
       await onReject(rejectTarget.user_id, trimmed);
       await fetchProfiles(pagination.page);
-      onProfileUpdate();
       setSelectedProfile(null);
       closeRejectModal();
     } catch (error) {
       console.error('Error during reject action:', error);
+    }
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteTarget(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+
+    try {
+      await onDelete(deleteTarget);
+      await fetchProfiles(pagination.page);
+      setSelectedProfile(null);
+      closeDeleteModal();
+    } catch (error) {
+      console.error("Error during delete action:", error);
     }
   };
 
@@ -631,6 +650,17 @@ export function ProfileTab({
           Edit Profile
         </Button>
 
+        <Button
+          variant="destructive"
+          size="sm"
+          className="w-full"
+          onClick={() => setDeleteTarget(profile)}
+          disabled={actionLoading}
+        >
+          <Trash2 className="w-4 h-4 mr-1" />
+          Delete Profile
+        </Button>
+
         {profile.approval_status === "pending" && (
           <div className="flex gap-2">
             <Button
@@ -715,6 +745,41 @@ export function ProfileTab({
             >
               <XCircle className="w-4 h-4 mr-1" />
               {actionLoading ? "Rejecting..." : "Send & Reject"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) closeDeleteModal();
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Profile</DialogTitle>
+            <DialogDescription>
+              {deleteTarget
+                ? `This will hide ${deleteTarget.first_name ?? ""} ${deleteTarget.last_name ?? ""} from profile lists and member directories. The database row will be kept for audit history.`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button
+              variant="outline"
+              onClick={closeDeleteModal}
+              disabled={actionLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={actionLoading}
+            >
+              <Trash2 className="w-4 h-4 mr-1" />
+              {actionLoading ? "Deleting..." : "Delete Profile"}
             </Button>
           </DialogFooter>
         </DialogContent>

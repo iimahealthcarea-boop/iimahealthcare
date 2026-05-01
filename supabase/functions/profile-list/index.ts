@@ -73,6 +73,7 @@ Deno.serve(async (req) => {
     let query = supabase
       .from('profiles')
       .select('*', { count: 'exact' })
+      .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
     // Apply status filter if provided

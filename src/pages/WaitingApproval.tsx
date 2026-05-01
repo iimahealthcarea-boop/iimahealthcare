@@ -9,6 +9,10 @@ export default function WaitingApproval() {
   const { user, refreshUserData, signOut, loading } = useAuth();
 
   const getStatusIcon = () => {
+    if (user?.profile?.deleted_at) {
+      return <XCircle className="h-12 w-12 text-red-500" />;
+    }
+
     switch (user?.approvalStatus) {
       case 'pending':
         return <Clock className="h-12 w-12 text-yellow-500" />;
@@ -22,6 +26,13 @@ export default function WaitingApproval() {
   };
 
   const getStatusMessage = () => {
+    if (user?.profile?.deleted_at) {
+      return {
+        title: "Profile Unavailable",
+        description: "This profile is no longer active. Please contact an administrator if you believe this is a mistake."
+      };
+    }
+
     switch (user?.approvalStatus) {
       case 'pending':
         return {
@@ -64,7 +75,15 @@ export default function WaitingApproval() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {user?.approvalStatus === 'pending' && (
+          {user?.profile?.deleted_at && (
+            <div className="text-center space-y-4">
+              <p className="text-sm text-muted-foreground">
+                You cannot access the member portal with this profile.
+              </p>
+            </div>
+          )}
+
+          {!user?.profile?.deleted_at && user?.approvalStatus === 'pending' && (
             <div className="text-center space-y-4">
               <p className="text-sm text-muted-foreground">
                 This process typically takes 1-2 business days.
@@ -80,7 +99,7 @@ export default function WaitingApproval() {
             </div>
           )}
 
-          {user?.approvalStatus === 'approved' && (
+          {!user?.profile?.deleted_at && user?.approvalStatus === 'approved' && (
             <div className="text-center">
               <Link to="/dashboard">
                 <Button className="w-full">
@@ -90,7 +109,7 @@ export default function WaitingApproval() {
             </div>
           )}
 
-          {user?.approvalStatus === 'rejected' && (
+          {!user?.profile?.deleted_at && user?.approvalStatus === 'rejected' && (
             <div className="space-y-4">
               {user?.profile?.rejection_reason ? (
                 <div className="rounded-md border-l-4 border-red-500 bg-red-50 p-4 text-left">

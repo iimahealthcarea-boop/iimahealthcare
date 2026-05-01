@@ -74,7 +74,8 @@ Deno.serve(async (req) => {
           organization_type,
           show_contact_info,
           approval_status,
-          is_public
+          is_public,
+          deleted_at
         )
       `)
       .eq('user_id', user.id);
@@ -91,7 +92,8 @@ Deno.serve(async (req) => {
     const filteredData = data?.filter(entry => 
       entry.profiles && 
       entry.profiles.approval_status === 'approved' && 
-      entry.profiles.is_public
+      entry.profiles.is_public &&
+      !entry.profiles.deleted_at
     ) || [];
 
     return new Response(

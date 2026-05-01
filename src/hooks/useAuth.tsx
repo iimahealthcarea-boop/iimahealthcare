@@ -80,7 +80,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ...session.user,
       role: role as UserRole,
       profile,
-      approvalStatus: profile?.approval_status as ApprovalStatus,
+      approvalStatus: profile?.deleted_at
+        ? undefined
+        : profile?.approval_status as ApprovalStatus,
     });
     setLoading(false);
     toast({
@@ -104,7 +106,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               ...session.user,
               role: role as UserRole,
               profile,
-              approvalStatus: profile?.approval_status as ApprovalStatus,
+              approvalStatus: profile?.deleted_at
+                ? undefined
+                : profile?.approval_status as ApprovalStatus,
             });
             setLoading(false);
           }).catch((error) => {
@@ -256,7 +260,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session?.user, resetIdleTimers]);
 
   const isAdmin = user?.role === 'admin';
-  const isApproved = user?.approvalStatus === 'approved';
+  const isApproved = user?.approvalStatus === 'approved' && !user?.profile?.deleted_at;
   // const underRegistration = user?.underRegistration || false;
 
   return (

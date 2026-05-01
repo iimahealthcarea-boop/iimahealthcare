@@ -5,7 +5,7 @@ export interface ProfileChange {
   updatedBy: string;
   updatedByName: string;
   updatedAt: string;
-  changeType: 'create' | 'update' | 'approve' | 'reject' | 'admin_edit' | 'resubmit';
+  changeType: 'create' | 'update' | 'approve' | 'reject' | 'admin_edit' | 'resubmit' | 'delete';
   changedFields: Record<string, { oldValue: unknown; newValue: unknown }>;
 }
 
@@ -26,7 +26,7 @@ export function getChangedFields(
     'graduation_year', 'bio', 'interests', 'skills', 'linkedin_url',
     'website_url', 'show_contact_info', 'show_location', 'is_public',
     'preferred_mode_of_communication', 'organizations', 'willing_to_mentor', 'areas_of_contribution',
-    'approval_status', 'rejection_reason'
+    'approval_status', 'rejection_reason', 'deleted_at', 'deleted_by'
   ]
 ): Record<string, { oldValue: unknown; newValue: unknown }> {
   const changes: Record<string, { oldValue: unknown; newValue: unknown }> = {};
@@ -88,7 +88,7 @@ export async function addProfileChange(
   changedBy: string,
   changedByName: string,
   changedFields: Record<string, { oldValue: unknown; newValue: unknown }>,
-  changeType: 'create' | 'update' | 'approve' | 'reject' | 'admin_edit' | 'resubmit' = 'update'
+  changeType: 'create' | 'update' | 'approve' | 'reject' | 'admin_edit' | 'resubmit' | 'delete' = 'update'
 ): Promise<void> {
   try {
     console.log('Adding profile change:', {
@@ -139,7 +139,7 @@ export async function getProfileChangeHistory(profileUserId: string): Promise<Pr
       updatedBy: change.changed_by,
       updatedByName: change.changed_by_name,
       updatedAt: change.changed_at,
-      changeType: change.change_type as 'create' | 'update' | 'approve' | 'reject' | 'admin_edit' | 'resubmit',
+      changeType: change.change_type as 'create' | 'update' | 'approve' | 'reject' | 'admin_edit' | 'resubmit' | 'delete',
       changedFields: change.changed_fields as Record<string, { oldValue: unknown; newValue: unknown }>
     })) || [];
 
@@ -235,6 +235,8 @@ export function formatFieldName(fieldName: string): string {
     areas_of_contribution: 'Areas of Contribution',
     approval_status: 'Approval Status',
     rejection_reason: 'Rejection Reason',
+    deleted_at: 'Deleted At',
+    deleted_by: 'Deleted By',
     privacy: 'Privacy Settings',
     status: 'Status'
   };

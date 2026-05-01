@@ -62,6 +62,7 @@ export default function AllMembersTab({ onMemberDetails, userDirectoryIds, onDir
         .select('*')
         .eq('approval_status', 'approved')
         .eq('is_public', true)
+        .is('deleted_at', null)
         .order('first_name');
 
       if (error) throw error;

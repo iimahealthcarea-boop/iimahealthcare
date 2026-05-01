@@ -18,7 +18,9 @@ export default function Index() {
   useEffect(() => {
     // Only redirect authenticated users with complete profiles
     if (!loading && user && user.profile) {
-      if (isAdmin) {
+      if (user.profile.deleted_at) {
+        navigate("/waiting-approval");
+      } else if (isAdmin) {
         // Admin user - redirect to admin dashboard
         navigate("/admin");
       } else if (user.approvalStatus === "pending") {

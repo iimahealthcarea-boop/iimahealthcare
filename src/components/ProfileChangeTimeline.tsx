@@ -14,7 +14,8 @@ import {
   ChevronDown,
   ChevronUp,
   History,
-  RotateCw
+  RotateCw,
+  Trash2
 } from "lucide-react";
 import { ProfileChange, getProfileChangeHistory, formatFieldName, formatFieldValue } from "@/utils/profileChangeTracker";
 
@@ -77,6 +78,8 @@ export function ProfileChangeTimeline({
         return <User className="w-4 h-4" />;
       case 'resubmit':
         return <RotateCw className="w-4 h-4" />;
+      case 'delete':
+        return <Trash2 className="w-4 h-4" />;
       default:
         return <Clock className="w-4 h-4" />;
     }
@@ -96,6 +99,8 @@ export function ProfileChangeTimeline({
         return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'resubmit':
         return 'bg-amber-100 text-amber-800 border-amber-200';
+      case 'delete':
+        return 'bg-red-100 text-red-800 border-red-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -115,6 +120,8 @@ export function ProfileChangeTimeline({
         return 'Admin Edit';
       case 'resubmit':
         return 'Application Resubmitted';
+      case 'delete':
+        return 'Profile Deleted';
       default:
         return 'Profile Changed';
     }

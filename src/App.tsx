@@ -48,6 +48,11 @@ const ApprovedGuard = ({ children }: { children: JSX.Element }) => {
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
+
+  if (user.profile?.deleted_at) {
+    return <Navigate to="/waiting-approval" replace />;
+  }
+
   // If user exists but profile is incomplete, redirect to registration
   if (!user?.profile?.first_name || !user?.profile?.phone) {
     return <Navigate to="/registration" replace />;

@@ -156,16 +156,46 @@ export default function AdminDashboard() {
     total: 0,
   });
 
+  const applyStatsChange = (
+    fromStatus: string | null | undefined,
+    toStatus: string | null | undefined,
+    totalDelta = 0
+  ) => {
+    const toStatsKey = (status: string | null | undefined) =>
+      status === "pending" || status === "approved" || status === "rejected"
+        ? status
+        : null;
+
+    setStats((prev) => {
+      const next = {
+        ...prev,
+        total: Math.max(0, prev.total + totalDelta),
+      };
+      const fromKey = toStatsKey(fromStatus);
+      const toKey = toStatsKey(toStatus);
+
+      if (fromKey) {
+        next[fromKey] = Math.max(0, next[fromKey] - 1);
+      }
+
+      if (toKey) {
+        next[toKey] += 1;
+      }
+
+      return next;
+    });
+  };
+
   // Fetch stats only (lightweight)
   const fetchStats = useCallback(async () => {
     if (!isAdmin) return;
     try {
       // Fetch counts for each status
       const [pendingRes, approvedRes, rejectedRes, totalRes] = await Promise.all([
-        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "pending"),
-        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "approved"),
-        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "rejected"),
-        supabase.from("profiles").select("id", { count: "exact", head: true }),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "pending").is("deleted_at", null),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "approved").is("deleted_at", null),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "rejected").is("deleted_at", null),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).is("deleted_at", null),
       ]);
 
       setStats({
@@ -306,7 +336,7 @@ export default function AdminDashboard() {
           "The user profile has been approved and notification email sent.",
       });
 
-      await fetchStats();
+      applyStatsChange(profile.approval_status, "approved");
       setSelectedProfile(null);
     } catch (error) {
       console.error("Error approving profile:", error);
@@ -394,7 +424,7 @@ export default function AdminDashboard() {
           "The user profile has been rejected and notification email sent.",
       });
 
-      await fetchStats();
+      applyStatsChange(profile.approval_status, "rejected");
     } catch (error) {
       console.error("Error rejecting profile:", error);
       toast({
@@ -430,6 +460,68 @@ export default function AdminDashboard() {
         description: "Failed to update profile visibility",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleDeleteProfile = async (profile: ProfileWithApproval) => {
+    if (!user?.id) return;
+
+    if (profile.user_id === user.id) {
+      toast({
+        title: "Cannot delete your own profile",
+        description: "Use another admin account if this profile must be removed.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const deletedAt = new Date().toISOString();
+      const profileName = [user?.profile?.first_name, user?.profile?.last_name].filter(Boolean).join(' ');
+      const adminName = profileName ? `${profileName} (${user?.email})` : (user?.email || "Admin");
+
+      await addProfileChange(
+        profile.user_id,
+        user.id,
+        adminName,
+        {
+          deleted_at: { oldValue: profile.deleted_at, newValue: deletedAt },
+          deleted_by: { oldValue: profile.deleted_by, newValue: user.id },
+          is_public: { oldValue: profile.is_public, newValue: false },
+        },
+        "delete"
+      );
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          deleted_at: deletedAt,
+          deleted_by: user.id,
+          is_public: false,
+        })
+        .eq("user_id", profile.user_id)
+        .is("deleted_at", null)
+        .select("user_id")
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "Profile Deleted",
+        description: "The profile has been hidden from admin lists and member directories.",
+      });
+
+      applyStatsChange(profile.approval_status, null, -1);
+    } catch (error) {
+      console.error("Error deleting profile:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete profile",
+        variant: "destructive",
+      });
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -638,7 +730,8 @@ export default function AdminDashboard() {
       const { data: approvedProfiles, error } = await supabase
         .from("profiles")
         .select("*")
-        .eq("approval_status", "approved");
+        .eq("approval_status", "approved")
+        .is("deleted_at", null);
 
       if (error) throw error;
       if (!approvedProfiles) throw new Error("No data returned");
@@ -960,11 +1053,11 @@ export default function AdminDashboard() {
               searchTerm={debouncedSearchTerm}
               experienceFilter={experienceFilter}
               organizationTypeFilter={organizationTypeFilter}
-              onProfileUpdate={handleProfileUpdate}
               onApprove={handleApprove}
               onReject={handleReject}
               onTogglePublic={handleTogglePublicStatus}
               onEdit={openEditDialog}
+              onDelete={handleDeleteProfile}
               actionLoading={actionLoading}
               refreshSignal={profileRefreshSignal}
             />
@@ -977,11 +1070,11 @@ export default function AdminDashboard() {
               searchTerm={debouncedSearchTerm}
               experienceFilter={experienceFilter}
               organizationTypeFilter={organizationTypeFilter}
-              onProfileUpdate={handleProfileUpdate}
               onApprove={handleApprove}
               onReject={handleReject}
               onTogglePublic={handleTogglePublicStatus}
               onEdit={openEditDialog}
+              onDelete={handleDeleteProfile}
               actionLoading={actionLoading}
               refreshSignal={profileRefreshSignal}
             />
@@ -994,11 +1087,11 @@ export default function AdminDashboard() {
               searchTerm={debouncedSearchTerm}
               experienceFilter={experienceFilter}
               organizationTypeFilter={organizationTypeFilter}
-              onProfileUpdate={handleProfileUpdate}
               onApprove={handleApprove}
               onReject={handleReject}
               onTogglePublic={handleTogglePublicStatus}
               onEdit={openEditDialog}
+              onDelete={handleDeleteProfile}
               actionLoading={actionLoading}
               refreshSignal={profileRefreshSignal}
             />
@@ -1011,11 +1104,11 @@ export default function AdminDashboard() {
               searchTerm={debouncedSearchTerm}
               experienceFilter={experienceFilter}
               organizationTypeFilter={organizationTypeFilter}
-              onProfileUpdate={handleProfileUpdate}
               onApprove={handleApprove}
               onReject={handleReject}
               onTogglePublic={handleTogglePublicStatus}
               onEdit={openEditDialog}
+              onDelete={handleDeleteProfile}
               actionLoading={actionLoading}
               refreshSignal={profileRefreshSignal}
             />
