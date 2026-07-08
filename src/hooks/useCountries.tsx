@@ -1,46 +1,20 @@
-import { useState, useEffect } from 'react';
+import { COUNTRIES, type Country } from '@/data/countries';
 
-interface Country {
-  name: string;
-  code: string;
-  dialCode: string;
-  flag: string;
-}
-
-export const useCountries = () => {
-  const [countries, setCountries] = useState<Country[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchCountries = async () => {
-      try {
-        const response = await fetch('https://restcountries.com/v3.1/all?fields=name,cca2,idd,flag');
-        const data = await response.json();
-        
-        const formattedCountries: Country[] = data
-          .map((country: any) => ({
-            name: country.name.common,
-            code: country.cca2,
-            dialCode: country.idd?.root ? 
-              `${country.idd.root}${country.idd.suffixes?.[0] || ''}` : 
-              '',
-            flag: country.flag
-          }))
-          .filter((country: Country) => country.dialCode)
-          .sort((a: Country, b: Country) => a.name.localeCompare(b.name));
-
-        setCountries(formattedCountries);
-      } catch (err) {
-        setError('Failed to fetch countries');
-        console.error('Error fetching countries:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCountries();
-  }, []);
-
-  return { countries, loading, error };
+/**
+ * Returns the list of countries used by the country / dial-code selectors.
+ *
+ * Previously this fetched from restcountries.com at runtime, but that API's
+ * v3.1 endpoint was deprecated and now returns an error object instead of an
+ * array — which left every country dropdown empty. The data is now bundled
+ * locally (see src/data/countries.ts) so the dropdowns always populate with no
+ * network dependency. The hook keeps the same shape for backwards compatibility.
+ */
+export const useCountries = (): {
+  countries: Country[];
+  loading: boolean;
+  error: string | null;
+} => {
+  return { countries: COUNTRIES, loading: false, error: null };
 };
+
+export type { Country };

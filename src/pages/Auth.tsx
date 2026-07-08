@@ -28,6 +28,9 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("signin");
   const [showPassword, setShowPassword] = useState(false);
+  const [signupSuccessEmail, setSignupSuccessEmail] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     // Redirect if already authenticated
@@ -166,10 +169,11 @@ export default function Auth() {
           // Don't fail the signup if email fails
         }
 
+        setSignupSuccessEmail(email);
         toast({
           title: "Success",
           description:
-            "Account created successfully! Please check your email to confirm your account.",
+            "Account created successfully! Please check your email to confirm your account. If you don't see it, check your spam or junk folder.",
         });
       }
     } catch (error) {
@@ -276,6 +280,48 @@ export default function Auth() {
             </TabsContent>
 
             <TabsContent value="signup">
+              {signupSuccessEmail ? (
+                <div className="text-center space-y-4 py-2">
+                  <div className="text-green-600">
+                    <svg
+                      className="mx-auto h-12 w-12 text-green-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-green-600 mb-2">
+                      Account Created Successfully!
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      We've sent a confirmation email to{" "}
+                      <strong>{signupSuccessEmail}</strong>. Please check your
+                      inbox and click the link to confirm your account.
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Didn't receive the email? Check your spam or junk folder.
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      setSignupSuccessEmail(null);
+                      setActiveTab("signin");
+                    }}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    Back to Sign In
+                  </Button>
+                </div>
+              ) : (
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -348,6 +394,7 @@ export default function Auth() {
                   )}
                 </Button>
               </form>
+              )}
             </TabsContent>
           </Tabs>
         </CardContent>
