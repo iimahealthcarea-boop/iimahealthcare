@@ -607,12 +607,36 @@ export function ProfileTab({
                         <Switch
                           id="is_public"
                           checked={selectedProfile.is_public || false}
-                          onCheckedChange={() =>
+                          onCheckedChange={(checked) => {
+                            const currentStatus = selectedProfile.is_public || false;
+                            // Optimistically update local state so the switch reflects the change immediately
+                            setSelectedProfile((prev) =>
+                              prev ? { ...prev, is_public: checked } : prev
+                            );
+                            setProfiles((prev) =>
+                              prev.map((p) =>
+                                p.user_id === selectedProfile.user_id
+                                  ? { ...p, is_public: checked }
+                                  : p
+                              )
+                            );
                             onTogglePublic(
                               selectedProfile.user_id,
-                              selectedProfile.is_public || false
-                            )
-                          }
+                              currentStatus
+                            ).catch(() => {
+                              // Revert on failure
+                              setSelectedProfile((prev) =>
+                                prev ? { ...prev, is_public: currentStatus } : prev
+                              );
+                              setProfiles((prev) =>
+                                prev.map((p) =>
+                                  p.user_id === selectedProfile.user_id
+                                    ? { ...p, is_public: currentStatus }
+                                    : p
+                                )
+                              );
+                            });
+                          }}
                         />
                       </div>
                     </div>

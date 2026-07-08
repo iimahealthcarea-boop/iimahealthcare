@@ -6,6 +6,8 @@ const corsHeaders = {
 };
 // Hardcoded admin email
 const ADMIN_EMAIL = "iimahealthcarea@gmail.com";
+const SMTP_USER = Deno.env.get("SMTP_USER") ?? "";
+const SMTP_APP_PASSWORD = Deno.env.get("SMTP_APP_PASSWORD") ?? "";
 // Function to send signup email
 const sendSignupEmail = async (firstName, lastName, userEmail)=>{
   const transporter = nodemailer.createTransport({
@@ -13,8 +15,8 @@ const sendSignupEmail = async (firstName, lastName, userEmail)=>{
     port: 587,
     secure: false,
     auth: {
-      user: "ansh.kush.2410@gmail.com",
-      pass: "dawr dhmm sxjn enfa" // your app password
+      user: SMTP_USER,
+      pass: SMTP_APP_PASSWORD
     }
   });
   const htmlContent = `
@@ -40,7 +42,7 @@ const sendSignupEmail = async (firstName, lastName, userEmail)=>{
     </div>
   `;
   return await transporter.sendMail({
-    from: `"IIM-AMS Admin Notifier" <iimahealthcarea@gmail.com>`,
+    from: `"IIM-AMS Admin Notifier" <${SMTP_USER}>`,
     to: ADMIN_EMAIL,
     subject: "New User Signup Pending Approval",
     html: htmlContent

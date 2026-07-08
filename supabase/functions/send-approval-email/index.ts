@@ -7,14 +7,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
+const SMTP_USER = Deno.env.get("SMTP_USER") ?? "";
+const SMTP_APP_PASSWORD = Deno.env.get("SMTP_APP_PASSWORD") ?? "";
 const handler = async (req) => {
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 587,
     secure: false,
     auth: {
-      user: "iimahealthcarea@gmail.com",
-      pass: "dbnl ykcv mygi miel",
+      user: SMTP_USER,
+      pass: SMTP_APP_PASSWORD,
     },
   });
   // Handle CORS preflight requests
@@ -176,7 +178,7 @@ const handler = async (req) => {
       `;
     }
     const emailResponse = await transporter.sendMail({
-      from: `"IIM-AMS Admin Notifier" <iimahealthcarea@gmail.com>`,
+      from: `"IIM-AMS Admin Notifier" <${SMTP_USER}>`,
       to: [email],
       subject: subject,
       html: htmlContent,
