@@ -162,10 +162,13 @@ serve(async (req) => {
     await purge('profile_update_requests', 'profile_user_id', user_id)
     await purge('profile_update_requests', 'submitted_by', user_id)
     await purge('profile_changes', 'profile_user_id', user_id)
-    await purge('profile_changes', 'changed_by', user_id)
     await purge('user_roles', 'user_id', user_id)
 
     // Records that survive the user but must stop referencing them.
+    // profile_changes.changed_by is detached rather than deleted: these rows are
+    // this user's actions on OTHER members' profiles, and changed_by_name keeps
+    // the timeline readable without the id.
+    await detach('profile_changes', 'changed_by', user_id)
     await detach('profile_update_requests', 'reviewed_by', user_id)
     await detach('organizations', 'created_by', user_id)
     await detach('cities', 'created_by', user_id)
