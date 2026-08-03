@@ -78,6 +78,7 @@ import {
 } from "@/components/ui/collapsible";
 import { UpdateRequestsTab } from "@/components/UpdateRequestsTab";
 import { ProfileTab } from "@/components/ProfileTab";
+import { DeletedUsersTab } from "@/components/DeletedUsersTab";
 
 type ProfileWithApproval = Tables<"profiles">;
 
@@ -154,6 +155,7 @@ export default function AdminDashboard() {
     approved: 0,
     rejected: 0,
     total: 0,
+    deleted: 0,
   });
 
   const applyStatsChange = (
@@ -191,11 +193,12 @@ export default function AdminDashboard() {
     if (!isAdmin) return;
     try {
       // Fetch counts for each status
-      const [pendingRes, approvedRes, rejectedRes, totalRes] = await Promise.all([
+      const [pendingRes, approvedRes, rejectedRes, totalRes, deletedRes] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "pending").is("deleted_at", null),
         supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "approved").is("deleted_at", null),
         supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "rejected").is("deleted_at", null),
         supabase.from("profiles").select("id", { count: "exact", head: true }).is("deleted_at", null),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).not("deleted_at", "is", null),
       ]);
 
       setStats({
@@ -203,6 +206,7 @@ export default function AdminDashboard() {
         approved: approvedRes.count || 0,
         rejected: rejectedRes.count || 0,
         total: totalRes.count || 0,
+        deleted: deletedRes.count || 0,
       });
     } catch (error) {
       console.error("Error fetching stats:", error);
@@ -513,6 +517,7 @@ export default function AdminDashboard() {
       });
 
       applyStatsChange(profile.approval_status, null, -1);
+      setStats((prev) => ({ ...prev, deleted: prev.deleted + 1 }));
     } catch (error) {
       console.error("Error deleting profile:", error);
       toast({
@@ -1033,6 +1038,9 @@ export default function AdminDashboard() {
               </TabsTrigger>
               <TabsTrigger value="all">All ({stats.total})</TabsTrigger>
               <TabsTrigger value="requests">Update Requests</TabsTrigger>
+              <TabsTrigger value="deleted">
+                Deleted ({stats.deleted})
+              </TabsTrigger>
             </TabsList>
             <Button
               variant="outline"
@@ -1116,9 +1124,17 @@ export default function AdminDashboard() {
 
           {/* Update Requests Tab - Lazy loaded */}
           <TabsContent value="requests" className="space-y-4">
-            <UpdateRequestsTab 
-              profiles={[]} 
+            <UpdateRequestsTab
+              profiles={[]}
               onRequestUpdate={handleProfileUpdate}
+            />
+          </TabsContent>
+
+          {/* Deleted Users Tab - soft-deleted profiles, with permanent delete */}
+          <TabsContent value="deleted" className="space-y-4">
+            <DeletedUsersTab
+              refreshSignal={profileRefreshSignal}
+              onPermanentDelete={fetchStats}
             />
           </TabsContent>
         </Tabs>
