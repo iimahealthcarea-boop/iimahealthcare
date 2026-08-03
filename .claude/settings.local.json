@@ -5,5 +5,9 @@
       "Bash(./node_modules/.bin/tsc --noEmit)",
       "Bash(npx vite:*)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "supabase",
+    "code-review-graph"
+  ]
 }
