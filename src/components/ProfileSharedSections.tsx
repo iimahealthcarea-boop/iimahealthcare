@@ -465,7 +465,7 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
             <Label htmlFor="linkedin_url">LinkedIn URL *</Label>
             <Input
               id="linkedin_url"
-              type="url"
+              type="text"
               value={formData.linkedin_url}
               onChange={(e) =>
                 onFormDataChange({
