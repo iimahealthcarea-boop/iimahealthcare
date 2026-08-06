@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -108,6 +108,8 @@ export default function Registration() {
   });
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  // Which user's saved profile has already been loaded into the form.
+  const hydratedForUserId = useRef<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -501,6 +503,14 @@ export default function Registration() {
 
   useEffect(() => {
     if (user?.profile) {
+      // Load the saved profile into the form only once per signed-in user.
+      // The auth provider hands back a new user object whenever the session is
+      // re-checked — which the Supabase client does every time the tab regains
+      // focus — and re-running this would overwrite anything typed but not yet
+      // submitted.
+      if (hydratedForUserId.current === user.id) return;
+      hydratedForUserId.current = user.id;
+
       const p = user.profile as unknown as Record<string, unknown>;
       const asString = (v: unknown) => (v == null ? "" : String(v));
       setFormData((prev) => ({

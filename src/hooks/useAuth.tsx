@@ -95,9 +95,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Track whether initial session has already been handled to prevent double-fetch
     let initialFetchDone = false;
+    // Id of the user currently loaded into state, used to ignore auth events
+    // that re-announce the same user.
+    let loadedUserId: string | null = null;
 
     const handleSession = (session: Session | null, source: string) => {
       setSession(session);
+      loadedUserId = session?.user?.id ?? null;
       if (session?.user) {
         // Use setTimeout to avoid deadlock with Supabase auth internals
         setTimeout(() => {
@@ -133,6 +137,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (event, session) => {
         if (!initialFetchDone) {
           // Skip — getSession below will handle the initial load
+          return;
+        }
+        // Bringing the tab back into focus makes the Supabase client re-check
+        // the session and re-announce the same user (TOKEN_REFRESHED /
+        // SIGNED_IN). Refetching there would replace the user object for no
+        // reason and reset any form bound to it — keep the fresher tokens and
+        // leave the loaded profile alone.
+        if (session?.user && session.user.id === loadedUserId) {
+          setSession(session);
           return;
         }
         // Handle sign-in, sign-out, token refresh, etc.
