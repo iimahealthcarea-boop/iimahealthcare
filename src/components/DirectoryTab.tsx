@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { StarButton } from '@/components/StarButton';
 import { Search, Users, Mail, Phone, MapPin, Building, Calendar, Linkedin, Globe, ChevronDown, ChevronUp, Eye, BookmarkMinus, Star } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
+import { matchesOrganization } from '@/utils/organizationSearch';
 
 type Profile = Tables<'profiles'>;
 
@@ -116,7 +117,11 @@ export default function DirectoryTab({ onMemberDetails, directoryMembers, loadin
       const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(member => {
         const nameMatch = `${member.first_name || ''} ${member.last_name || ''}`.toLowerCase().includes(searchLower);
-        const organizationMatch = member.organization?.toLowerCase().includes(searchLower) || false;
+        // Match the legacy scalar column and the organizations JSONB array, so
+        // members are found by any organization they list.
+        const organizationMatch =
+          (member.organization?.toLowerCase().includes(searchLower) || false) ||
+          matchesOrganization(member.organizations, searchLower);
         const positionMatch = member.position?.toLowerCase().includes(searchLower) || false;
         const programMatch = member.program?.toLowerCase().includes(searchLower) || false;
         const cityMatch = member.city?.toLowerCase().includes(searchLower) || false;
