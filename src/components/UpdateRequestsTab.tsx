@@ -39,6 +39,7 @@ import {
   RefreshCw,
   Clock,
   AlertCircle,
+  Layers,
 } from "lucide-react";
 
 type UpdateRequest = Tables<'profile_update_requests'> & {
@@ -80,7 +81,7 @@ export function UpdateRequestsTab({ profiles, onRequestUpdate }: UpdateRequestsT
     hasPreviousPage: false,
   });
   const limit = 10; // Fixed items per page
-  const [statusFilter, setStatusFilter] = useState<'pending' | 'approved' | 'rejected' | null>('pending');
+  const [statusFilter, setStatusFilter] = useState<'pending' | 'approved' | 'rejected' | 'superseded' | null>('pending');
 
   const fetchUpdateRequests = useCallback(async (page: number = 1, status: string | null = null) => {
     setLoading(true);
@@ -222,6 +223,8 @@ export function UpdateRequestsTab({ profiles, onRequestUpdate }: UpdateRequestsT
         return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200"><CheckCircle className="w-3 h-3 mr-1" /> Approved</Badge>;
       case 'rejected':
         return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200"><XCircle className="w-3 h-3 mr-1" /> Rejected</Badge>;
+      case 'superseded':
+        return <Badge variant="outline" className="bg-slate-100 text-slate-600 border-slate-300"><Layers className="w-3 h-3 mr-1" /> Superseded</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -250,9 +253,10 @@ export function UpdateRequestsTab({ profiles, onRequestUpdate }: UpdateRequestsT
                 }}
                 className="px-3 py-2 border rounded-md text-sm"
               >
-                <option value="pending">Pending</option>
+                <option value="pending">Pending (actionable)</option>
                 <option value="approved">Approved</option>
                 <option value="rejected">Rejected</option>
+                <option value="superseded">Superseded (history)</option>
                 <option value="all">All Status</option>
               </select>
               <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading}>
@@ -281,8 +285,13 @@ export function UpdateRequestsTab({ profiles, onRequestUpdate }: UpdateRequestsT
                 const proposed = (req.submitted_payload as unknown as Record<string, unknown>) || {};
                 const profile = req.profile || profiles.find((p) => p.user_id === req.profile_user_id);
                 const fields = Object.keys(proposed);
+                const isSuperseded = req.status === 'superseded';
+                const supersededBy = (req as UpdateRequest & { superseded_by?: string | null }).superseded_by;
                 return (
-                  <Card key={req.id} className="border rounded-xl">
+                  <Card
+                    key={req.id}
+                    className={`border rounded-xl ${isSuperseded ? 'opacity-70 bg-muted/30' : ''}`}
+                  >
                     <CardContent className="p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
@@ -331,6 +340,18 @@ export function UpdateRequestsTab({ profiles, onRequestUpdate }: UpdateRequestsT
                           )}
                         </div>
                       </div>
+
+                      {isSuperseded && (
+                        <div className="flex items-start gap-2 text-xs bg-slate-100 border border-slate-200 text-slate-700 p-2 rounded">
+                          <Layers className="w-4 h-4 mt-0.5 shrink-0" />
+                          <div>
+                            <strong>No longer actionable.</strong> The user submitted a newer
+                            update for overlapping fields
+                            {supersededBy ? <> — see request <span className="font-mono">{supersededBy.slice(0, 8)}...</span></> : null}.
+                            The original values below are retained for audit.
+                          </div>
+                        </div>
+                      )}
 
                       {fields.length > 0 && (
                         <div className="overflow-x-auto border rounded-md">

@@ -284,6 +284,9 @@ export type Database = {
           admin_notes: string | null
           reviewed_by: string | null
           reviewed_at: string | null
+          superseded_by: string | null
+          superseded_at: string | null
+          base_updated_at: string | null
           created_at: string
           updated_at: string
         }
@@ -296,6 +299,9 @@ export type Database = {
           admin_notes?: string | null
           reviewed_by?: string | null
           reviewed_at?: string | null
+          superseded_by?: string | null
+          superseded_at?: string | null
+          base_updated_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -308,6 +314,9 @@ export type Database = {
           admin_notes?: string | null
           reviewed_by?: string | null
           reviewed_at?: string | null
+          superseded_by?: string | null
+          superseded_at?: string | null
+          base_updated_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -537,7 +546,7 @@ export type Database = {
       profile_approval_status: "pending" | "approved" | "rejected"
       profile_status: "Active" | "Alumni" | "Student" | "Faculty" | "Inactive"
       user_role: "admin" | "normal_user"
-        profile_update_request_status: "pending" | "approved" | "rejected"
+        profile_update_request_status: "pending" | "approved" | "rejected" | "superseded"
     }
     CompositeTypes: {
       [_ in never]: never

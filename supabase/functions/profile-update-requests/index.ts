@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const page = parseInt(url.searchParams.get('page') || '1', 10);
     const limit = parseInt(url.searchParams.get('limit') || '10', 10);
-    const status = url.searchParams.get('status') || null; // 'pending', 'approved', 'rejected', or null for all
+    const status = url.searchParams.get('status') || null; // 'pending', 'approved', 'rejected', 'superseded', or null for all
     
     // Calculate offset
     const offset = (page - 1) * limit;

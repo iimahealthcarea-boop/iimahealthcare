@@ -276,6 +276,31 @@ const Profile = () => {
           diffPayload[key] = (change as { oldValue: unknown; newValue: unknown }).newValue;
         });
 
+        if (Object.keys(diffPayload).length === 0) {
+          toast({
+            title: "No changes to submit",
+            description: "Your profile is already up to date.",
+          });
+          setSaving(false);
+          return;
+        }
+
+        // Count pending requests that this submission will replace, so the user
+        // understands a newer edit supersedes an earlier one for the same field.
+        const { data: existingPending } = await supabase
+          .from("profile_update_requests")
+          .select("submitted_payload")
+          .eq("profile_user_id", user.id)
+          .eq("status", "pending");
+
+        const changedKeys = Object.keys(diffPayload);
+        const replacedCount = (existingPending || []).filter((r) => {
+          const keys = Object.keys(
+            (r.submitted_payload as Record<string, unknown>) || {}
+          );
+          return keys.some((k) => changedKeys.includes(k));
+        }).length;
+
         const payload: Json = diffPayload as unknown as Json;
         const { error: reqError } = await supabase.rpc(
           "submit_profile_update_request",
@@ -292,7 +317,10 @@ const Profile = () => {
         } else {
           toast({
             title: "Update request submitted",
-            description: "An admin will review your changes shortly.",
+            description:
+              replacedCount > 0
+                ? `An admin will review your changes shortly. This replaces ${replacedCount} earlier pending request${replacedCount > 1 ? "s" : ""} for the same field${replacedCount > 1 ? "s" : ""}.`
+                : "An admin will review your changes shortly.",
           });
         }
       } else {
