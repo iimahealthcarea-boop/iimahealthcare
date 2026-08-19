@@ -28,6 +28,7 @@ import {
   getAvatarStoragePath,
   PROFILE_PICTURES_BUCKET,
 } from "@/utils/avatarStorage";
+import { validateLinkedInUrl } from "@/utils/linkedinUrl";
 import { ProfileSharedSections } from "@/components/ProfileSharedSections";
 import type { ProfileSharedFormData } from "@/components/ProfileSharedSections";
 
@@ -171,9 +172,10 @@ export default function Registration() {
       newErrors.bio = "Bio is required";
     }
 
-    // LinkedIn required, but accepted as free text — no URL format check
-    if (!formData.linkedin_url?.trim()) {
-      newErrors.linkedin_url = "LinkedIn URL is required";
+    // LinkedIn required, and must be a personal profile URL (linkedin.com/in/...)
+    const linkedinResult = validateLinkedInUrl(formData.linkedin_url);
+    if (!linkedinResult.valid) {
+      newErrors.linkedin_url = linkedinResult.error!;
     }
 
     // Preferred mode of communication - at least one
@@ -354,6 +356,11 @@ export default function Registration() {
       const previousAvatarPath = getAvatarStoragePath(user.profile?.avatar_url);
       const submittedAvatarPath = getAvatarStoragePath(avatarUrl);
 
+      // Store the canonical form (validated above in validateForm)
+      const normalizedLinkedIn =
+        validateLinkedInUrl(formData.linkedin_url).normalized ??
+        formData.linkedin_url;
+
       const { error } = await supabase
         .from("profiles")
         .update({
@@ -379,7 +386,7 @@ export default function Registration() {
           bio: formData.bio,
           skills: skillsArray,
           interests: interestsArray,
-          linkedin_url: formData.linkedin_url,
+          linkedin_url: normalizedLinkedIn,
           website_url: formData.website_url,
           preferred_mode_of_communication:
             formData.preferred_mode_of_communication,

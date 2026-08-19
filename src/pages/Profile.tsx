@@ -47,6 +47,7 @@ import {
   getAvatarStoragePath,
   PROFILE_PICTURES_BUCKET,
 } from "@/utils/avatarStorage";
+import { validateLinkedInUrl } from "@/utils/linkedinUrl";
 import { Json } from "@/integrations/supabase/types";
 
 type OrganizationType =
@@ -150,7 +151,8 @@ const Profile = () => {
   const { toast } = useToast();
   const { countries, loading: countriesLoading } = useCountries();
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
-  
+  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
+
   const handlePreferredCommunicationChange = (
     value: PreferredCommunication,
     checked: boolean
@@ -217,6 +219,22 @@ const Profile = () => {
     e.preventDefault();
     if (!profile || !user) return;
 
+    // LinkedIn must be a personal profile URL. Applies to both the update-request
+    // path and the admin direct-update path below.
+    const linkedinResult = validateLinkedInUrl(
+      (profile as Profile).linkedin_url
+    );
+    if (!linkedinResult.valid) {
+      setFieldErrors({ linkedin_url: linkedinResult.error! });
+      toast({
+        title: "Please fix the highlighted fields",
+        description: linkedinResult.error,
+        variant: "destructive",
+      });
+      return;
+    }
+    setFieldErrors({});
+
     setSaving(true);
     try {
       const interests = interestsInput
@@ -233,6 +251,9 @@ const Profile = () => {
         ...(profile as Profile),
         interests,
         skills,
+        // Store the canonical form (validated above)
+        linkedin_url:
+          linkedinResult.normalized ?? (profile as Profile).linkedin_url,
         preferred_mode_of_communication:
           (profile as Profile).preferred_mode_of_communication || [],
         organizations: (profile as Profile).organizations || [],
@@ -546,6 +567,7 @@ const Profile = () => {
           showAdditional={true}
           showPrivacy={true}
           lockDob={authUser?.approvalStatus === 'approved'}
+          fieldErrors={fieldErrors}
         />
 
       

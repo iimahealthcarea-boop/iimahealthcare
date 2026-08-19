@@ -93,9 +93,12 @@ Deno.serve(async (req) => {
 
     // Apply search filter - search across multiple fields
     if (searchTerm && searchTerm.trim() !== '') {
+      // 'organizations_search_text' is a generated column flattening the
+      // organizations JSONB array; the legacy 'organization' column is kept for
+      // any historical rows that still populate it.
       const searchableColumns = [
         'first_name', 'last_name', 'email', 'phone',
-        'organization', 'position', 'program', 'city',
+        'organization', 'organizations_search_text', 'position', 'program', 'city',
         'country', 'address', 'bio', 'linkedin_url', 'website_url'
       ];
 
