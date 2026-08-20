@@ -492,7 +492,7 @@ const Profile = () => {
   if (!profile) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Card className="w-96">
+        <Card className="mx-4 w-full max-w-sm">
           <CardHeader>
             <CardTitle>Profile Not Found</CardTitle>
             <CardDescription>
@@ -505,7 +505,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="container mx-auto py-6 max-w-4xl">
+    <div className="mx-auto w-full max-w-4xl px-4 py-4 sm:px-6 sm:py-6">
       <div className="mb-6">
         <div className="flex items-center gap-4 mb-4">
           <Button
@@ -517,8 +517,8 @@ const Profile = () => {
             Back to Dashboard
           </Button>
         </div>
-        <h1 className="text-3xl font-bold">My Profile</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl font-bold sm:text-3xl">My Profile</h1>
+        <p className="text-sm text-muted-foreground sm:text-base">
           Manage your profile information and privacy settings
         </p>
       </div>
@@ -601,7 +601,7 @@ const Profile = () => {
       
 
         <div className="flex justify-end">
-          <Button type="submit" disabled={saving}>
+          <Button type="submit" disabled={saving} className="w-full sm:w-auto">
             {saving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

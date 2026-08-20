@@ -19,9 +19,9 @@ export default function MemberDetailsDialog({ isOpen, onOpenChange, member }: Me
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="break-words">
             {member.first_name} {member.last_name}
           </DialogTitle>
           <DialogDescription>
@@ -29,11 +29,11 @@ export default function MemberDetailsDialog({ isOpen, onOpenChange, member }: Me
           </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           {/* Personal Information */}
           <div>
             <h4 className="font-semibold mb-2">Personal Information</h4>
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-2">
               <div><strong>Name:</strong> {member.first_name} {member.last_name}</div>
               <div><strong>Gender:</strong> {String((member as Record<string, unknown>).gender || "Not provided")}</div>
               {member.date_of_birth && (
@@ -43,10 +43,10 @@ export default function MemberDetailsDialog({ isOpen, onOpenChange, member }: Me
               <div><strong>Country:</strong> {member.country || "Not provided"}</div>
               <div><strong>Pincode/ZIP:</strong> {String((member as Record<string, unknown>).pincode || "Not provided")}</div>
               {canViewLocation && member.address && (
-                <div className="col-span-2"><strong>Address:</strong> {member.address}</div>
+                <div className="break-words sm:col-span-2"><strong>Address:</strong> {member.address}</div>
               )}
               {!canViewLocation && (
-                <div className="col-span-2 flex items-center gap-1 text-muted-foreground">
+                <div className="flex items-center gap-1 text-muted-foreground sm:col-span-2">
                   <Lock className="h-3 w-3" />
                   <span>Location information hidden</span>
                 </div>
@@ -57,9 +57,9 @@ export default function MemberDetailsDialog({ isOpen, onOpenChange, member }: Me
           {/* Contact Information */}
           <div>
             <h4 className="font-semibold mb-2">Contact Information</h4>
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-2">
               {canViewContactInfo && member.email ? (
-                <div><strong>Email:</strong> <a href={`mailto:${member.email}`} className="text-blue-600 hover:underline">{member.email}</a></div>
+                <div><strong>Email:</strong> <a href={`mailto:${member.email}`} className="break-all text-blue-600 hover:underline">{member.email}</a></div>
               ) : (
                 <div className="flex items-center gap-1 text-muted-foreground">
                   <Lock className="h-3 w-3" />
@@ -67,7 +67,7 @@ export default function MemberDetailsDialog({ isOpen, onOpenChange, member }: Me
                 </div>
               )}
               {canViewContactInfo && (member as Record<string, unknown>).altEmail ? (
-                <div><strong>Alternate Email:</strong> <a href={`mailto:${String((member as Record<string, unknown>).altEmail)}`} className="text-blue-600 hover:underline">{String((member as Record<string, unknown>).altEmail)}</a></div>
+                <div><strong>Alternate Email:</strong> <a href={`mailto:${String((member as Record<string, unknown>).altEmail)}`} className="break-all text-blue-600 hover:underline">{String((member as Record<string, unknown>).altEmail)}</a></div>
               ) : canViewContactInfo ? (
                 <div><strong>Alternate Email:</strong> Not provided</div>
               ) : (
@@ -77,7 +77,7 @@ export default function MemberDetailsDialog({ isOpen, onOpenChange, member }: Me
                 </div>
               )}
               {canViewContactInfo && member.phone ? (
-                <div><strong>Phone:</strong> <a href={`tel:${member.phone}`} className="text-blue-600 hover:underline">{String((member as Record<string, unknown>).country_code)} {member.phone}</a></div>
+                <div><strong>Phone:</strong> <a href={`tel:${member.phone}`} className="break-all text-blue-600 hover:underline">{String((member as Record<string, unknown>).country_code)} {member.phone}</a></div>
               ) : (
                 <div className="flex items-center gap-1 text-muted-foreground">
                   <Lock className="h-3 w-3" />
@@ -85,7 +85,7 @@ export default function MemberDetailsDialog({ isOpen, onOpenChange, member }: Me
                 </div>
               )}
               {canViewContactInfo && member.linkedin_url ? (
-                <div><strong>LinkedIn:</strong> <a href={member.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{member.linkedin_url}</a></div>
+                <div><strong>LinkedIn:</strong> <a href={member.linkedin_url} target="_blank" rel="noopener noreferrer" className="break-all text-blue-600 hover:underline">{member.linkedin_url}</a></div>
               ) : canViewContactInfo ? (
                 <div><strong>LinkedIn:</strong> Not provided</div>
               ) : (
@@ -95,7 +95,7 @@ export default function MemberDetailsDialog({ isOpen, onOpenChange, member }: Me
                 </div>
               )}
               {member.website_url ? (
-                <div><strong>Website:</strong> <a href={member.website_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{member.website_url}</a></div>
+                <div><strong>Website:</strong> <a href={member.website_url} target="_blank" rel="noopener noreferrer" className="break-all text-blue-600 hover:underline">{member.website_url}</a></div>
               ) : (
                 <div><strong>Website:</strong> Not provided</div>
               )}
@@ -119,7 +119,7 @@ export default function MemberDetailsDialog({ isOpen, onOpenChange, member }: Me
             {/* Education Details */}
             <div className="mb-4">
               <h5 className="font-medium mb-2">Education</h5>
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-2">
                 <div><strong>Program:</strong> {member.program || "Not provided"}</div>
                 <div><strong>Graduation Year:</strong> {member.graduation_year || "Not provided"}</div>
               </div>
@@ -131,11 +131,11 @@ export default function MemberDetailsDialog({ isOpen, onOpenChange, member }: Me
               {Array.isArray((member as Record<string, unknown>).organizations) && ((member as Record<string, unknown>).organizations as unknown[]).length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {((member as Record<string, unknown>).organizations as Record<string, unknown>[]).map((org: Record<string, unknown>, index: number) => (
-                    <div key={String(org.id || index)} className="border rounded-lg p-3 bg-gray-50">
-                      <h6 className="font-medium text-primary mb-2">
+                    <div key={String(org.id || index)} className="min-w-0 rounded-lg border bg-muted/40 p-3">
+                      <h6 className="mb-2 break-words font-medium text-primary">
                         Organization {index + 1}: {String(org.currentOrg || '-')}
                       </h6>
-                      <div className="space-y-1 text-sm text-muted-foreground">
+                      <div className="space-y-1 break-words text-sm text-muted-foreground">
                         <p><strong>Type:</strong> {String(org.orgType || '-')}</p>
                         <p><strong>Experience:</strong> {String(org.experience || '-')}</p>
                         <p><strong>Role:</strong> {String(org.role || '-')}</p>
@@ -153,7 +153,7 @@ export default function MemberDetailsDialog({ isOpen, onOpenChange, member }: Me
           {/* Communication Preferences */}
           <div>
             <h4 className="font-semibold mb-2">Communication Preferences</h4>
-            <div className="space-y-2 text-sm">
+            <div className="space-y-2 break-words text-sm">
               {Array.isArray((member as Record<string, unknown>).preferred_mode_of_communication) && ((member as Record<string, unknown>).preferred_mode_of_communication as unknown[]).length > 0 ? (
                 <div>
                   <strong>Preferred Mode of Communication:</strong>
@@ -174,7 +174,7 @@ export default function MemberDetailsDialog({ isOpen, onOpenChange, member }: Me
           {/* Mentoring & Contributions */}
           <div>
             <h4 className="font-semibold mb-2">Mentoring & Contributions</h4>
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-2">
               <div><strong>Willing to Mentor:</strong> {String((member as Record<string, unknown>).willing_to_mentor || "Not provided")}</div>
               <div>
                 <strong>Areas of Contribution:</strong> 
@@ -196,7 +196,7 @@ export default function MemberDetailsDialog({ isOpen, onOpenChange, member }: Me
           {/* Additional Information */}
           <div>
             <h4 className="font-semibold mb-2">Additional Information</h4>
-            <div className="space-y-2 text-sm">
+            <div className="space-y-2 break-words text-sm">
               <div><strong>Bio:</strong> {member.bio || "Not provided"}</div>
               {member.skills && member.skills.length > 0 ? (
                 <div>

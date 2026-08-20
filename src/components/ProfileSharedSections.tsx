@@ -385,14 +385,14 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
         <div className="flex flex-col gap-4">
           <div className="">
             <Label>Phone Number *</Label>
-            <div className="flex gap-2">
+            <div className="flex min-w-0 gap-2">
               <Select
                 value={formData.country_code}
                 onValueChange={(value) =>
                   onFormDataChange({ ...formData, country_code: value })
                 }
               >
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-24 flex-shrink-0 sm:w-32">
                   <SelectValue placeholder="Code" />
                 </SelectTrigger>
                 <SelectContent>
@@ -531,7 +531,7 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
       {showProfessional && (
         <div className="space-y-4">
           <SectionDivider title="Professional Information" />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <Label htmlFor="program">Program *</Label>
               <Select
@@ -591,7 +591,7 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
 
           <div className="space-y-4">
             <h4 className="font-medium">Current Organization</h4>
-            <div className="border rounded-lg p-4 space-y-4">
+            <div className="min-w-0 space-y-4 rounded-lg border p-3 sm:p-4">
               <div className="flex justify-between items-center">
                 <h5 className="font-medium">Current Organization</h5>
               </div>
@@ -790,9 +790,9 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
           <div className="space-y-4">
             
             {(formData.organizations || []).slice(1).map((org, index) => (
-              <div key={org.id} className="border rounded-lg p-4 space-y-4">
+              <div key={org.id} className="min-w-0 space-y-4 rounded-lg border p-3 sm:p-4">
                 <div className="flex justify-between items-center">
-                  <h5 className="font-medium">Organization {index + 2}</h5>
+                  <h5 className="min-w-0 truncate font-medium">Organization {index + 2}</h5>
                   <Button
                     type="button"
                     variant="outline"
@@ -805,7 +805,7 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                         ),
                       })
                     }
-                    className="text-destructive hover:text-destructive"
+                    className="flex-shrink-0 text-destructive hover:text-destructive"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -943,6 +943,7 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
               <Button
                 type="button"
                 variant="outline"
+                className="w-full sm:w-auto"
                 onClick={() => {
                   const newOrg = {
                     id: Date.now().toString(),
@@ -977,7 +978,7 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
           </CardDescription>
         </CardHeader> */}
         <div className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
             {(
               [
                 "Phone",
@@ -1016,7 +1017,7 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                 >
                   {option}
                   <X
-                    className="ml-1 h-3 w-3"
+                    className="ml-1 h-3 w-3 flex-shrink-0"
                     onClick={() =>
                       handlePreferredCommunicationChange(option, false)
                     }
@@ -1071,7 +1072,7 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[300px] p-0" align="start">
+              <PopoverContent className="w-[min(300px,calc(100vw-2rem))] p-0" align="start">
                 <Command>
                   <CommandInput placeholder="Search areas..." />
                   <CommandList>
@@ -1112,10 +1113,10 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
             {(formData.areas_of_contribution || []).length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
                 {(formData.areas_of_contribution || []).map((area) => (
-                  <Badge key={area} variant="secondary" className="cursor-pointer">
+                  <Badge key={area} variant="secondary" className="max-w-full cursor-pointer whitespace-normal break-words text-left">
                     {area}
                     <X
-                      className="ml-1 h-3 w-3"
+                      className="ml-1 h-3 w-3 flex-shrink-0"
                       onClick={() => {
                         const base = formData.areas_of_contribution || [];
                         const updated = base.filter((s) => s !== area);
@@ -1175,7 +1176,7 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[300px] p-0" align="start">
+                  <PopoverContent className="w-[min(300px,calc(100vw-2rem))] p-0" align="start">
                     <Command>
                       <CommandInput placeholder="Search skills..." />
                       <CommandList>
@@ -1226,10 +1227,10 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                   return selected.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
                       {selected.map((skill) => (
-                        <Badge key={skill} variant="secondary" className="cursor-pointer">
+                        <Badge key={skill} variant="secondary" className="max-w-full cursor-pointer whitespace-normal break-words text-left">
                           {skill}
                           <X
-                            className="ml-1 h-3 w-3"
+                            className="ml-1 h-3 w-3 flex-shrink-0"
                             onClick={() => {
                               const base = (skillsInput || "")
                                 .split(",")
@@ -1266,14 +1267,15 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
 
           {/* <h3 className="text-lg font-semibold">Privacy Settings</h3> */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
                 <Label htmlFor="is_public">Public Profile</Label>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs text-muted-foreground sm:text-sm">
                   Allow others to see this profile in the directory
                 </p>
               </div>
               <Switch
+                className="flex-shrink-0"
                 id="is_public"
                 checked={Boolean(formData.is_public)}
                 onCheckedChange={(checked) =>
@@ -1281,16 +1283,17 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                 }
               />
             </div>
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
                 <Label htmlFor="show_contact_info">
                   Show Contact Information
                 </Label>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs text-muted-foreground sm:text-sm">
                   Display email, phone, and LinkedIn to other users
                 </p>
               </div>
               <Switch
+                className="flex-shrink-0"
                 id="show_contact_info"
                 checked={Boolean(formData.show_contact_info)}
                 onCheckedChange={(checked) =>
@@ -1298,14 +1301,15 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                 }
               />
             </div>
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
                 <Label htmlFor="show_location">Show Location</Label>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs text-muted-foreground sm:text-sm">
                   Display location information to other users
                 </p>
               </div>
               <Switch
+                className="flex-shrink-0"
                 id="show_location"
                 checked={Boolean(formData.show_location)}
                 onCheckedChange={(checked) =>

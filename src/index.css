@@ -127,3 +127,118 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+@layer base {
+  html,
+  body {
+    /* Nothing in the app should be able to scroll the page sideways. */
+    @apply max-w-full overflow-x-hidden;
+  }
+
+  body {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Long unbroken strings (emails, URLs, org names) must wrap instead of
+     stretching their container past the viewport. */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  span,
+  a,
+  li,
+  label,
+  td,
+  th {
+    overflow-wrap: break-word;
+  }
+}
+
+@layer utilities {
+  /* Horizontally scrollable region (tables, wide rows) with momentum on iOS. */
+  .scroll-x {
+    @apply w-full max-w-full overflow-x-auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@layer components {
+  /* Welcome splash animations (see components/user/WelcomeSplash.tsx). */
+  @keyframes splash-ring {
+    0% {
+      transform: scale(0.4);
+      opacity: 0;
+    }
+    35% {
+      opacity: 1;
+    }
+    100% {
+      transform: scale(2.6);
+      opacity: 0;
+    }
+  }
+
+  @keyframes splash-pop {
+    0% {
+      transform: scale(0.6) rotate(-8deg);
+      opacity: 0;
+    }
+    60% {
+      transform: scale(1.08) rotate(2deg);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1) rotate(0deg);
+      opacity: 1;
+    }
+  }
+
+  @keyframes splash-rise {
+    from {
+      transform: translateY(12px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes splash-bar {
+    0% {
+      transform: translateX(-110%);
+    }
+    100% {
+      transform: translateX(320%);
+    }
+  }
+
+  .splash-ring {
+    animation: splash-ring 1.9s ease-out infinite;
+  }
+
+  .splash-pop {
+    animation: splash-pop 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .splash-rise {
+    animation: splash-rise 0.55s ease-out both;
+  }
+
+  .splash-bar {
+    animation: splash-bar 1.3s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .splash-ring,
+    .splash-pop,
+    .splash-rise,
+    .splash-bar {
+      animation: none;
+    }
+  }
+}
