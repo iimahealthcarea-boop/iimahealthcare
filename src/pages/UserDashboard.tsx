@@ -28,6 +28,9 @@ import { Tables } from "@/integrations/supabase/types";
 
 type Profile = Tables<"profiles">;
 
+/** Session marker holding the user id already greeted by the welcome splash. */
+const SPLASH_KEY = "iima_welcomed_user";
+
 interface DirectoryItem {
   profiles: Profile;
   member_id: string;
@@ -39,10 +42,10 @@ export default function UserDashboard() {
   const navigate = useNavigate();
 
   const [section, setSection] = useState<UserSection>("home");
-  // Welcome splash plays once per browser session, not on every dashboard visit.
-  const [showSplash, setShowSplash] = useState(
-    () => typeof window !== "undefined" && !sessionStorage.getItem("iima_welcomed")
-  );
+  // Welcome splash plays once per login. The stored marker is the signed-in
+  // user id, so a new sign-in (or a different user) replays it, while moving
+  // around the dashboard within the same session does not.
+  const [showSplash, setShowSplash] = useState(false);
   const [homeTab, setHomeTab] = useState<HomeTab>("all");
   const [issueMessage, setIssueMessage] = useState("");
   const [isSubmittingIssue, setIsSubmittingIssue] = useState(false);
@@ -158,6 +161,21 @@ export default function UserDashboard() {
       cancelled = true;
     };
   }, [user]);
+
+  // Show the splash when this user hasn't been greeted in this session yet.
+  useEffect(() => {
+    if (!user?.id) return;
+    if (sessionStorage.getItem(SPLASH_KEY) !== user.id) {
+      setShowSplash(true);
+    }
+  }, [user?.id]);
+
+  // Sections swap content in place rather than changing route, so the window
+  // keeps its scroll offset — switching from a long list would otherwise land
+  // the user mid-page. Reset to the top whenever the section changes.
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [section]);
 
   const handleMemberDetails = (member: Profile) => {
     setSelectedMember(member);
@@ -291,9 +309,11 @@ export default function UserDashboard() {
   );
 
   const dismissSplash = useCallback(() => {
-    sessionStorage.setItem("iima_welcomed", "1");
+    if (user?.id) {
+      sessionStorage.setItem(SPLASH_KEY, user.id);
+    }
     setShowSplash(false);
-  }, []);
+  }, [user?.id]);
 
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-background">

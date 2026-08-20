@@ -196,6 +196,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    // Clear the welcome-splash marker so the next sign-in greets the user again.
+    sessionStorage.removeItem('iima_welcomed_user');
     // Force navigation to auth page after sign out
     window.location.href = '/auth';
   };

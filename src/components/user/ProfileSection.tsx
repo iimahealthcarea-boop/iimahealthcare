@@ -2,8 +2,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Edit, Mail, Phone, MapPin, Building, Calendar, Linkedin, Globe } from 'lucide-react';
+import { Edit, Mail, Phone, MapPin, Building, Calendar, Linkedin, Globe, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ProfileLike {
   first_name?: string | null;
@@ -37,6 +38,7 @@ const getInitials = (firstName?: string | null, lastName?: string | null) =>
 
 /** Read-only summary of the signed-in user's own profile, with an edit entry point. */
 export default function ProfileSection({ profile, email }: ProfileSectionProps) {
+  const { signOut } = useAuth();
   const displayEmail = profile?.email || email;
 
   return (
@@ -228,6 +230,18 @@ export default function ProfileSection({ profile, email }: ProfileSectionProps) 
           )}
         </div>
       )}
+
+      {/* Sign out — standard placement at the bottom of the profile tab */}
+      <div className="min-w-0 pt-1">
+        <Button
+          variant="outline"
+          onClick={signOut}
+          className="h-11 w-full border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+        >
+          <LogOut className="mr-2 h-4 w-4 flex-shrink-0" />
+          Sign Out
+        </Button>
+      </div>
     </div>
   );
 }
