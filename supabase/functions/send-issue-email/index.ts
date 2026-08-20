@@ -3,46 +3,53 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import nodemailer from "npm:nodemailer";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type"
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 const ADMIN_EMAIL = "vikash.patwari@gmail.com";
 const SMTP_USER = Deno.env.get("SMTP_USER") ?? "";
-const SMTP_APP_PASSWORD = Deno.env.get("SMTP_APP_PASSWORD") ?? "";
-const handler = async (req)=>{
+const SMTP_APP_PASSWORD = Deno.env.get("SMTP_PASSOWRD") ?? "";
+const handler = async (req) => {
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 587,
     secure: false,
     auth: {
       user: SMTP_USER,
-      pass: SMTP_APP_PASSWORD
-    }
+      pass: SMTP_APP_PASSWORD,
+    },
   });
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, {
-      headers: corsHeaders
+      headers: corsHeaders,
     });
   }
   try {
     // Verify the user is authenticated
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "No authorization header" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json", ...corsHeaders }
-      });
+      return new Response(
+        JSON.stringify({ error: "No authorization header" }),
+        {
+          status: 401,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        },
+      );
     }
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseClient.auth.getUser(token);
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Invalid token" }), {
         status: 401,
-        headers: { "Content-Type": "application/json", ...corsHeaders }
+        headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
@@ -63,23 +70,27 @@ const handler = async (req)=>{
           <p><strong>Issue Type:</strong> ${type}</p>
           <p><strong>Message:</strong></p>
           <div style="background-color: white; border: 1px solid #d1d5db; border-radius: 4px; padding: 12px; margin: 8px 0;">
-            ${message.replace(/\n/g, '<br>')}
+            ${message.replace(/\n/g, "<br>")}
           </div>
         </div>
 
-        ${profileDetails ? `
+        ${
+          profileDetails
+            ? `
           <div style="background-color: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 20px; margin: 20px 0;">
             <h3 style="color: #0c4a6e; margin-top: 0;">User Profile Information</h3>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-              ${profileDetails.first_name ? `<p><strong>Name:</strong> ${profileDetails.first_name} ${profileDetails.last_name || ''}</p>` : ''}
-              ${profileDetails.organization ? `<p><strong>Organization:</strong> ${profileDetails.organization}</p>` : ''}
-              ${profileDetails.position ? `<p><strong>Position:</strong> ${profileDetails.position}</p>` : ''}
-              ${profileDetails.phone ? `<p><strong>Phone:</strong> ${profileDetails.phone}</p>` : ''}
-              ${profileDetails.program ? `<p><strong>Program:</strong> ${profileDetails.program}</p>` : ''}
-              ${profileDetails.graduation_year ? `<p><strong>Graduation Year:</strong> ${profileDetails.graduation_year}</p>` : ''}
+              ${profileDetails.first_name ? `<p><strong>Name:</strong> ${profileDetails.first_name} ${profileDetails.last_name || ""}</p>` : ""}
+              ${profileDetails.organization ? `<p><strong>Organization:</strong> ${profileDetails.organization}</p>` : ""}
+              ${profileDetails.position ? `<p><strong>Position:</strong> ${profileDetails.position}</p>` : ""}
+              ${profileDetails.phone ? `<p><strong>Phone:</strong> ${profileDetails.phone}</p>` : ""}
+              ${profileDetails.program ? `<p><strong>Program:</strong> ${profileDetails.program}</p>` : ""}
+              ${profileDetails.graduation_year ? `<p><strong>Graduation Year:</strong> ${profileDetails.graduation_year}</p>` : ""}
             </div>
           </div>
-        ` : ''}
+        `
+            : ""
+        }
         
         <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 16px; margin: 20px 0;">
           <h3 style="color: #92400e; margin-top: 0;">Action Required</h3>
@@ -101,30 +112,36 @@ const handler = async (req)=>{
       from: `"IIM-AMS Issue Reporter" <${SMTP_USER}>`,
       to: ADMIN_EMAIL,
       subject: "New Issue Reported by User",
-      html: htmlContent
+      html: htmlContent,
     });
     console.log("Issue email sent successfully:", emailResponse);
-    return new Response(JSON.stringify({
-      success: true,
-      emailResponse
-    }), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders
-      }
-    });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        emailResponse,
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      },
+    );
   } catch (error) {
     console.error("Error in send-issue-email function:", error);
-    return new Response(JSON.stringify({
-      error: error.message
-    }), {
-      status: 500,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders
-      }
-    });
+    return new Response(
+      JSON.stringify({
+        error: error.message,
+      }),
+      {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      },
+    );
   }
 };
 serve(handler);

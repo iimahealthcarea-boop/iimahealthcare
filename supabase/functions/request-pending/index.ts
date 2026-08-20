@@ -2,22 +2,23 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import nodemailer from "npm:nodemailer";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type"
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 // Hardcoded admin email
 const ADMIN_EMAIL = "iimahealthcarea@gmail.com";
 const SMTP_USER = Deno.env.get("SMTP_USER") ?? "";
-const SMTP_APP_PASSWORD = Deno.env.get("SMTP_APP_PASSWORD") ?? "";
+const SMTP_APP_PASSWORD = Deno.env.get("SMTP_PASSOWRD") ?? "";
 // Function to send signup email
-const sendSignupEmail = async (firstName, lastName, userEmail)=>{
+const sendSignupEmail = async (firstName, lastName, userEmail) => {
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 587,
     secure: false,
     auth: {
       user: SMTP_USER,
-      pass: SMTP_APP_PASSWORD
-    }
+      pass: SMTP_APP_PASSWORD,
+    },
   });
   const htmlContent = `
     <div style="font-family: Arial, sans-serif; max-width: 650px; margin: 0 auto; background: #f9fafb; padding: 40px; border-radius: 10px; border: 1px solid #e5e7eb;">
@@ -45,63 +46,76 @@ const sendSignupEmail = async (firstName, lastName, userEmail)=>{
     from: `"IIM-AMS Admin Notifier" <${SMTP_USER}>`,
     to: ADMIN_EMAIL,
     subject: "New User Signup Pending Approval",
-    html: htmlContent
+    html: htmlContent,
   });
 };
 // Dedicated handler for signup emails
-const handler = async (req)=>{
+const handler = async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, {
-      headers: corsHeaders
+      headers: corsHeaders,
     });
   }
   try {
     // Verify the user is authenticated
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "No authorization header" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json", ...corsHeaders }
-      });
+      return new Response(
+        JSON.stringify({ error: "No authorization header" }),
+        {
+          status: 401,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        },
+      );
     }
-    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+    const { createClient } =
+      await import("https://esm.sh/@supabase/supabase-js@2");
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseClient.auth.getUser(token);
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Invalid token" }), {
         status: 401,
-        headers: { "Content-Type": "application/json", ...corsHeaders }
+        headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
     const { firstName, lastName, email } = await req.json();
     console.log(`New signup: ${firstName} ${lastName}, ${email}`);
     const info = await sendSignupEmail(firstName, lastName, email);
-    return new Response(JSON.stringify({
-      success: true,
-      messageId: info.messageId
-    }), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders
-      }
-    });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        messageId: info.messageId,
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      },
+    );
   } catch (error) {
     console.error("Error sending signup email:", error);
-    return new Response(JSON.stringify({
-      error: error.message
-    }), {
-      status: 500,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders
-      }
-    });
+    return new Response(
+      JSON.stringify({
+        error: error.message,
+      }),
+      {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      },
+    );
   }
 };
 serve(handler);

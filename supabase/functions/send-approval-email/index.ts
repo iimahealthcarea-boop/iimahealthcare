@@ -8,7 +8,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 const SMTP_USER = Deno.env.get("SMTP_USER") ?? "";
-const SMTP_APP_PASSWORD = Deno.env.get("SMTP_APP_PASSWORD") ?? "";
+const SMTP_APP_PASSWORD = Deno.env.get("SMTP_PASSOWRD") ?? "";
 const handler = async (req) => {
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
