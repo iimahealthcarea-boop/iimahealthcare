@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
-const ADMIN_EMAIL = "vikash.patwari@gmail.com";
+const ADMIN_EMAIL = "iimahealthcarea@gmail.com";
 const SMTP_USER = Deno.env.get("SMTP_USER") ?? "";
 const SMTP_APP_PASSWORD = Deno.env.get("SMTP_PASSOWRD") ?? "";
 const handler = async (req) => {
