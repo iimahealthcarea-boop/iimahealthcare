@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, GraduationCap, ArrowLeft } from "lucide-react";
+import SpamFolderNotice from "@/components/SpamFolderNotice";
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
@@ -145,13 +146,11 @@ export default function ForgotPassword() {
                   <h3 className="text-lg font-semibold text-green-600 mb-2">
                     Email Sent Successfully!
                   </h3>
-                  <p className="text-sm text-muted-foreground mb-4">
+                  <p className="text-sm text-muted-foreground mb-3">
                     We've sent a password reset link to <strong>{email}</strong>. 
                     Please check your email and click the link to reset your password.
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    Didn't receive the email? Check your spam folder or try again.
-                  </p>
+                  <SpamFolderNotice />
                 </div>
                 <div className="space-y-2">
                   <Button

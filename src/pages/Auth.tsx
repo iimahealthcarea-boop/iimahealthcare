@@ -15,6 +15,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, GraduationCap, EyeOff, Eye } from "lucide-react";
+import SpamFolderNotice from "@/components/SpamFolderNotice";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -171,9 +172,9 @@ export default function Auth() {
 
         setSignupSuccessEmail(email);
         toast({
-          title: "Success",
+          title: "Check your email (and spam folder)",
           description:
-            "Account created successfully! Please check your email to confirm your account. If you don't see it, check your spam or junk folder.",
+            "We've sent a confirmation link. If it's not in your inbox, look in your spam or junk folder.",
         });
       }
     } catch (error) {
@@ -301,14 +302,12 @@ export default function Auth() {
                     <h3 className="text-lg font-semibold text-green-600 mb-2">
                       Account Created Successfully!
                     </h3>
-                    <p className="text-sm text-muted-foreground mb-4">
+                    <p className="text-sm text-muted-foreground mb-3">
                       We've sent a confirmation email to{" "}
                       <strong>{signupSuccessEmail}</strong>. Please check your
                       inbox and click the link to confirm your account.
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      Didn't receive the email? Check your spam or junk folder.
-                    </p>
+                    <SpamFolderNotice />
                   </div>
                   <Button
                     onClick={() => {
