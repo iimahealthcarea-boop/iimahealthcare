@@ -274,6 +274,111 @@ export type Database = {
         }
         Relationships: []
       }
+      events: {
+        Row: {
+          id: string
+          slug: string
+          title: string
+          description: string | null
+          location: string | null
+          starts_at: string
+          ends_at: string | null
+          date_label: string | null
+          is_active: boolean
+          visible_from: string | null
+          visible_until: string | null
+          reminders_enabled: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          slug: string
+          title: string
+          description?: string | null
+          location?: string | null
+          starts_at: string
+          ends_at?: string | null
+          date_label?: string | null
+          is_active?: boolean
+          visible_from?: string | null
+          visible_until?: string | null
+          reminders_enabled?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          slug?: string
+          title?: string
+          description?: string | null
+          location?: string | null
+          starts_at?: string
+          ends_at?: string | null
+          date_label?: string | null
+          is_active?: boolean
+          visible_from?: string | null
+          visible_until?: string | null
+          reminders_enabled?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      event_responses: {
+        Row: {
+          id: string
+          event_id: string
+          user_id: string
+          status: Database["public"]["Enums"]["event_rsvp_status"]
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          user_id: string
+          status?: Database["public"]["Enums"]["event_rsvp_status"]
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          event_id?: string
+          user_id?: string
+          status?: Database["public"]["Enums"]["event_rsvp_status"]
+          created_at?: string
+        }
+        Relationships: []
+      }
+      event_reminder_consents: {
+        Row: {
+          id: string
+          event_id: string
+          user_id: string
+          consented: boolean
+          consented_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          user_id: string
+          consented?: boolean
+          consented_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          event_id?: string
+          user_id?: string
+          consented?: boolean
+          consented_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profile_update_requests: {
         Row: {
           id: string
@@ -457,6 +562,43 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_active_event: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          slug: string
+          title: string
+          description: string | null
+          location: string | null
+          starts_at: string
+          ends_at: string | null
+          date_label: string | null
+          reminders_enabled: boolean
+          attendee_count: number
+          has_rsvped: boolean
+          reminder_opted_in: boolean
+        }[]
+      }
+      get_event_attendees: {
+        Args: { p_event_id: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          user_id: string
+          first_name: string | null
+          last_name: string | null
+          avatar_url: string | null
+          position: string | null
+          organization: string | null
+          responded_at: string
+        }[]
+      }
+      rsvp_to_event: {
+        Args: { p_event_id: string }
+        Returns: undefined
+      }
+      set_event_reminder_consent: {
+        Args: { p_event_id: string; p_consented?: boolean }
+        Returns: undefined
+      }
       approve_user_profile: {
         Args: { profile_user_id: string }
         Returns: undefined
@@ -516,6 +658,7 @@ export type Database = {
         }
     }
     Enums: {
+      event_rsvp_status: "going"
       experience_level:
         | "Entry Level"
         | "Mid Level"

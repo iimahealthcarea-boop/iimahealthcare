@@ -24,6 +24,8 @@ import UserBottomNav, { UserSection } from "@/components/user/UserBottomNav";
 import HomeSection, { HomeTab } from "@/components/user/HomeSection";
 import ProfileSection from "@/components/user/ProfileSection";
 import WelcomeSplash from "@/components/user/WelcomeSplash";
+import EventCard from "@/components/user/EventCard";
+import { useActiveEvent } from "@/hooks/useActiveEvent";
 import { Tables } from "@/integrations/supabase/types";
 
 type Profile = Tables<"profiles">;
@@ -63,6 +65,15 @@ export default function UserDashboard() {
 
   const profile = user?.profile;
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+
+  // Temporary event announcement (visibility is decided server-side).
+  const {
+    event: activeEvent,
+    rsvp,
+    rsvpPending,
+    enableReminder,
+    reminderPending,
+  } = useActiveEvent(!!user);
 
   // Single shared starred-profiles instance, passed down to both tabs.
   const starredProfilesHook = useStarredProfiles();
@@ -372,6 +383,17 @@ export default function UserDashboard() {
           <ProfileSection profile={profile} email={user?.email} />
         )}
       </main>
+
+      {/* Event announcement modal — held back until the welcome splash clears. */}
+      {activeEvent && !showSplash && (
+        <EventCard
+          event={activeEvent}
+          onRsvp={rsvp}
+          rsvpPending={rsvpPending}
+          onEnableReminder={enableReminder}
+          reminderPending={reminderPending}
+        />
+      )}
 
       <MemberDetailsDialog
         isOpen={isDetailsDialogOpen}
