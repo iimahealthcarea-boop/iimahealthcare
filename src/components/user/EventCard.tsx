@@ -87,7 +87,7 @@ export default function EventCard({
               <div className="flex min-w-0 flex-col items-center gap-3 text-center sm:flex-row sm:items-start sm:gap-4 sm:text-left">
                 <EventIllustration className="h-28 w-28 flex-shrink-0 sm:h-[128px] sm:w-[128px]" />
 
-                <div className="min-w-0 flex-1 pr-8 sm:pr-7">
+                <div className="min-w-0 flex-1 sm:pr-7">
                   <span className="inline-block rounded-md bg-blue-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-blue-600">
                     Upcoming Event
                   </span>
