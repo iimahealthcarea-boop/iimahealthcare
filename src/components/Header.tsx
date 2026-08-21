@@ -39,7 +39,7 @@ export default function Header({ showUserInfo = false, showSignOut = false }: He
                 IIMA Healthcare SIG
               </h1>
               <p className="truncate text-[11px] text-blue-200 sm:text-sm">
-                Alumni Management System
+                Directory
               </p>
             </div>
           </div>

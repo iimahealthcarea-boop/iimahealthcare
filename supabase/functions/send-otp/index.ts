@@ -87,9 +87,9 @@ const handler = async (req: Request): Promise<Response> => {
     // Send OTP via email
     if (email) {
       const emailResponse = await resend.emails.send({
-        from: "IIM-AMS Portal <onboarding@resend.dev>",
+        from: "IIMA Healthcare SIG Directory <onboarding@resend.dev>",
         to: [email],
-        subject: `Your IIM-AMS Portal verification code: ${otpCode}`,
+        subject: `Your IIMA Healthcare SIG Directory verification code: ${otpCode}`,
         html: `
           <!DOCTYPE html>
           <html>
@@ -99,12 +99,12 @@ const handler = async (req: Request): Promise<Response> => {
               <style>
                 body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
                 .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                .header { background: #f8f9fa; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+                .header { background: #1d4ed8; color: #ffffff; padding: 24px 20px; text-align: center; border-radius: 8px 8px 0 0; }
                 .content { background: white; padding: 30px; border: 1px solid #e9ecef; }
                 .otp-code { 
                   font-size: 32px; 
                   font-weight: bold; 
-                  color: #0066cc; 
+                  color: #1d4ed8; 
                   text-align: center; 
                   padding: 20px; 
                   background: #f8f9fa; 
@@ -118,12 +118,12 @@ const handler = async (req: Request): Promise<Response> => {
             <body>
               <div class="container">
                 <div class="header">
-                  <h1>IIM-AMS Portal</h1>
+                  <h1>IIMA Healthcare SIG Directory</h1>
                   <p>Verification Code</p>
                 </div>
                 <div class="content">
                   <h2>Hello!</h2>
-                  <p>You requested ${isSignUp ? 'to create an account' : 'to sign in'} with the IIM-AMS Portal. Please use the verification code below:</p>
+                  <p>You requested ${isSignUp ? 'to create an account' : 'to sign in'} with the IIMA Healthcare SIG Directory. Please use the verification code below:</p>
                   
                   <div class="otp-code">${otpCode}</div>
                   
@@ -131,7 +131,7 @@ const handler = async (req: Request): Promise<Response> => {
                   
                   <p>If you didn't request this code, please ignore this email.</p>
                   
-                  <p>Best regards,<br>IIM-AMS Portal Team</p>
+                  <p>Best regards,<br>The IIMA Healthcare SIG Directory Team</p>
                 </div>
                 <div class="footer">
                   <p>This is an automated message. Please do not reply to this email.</p>

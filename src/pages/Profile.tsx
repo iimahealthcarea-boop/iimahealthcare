@@ -80,6 +80,7 @@ type ProgramType =
   | "FDP"
   | "AFP"
   | "SMP"
+  | "AGMP"
   | "Other";
 
 interface Organization {

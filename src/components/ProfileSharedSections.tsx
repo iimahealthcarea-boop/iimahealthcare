@@ -556,6 +556,7 @@ export const ProfileSharedSections: React.FC<ProfileSharedSectionsProps> = ({
                   <SelectItem value="FDP">FDP</SelectItem>
                   <SelectItem value="AFP">AFP</SelectItem>
                   <SelectItem value="SMP">SMP</SelectItem>
+                  <SelectItem value="AGMP">AGMP</SelectItem>
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>

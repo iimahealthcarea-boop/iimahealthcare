@@ -80,105 +80,212 @@ const handler = async (req) => {
     let subject;
     let htmlContent;
     if (status === "approved") {
-      subject = "IIM-AMS Registration Approved! Welcome to the Community";
+      subject = "You're approved — welcome to the IIMA Healthcare SIG Directory";
       htmlContent = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h1 style="color: #2563eb; text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 10px;">
-            IIM-AMS Alumni Management System
-          </h1>
-          
-          <h2 style="color: #16a34a;">Congratulations! Your Registration has been Approved</h2>
-          
-          <p>Dear ${name},</p>
-          
-          <p>We are pleased to inform you that your registration with IIM-AMS has been <strong>approved</strong>!</p>
-          
-          <p>You can now access the full features of our alumni platform, including:</p>
-          <ul>
-            <li>Member directory and networking opportunities</li>
-            <li>Profile management and updates</li>
-            <li>Access to exclusive alumni resources</li>
-            <li>Event notifications and updates</li>
-          </ul>
-          
-          <p>Please log in to your account to get started and explore all the available features.</p>
-          
-          <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
-          
-          <p>Welcome to the IIM-AMS community!</p>
-          
-          <p>Best regards,<br>
-          The IIM-AMS Admin Team</p>
-          
-          <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
-          <p style="font-size: 12px; color: #6b7280; text-align: center;">
-            This is an automated message from IIM-AMS Alumni Management System
-          </p>
+        <div style="margin:0;padding:24px 12px;background-color:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:600px;margin:0 auto;background-color:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;">
+            <!-- Header -->
+            <tr>
+              <td style="background-color:#1d4ed8;padding:28px 32px;text-align:center;">
+                <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:700;letter-spacing:-0.2px;">
+                  IIMA Healthcare SIG Directory
+                </h1>
+              </td>
+            </tr>
+
+            <!-- Body -->
+            <tr>
+              <td style="padding:32px;">
+                <div style="display:inline-block;background-color:#dcfce7;color:#15803d;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:6px 12px;border-radius:6px;">
+                  Approved
+                </div>
+
+                <h2 style="margin:16px 0 0;color:#0f172a;font-size:22px;font-weight:700;line-height:1.3;">
+                  Your membership has been approved
+                </h2>
+
+                <p style="margin:16px 0 0;color:#475569;font-size:15px;line-height:1.6;">
+                  Dear ${name},
+                </p>
+
+                <p style="margin:12px 0 0;color:#475569;font-size:15px;line-height:1.6;">
+                  Your registration for the IIMA Healthcare SIG Directory has been approved. You now have full access to the member directory.
+                </p>
+
+                <!-- What you can do -->
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:24px 0 0;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
+                  <tr>
+                    <td style="padding:20px 24px;">
+                      <p style="margin:0 0 12px;color:#0f172a;font-size:14px;font-weight:700;">
+                        What you can do now
+                      </p>
+                      <p style="margin:0 0 8px;color:#475569;font-size:14px;line-height:1.5;">
+                        &bull;&nbsp; Search the alumni directory by organization, skills and interests
+                      </p>
+                      <p style="margin:0 0 8px;color:#475569;font-size:14px;line-height:1.5;">
+                        &bull;&nbsp; Build your personal network of saved members
+                      </p>
+                      <p style="margin:0 0 8px;color:#475569;font-size:14px;line-height:1.5;">
+                        &bull;&nbsp; Keep your own profile up to date
+                      </p>
+                      <p style="margin:0;color:#475569;font-size:14px;line-height:1.5;">
+                        &bull;&nbsp; Get notified about upcoming SIG events
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- CTA -->
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0 0;">
+                  <tr>
+                    <td style="background-color:#1d4ed8;border-radius:8px;">
+                      <a href="${siteUrl}"
+                         style="display:inline-block;padding:13px 30px;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;">
+                        Open the Directory
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+
+                <p style="margin:24px 0 0;color:#64748b;font-size:14px;line-height:1.6;">
+                  If you have any questions, just reply to this email and our team will help.
+                </p>
+
+                <p style="margin:20px 0 0;color:#475569;font-size:15px;line-height:1.6;">
+                  Warm regards,<br>
+                  <strong style="color:#0f172a;">The IIMA Healthcare SIG Directory Team</strong>
+                </p>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="background-color:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 32px;text-align:center;">
+                <p style="margin:0;color:#94a3b8;font-size:12px;line-height:1.5;">
+                  This is an automated message from the IIMA Healthcare SIG Directory.
+                </p>
+              </td>
+            </tr>
+          </table>
         </div>
       `;
     } else {
       subject =
-        "Action required: Please revise and resubmit your IIM-AMS application";
+        "Action needed: please update your IIMA Healthcare SIG Directory application";
       htmlContent = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #111827;">
-          <h1 style="color: #2563eb; text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 10px;">
-            IIM-AMS Alumni Management System
-          </h1>
+        <div style="margin:0;padding:24px 12px;background-color:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:600px;margin:0 auto;background-color:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;">
+            <!-- Header -->
+            <tr>
+              <td style="background-color:#1d4ed8;padding:28px 32px;text-align:center;">
+                <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:700;letter-spacing:-0.2px;">
+                  IIMA Healthcare SIG Directory
+                </h1>
+              </td>
+            </tr>
 
-          <h2 style="color: #dc2626;">Your application needs a few changes</h2>
+            <!-- Body -->
+            <tr>
+              <td style="padding:32px;">
+                <div style="display:inline-block;background-color:#fef3c7;color:#b45309;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:6px 12px;border-radius:6px;">
+                  Action needed
+                </div>
 
-          <p>Dear ${name},</p>
+                <h2 style="margin:16px 0 0;color:#0f172a;font-size:22px;font-weight:700;line-height:1.3;">
+                  Your application needs a few changes
+                </h2>
 
-          <p>Thank you for applying to join the IIM-AMS Healthcare SIG alumni community. Our review team has looked at the details you submitted and asked you to update your application before we can approve it.</p>
+                <p style="margin:16px 0 0;color:#475569;font-size:15px;line-height:1.6;">
+                  Dear ${name},
+                </p>
 
-          ${
-            reason
-              ? `
-            <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 16px; margin: 20px 0; border-radius: 4px;">
-              <h3 style="color: #dc2626; margin-top: 0; margin-bottom: 8px;">Feedback from the review team</h3>
-              <p style="margin: 0; white-space: pre-wrap;">${reason}</p>
-            </div>
-          `
-              : `
-            <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 16px; margin: 20px 0; border-radius: 4px;">
-              <p style="margin: 0;">The review team did not include specific feedback. Please double-check all required fields (name, contact details, program, graduation year, current organization, LinkedIn, bio) and resubmit.</p>
-            </div>
-          `
-          }
+                <p style="margin:12px 0 0;color:#475569;font-size:15px;line-height:1.6;">
+                  Thank you for applying to the IIMA Healthcare SIG Directory. Our review team looked at your submission and needs a few details updated before your membership can be approved.
+                </p>
 
-          <h3 style="color: #111827; margin-top: 24px;">What happens next</h3>
-          <ol style="padding-left: 20px; line-height: 1.7;">
-            <li>Click the button below to open your application.</li>
-            <li>Review the feedback above and update the relevant sections of your profile.</li>
-            <li>Submit the form. Your application will return to the review queue automatically.</li>
-            <li>You'll receive another email as soon as the review team responds.</li>
-          </ol>
+                ${
+                  reason
+                    ? `
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:24px 0 0;background-color:#fffbeb;border:1px solid #fde68a;border-left:4px solid #f59e0b;border-radius:8px;">
+                  <tr>
+                    <td style="padding:20px 24px;">
+                      <p style="margin:0 0 8px;color:#92400e;font-size:14px;font-weight:700;">
+                        Feedback from the review team
+                      </p>
+                      <p style="margin:0;color:#78350f;font-size:14px;line-height:1.6;white-space:pre-wrap;">${reason}</p>
+                    </td>
+                  </tr>
+                </table>`
+                    : `
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:24px 0 0;background-color:#fffbeb;border:1px solid #fde68a;border-left:4px solid #f59e0b;border-radius:8px;">
+                  <tr>
+                    <td style="padding:20px 24px;">
+                      <p style="margin:0;color:#78350f;font-size:14px;line-height:1.6;">
+                        Please double-check all required fields &mdash; name, contact details, program, graduation year, current organization, LinkedIn and bio &mdash; then resubmit.
+                      </p>
+                    </td>
+                  </tr>
+                </table>`
+                }
 
-          <div style="text-align: center; margin: 32px 0;">
-            <a href="${resubmitUrl}"
-               style="display: inline-block; background-color: #2563eb; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 6px; font-weight: 600;">
-              Update &amp; Resubmit Application
-            </a>
-            <p style="font-size: 12px; color: #6b7280; margin-top: 12px;">
-              Or copy this link into your browser:<br>
-              <a href="${resubmitUrl}" style="color: #2563eb;">${resubmitUrl}</a>
-            </p>
-          </div>
+                <p style="margin:28px 0 12px;color:#0f172a;font-size:14px;font-weight:700;">
+                  What happens next
+                </p>
+                <p style="margin:0 0 8px;color:#475569;font-size:14px;line-height:1.5;">
+                  1.&nbsp; Open your application using the button below.
+                </p>
+                <p style="margin:0 0 8px;color:#475569;font-size:14px;line-height:1.5;">
+                  2.&nbsp; Update the sections mentioned above.
+                </p>
+                <p style="margin:0 0 8px;color:#475569;font-size:14px;line-height:1.5;">
+                  3.&nbsp; Submit &mdash; it returns to the review queue automatically.
+                </p>
+                <p style="margin:0;color:#475569;font-size:14px;line-height:1.5;">
+                  4.&nbsp; We'll email you as soon as the team responds.
+                </p>
 
-          <p>If you believe this was a mistake or you need help updating your information, just reply to this email and our team will get back to you.</p>
+                <!-- CTA -->
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0 0;">
+                  <tr>
+                    <td style="background-color:#1d4ed8;border-radius:8px;">
+                      <a href="${resubmitUrl}"
+                         style="display:inline-block;padding:13px 30px;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;">
+                        Update &amp; Resubmit
+                      </a>
+                    </td>
+                  </tr>
+                </table>
 
-          <p>Best regards,<br>
-          The IIM-AMS Admin Team</p>
+                <p style="margin:16px 0 0;color:#94a3b8;font-size:12px;line-height:1.5;">
+                  Or paste this link into your browser:<br>
+                  <a href="${resubmitUrl}" style="color:#1d4ed8;">${resubmitUrl}</a>
+                </p>
 
-          <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
-          <p style="font-size: 12px; color: #6b7280; text-align: center;">
-            This is an automated message from IIM-AMS Alumni Management System
-          </p>
+                <p style="margin:24px 0 0;color:#64748b;font-size:14px;line-height:1.6;">
+                  If you think this was a mistake or need help, just reply to this email.
+                </p>
+
+                <p style="margin:20px 0 0;color:#475569;font-size:15px;line-height:1.6;">
+                  Warm regards,<br>
+                  <strong style="color:#0f172a;">The IIMA Healthcare SIG Directory Team</strong>
+                </p>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="background-color:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 32px;text-align:center;">
+                <p style="margin:0;color:#94a3b8;font-size:12px;line-height:1.5;">
+                  This is an automated message from the IIMA Healthcare SIG Directory.
+                </p>
+              </td>
+            </tr>
+          </table>
         </div>
       `;
     }
     const emailResponse = await transporter.sendMail({
-      from: `"IIM-AMS Admin Notifier" <${SMTP_USER}>`,
+      from: `"IIMA Healthcare SIG Directory" <${SMTP_USER}>`,
       to: [email],
       subject: subject,
       html: htmlContent,

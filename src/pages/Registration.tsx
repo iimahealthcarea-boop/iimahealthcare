@@ -88,6 +88,7 @@ export default function Registration() {
       | "FDP"
       | "AFP"
       | "SMP"
+      | "AGMP"
       | "Other",
     // experience_level: '',
     // organization_type: '',
@@ -248,6 +249,7 @@ export default function Registration() {
         "FDP",
         "AFP",
         "SMP",
+        "AGMP",
         "Other",
       ].includes(formData.program)
     ) {
