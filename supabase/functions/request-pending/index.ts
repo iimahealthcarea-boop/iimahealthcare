@@ -110,30 +110,17 @@ const handler = async (req) => {
     });
   }
   try {
-    // Verify the user is authenticated
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "No authorization header" }),
-        {
-          status: 401,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        },
-      );
-    }
-    const { createClient } =
-      await import("https://esm.sh/@supabase/supabase-js@2");
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    );
-    const token = authHeader.replace("Bearer ", "");
-    const {
-      data: { user },
-      error: authError,
-    } = await supabaseClient.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
+    // This function is invoked only by the database trigger that fires when a
+    // new profile row is created. It is never called from the browser: right
+    // after sign-up the user has no session yet, so a user-JWT check could
+    // never succeed here. Instead the trigger presents a shared secret that
+    // only the database holds, which also keeps the endpoint unusable by
+    // anyone on the internet.
+    const SIGNUP_HOOK_SECRET = Deno.env.get("SIGNUP_HOOK_SECRET") ?? "";
+    const presented = req.headers.get("x-signup-secret") ?? "";
+
+    if (!SIGNUP_HOOK_SECRET || presented !== SIGNUP_HOOK_SECRET) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });

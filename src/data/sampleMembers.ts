@@ -188,7 +188,7 @@ export const filterOptions = {
     "MBA-FABM", 
     "MBA-PGPX",
     "PhD",
-    "MBA-FPGP",
+    "MBA-BPGP",
     "ePGD-ABA",
     "FDP",
     "AFP",
